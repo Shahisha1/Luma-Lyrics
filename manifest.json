@@ -1,0 +1,14 @@
+[
+  {
+    "name": "Luma Lyrics (Beta)",
+    "description": "Immersive lyrics, blurred artwork backgrounds, optional desktop colors, and clearly labeled estimated word animation.",
+    "preview": "preview.png",
+    "main": "luma-lyrics.js",
+    "readme": "README.md",
+    "tags": [
+      "lyrics",
+      "fullscreen",
+      "beta"
+    ]
+  }
+]
