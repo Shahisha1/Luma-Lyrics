@@ -12,27 +12,27 @@ Luma Lyrics adds synchronized lyrics and a full-window music player to Spotify d
 
 ## Display modes
 
-Luma Lyrics offers several ways to follow lyrics. Screenshots for each mode will be added here.
+Luma Lyrics offers several ways to follow lyrics. These screenshots show each mode in action.
 
 ### Word by word
 
-
+![Word-by-word lyrics highlighting](screenshots/word.gif)
 
 ### Line by line
 
-
+![Line-by-line lyrics display](screenshots/line.gif)
 
 ### Gentle
 
-
+![Gentle lyrics display](screenshots/gentle.gif)
 
 ### Static
 
-
+![Static lyrics display](screenshots/static.gif)
 
 ### Settings
 
-
+![Lyrics display settings](screenshots/settings.png)
 
 ## Features
 
