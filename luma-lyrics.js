@@ -10,7 +10,7 @@
   const player = () => globalThis.Spicetify.Player;
   const defaultOptions = {
     size: 40,
-    dim: 0.4,
+    dim: 0.25,
     estimated: true,
     desktop: false,
     vinyl: false,
@@ -18,12 +18,20 @@
     lyricMode: "word",
     scrollSmoothness: 65,
   };
-  let options = { ...defaultOptions };
+  let options = { ...defaultOptions },
+    migratedDefaultDim = false;
   try {
+    const savedOptions = JSON.parse(
+      localStorage.getItem("luma-settings") || "{}",
+    );
     options = {
       ...options,
-      ...JSON.parse(localStorage.getItem("luma-settings") || "{}"),
+      ...savedOptions,
     };
+    if (savedOptions.dim === 0.4) {
+      options.dim = defaultOptions.dim;
+      migratedDefaultDim = true;
+    }
   } catch {}
   if ("sliderStyle" in options) {
     delete options.sliderStyle;
@@ -40,7 +48,7 @@
   };
   const style = document.createElement("style");
   style.textContent =
-    "\n#luma-root{position:fixed;inset:0;z-index:999999;background:#151517;color:#fff;font-family:'Segoe UI',sans-serif;overflow:hidden;--lyric-size:36px;--dim:.4}\n#luma-root[hidden],#luma-root [hidden]{display:none!important}\n#luma-root *{box-sizing:border-box}\n#luma-root .backdrop{position:absolute;inset:-100px;background:center/cover;filter:blur(85px) saturate(1.5);opacity:.8;transform:scale(1.1);pointer-events:none}\n#luma-root .shade{position:absolute;inset:0;background:rgba(0,0,0,var(--dim));pointer-events:none}\n#luma-root .bar{position:absolute;inset:20px 25px auto;display:flex;align-items:center;gap:10px;z-index:3}\n#luma-root button{font:inherit;color:inherit;cursor:pointer}\n#luma-root .tool{border:1px solid #ffffff18;border-radius:50%;width:38px;height:38px;background:#ffffff0c;display:grid;place-items:center}\n#luma-root button:hover{background:#ffffff10}\n#luma-root svg{width:20px;height:20px;fill:currentColor}\n#luma-root .status{margin-left:auto;font-size:12px;color:#ffffffa0}\n#luma-root .layout{position:relative;height:100%;padding:85px 9vw 45px;display:grid;grid-template-columns:minmax(230px,360px) minmax(0,1fr);gap:8vw;align-items:center}\n#luma-root .cover{display:block;width:100%;aspect-ratio:1;object-fit:cover;border-radius:13px;background:#28282b;box-shadow:0 30px 80px #0007}\n#luma-root .title{font-size:23px;font-weight:700;margin:22px 0 4px;letter-spacing:-.6px}\n#luma-root .artist{font-size:16px;color:#ffffffaa;margin-bottom:20px}\n#luma-root input[type=range]{width:100%;height:5px;accent-color:white;cursor:pointer}\n#luma-root .times{display:flex;justify-content:space-between;color:#ffffff90;font-size:12px;margin-top:6px}\n#luma-root .controls{display:flex;justify-content:center;gap:24px;margin:15px 0}\n#luma-root .controls button{background:none;border:0;padding:8px;display:grid;place-items:center}\n#luma-root .controls svg{width:29px;height:29px}\n#luma-root .controls .play svg{width:38px;height:38px}\n#luma-root .volume{display:flex;align-items:center;gap:12px;margin-top:14px;color:#ffffffa0}\n#luma-root .lyrics{position:relative;height:100%;overflow:auto;scrollbar-width:none;padding:40vh 8px;mask-image:linear-gradient(transparent,#000 12%,#000 88%,transparent)}\n#luma-root .line{display:block;width:100%;text-align:left;border:0;background:transparent;padding:15px 0;font-size:var(--lyric-size);font-weight:750;letter-spacing:-1px;line-height:1.35;white-space:pre-wrap;opacity:.25;transform:scale(.96);transform-origin:left;transition:transform .5s,opacity .4s}\n#luma-root .line.active{opacity:1;transform:scale(1)}\n#luma-root .line.past{opacity:.35}\n#luma-root .word{display:inline-block;white-space:pre;color:transparent;background:linear-gradient(90deg,#fff var(--fill,0%),#ffffff55 var(--fill,0%));background-clip:text;-webkit-background-clip:text}\n#luma-root .line:not(.active) .word{background:none;color:inherit}\n#luma-root .message{font-size:22px;line-height:1.6;white-space:pre-wrap;color:#ffffffc0}\n#luma-root .settings{position:absolute;right:25px;top:68px;width:300px;max-height:75vh;overflow:auto;z-index:4;padding:20px;border-radius:16px;background:#232326f5;box-shadow:0 20px 60px #0007;border:1px solid #ffffff15}\n#luma-root .settings h2{margin:0 0 15px;font-size:18px}\n#luma-root .settings label{display:block;margin:16px 0;font-size:13px;line-height:1.5}\n#luma-root .settings small{display:block;color:#ffffff90;margin-top:6px;line-height:1.5}\n#luma-root .settings button{border:1px solid #ffffff20;background:#ffffff0c;border-radius:8px;padding:8px 12px;margin:3px}\n@media(max-width:760px){#luma-root .layout{padding:78px 25px 25px;gap:25px;grid-template-columns:minmax(170px,1fr) minmax(0,1.2fr)}#luma-root .line{font-size:26px}#luma-root .status{font-size:10px}}\n@media(prefers-reduced-motion:reduce){#luma-root .line{transition:none;transform:none}}\n";
+    "\n#luma-root{position:fixed;inset:0;z-index:999999;background:#151517;color:#fff;font-family:'Segoe UI',sans-serif;overflow:hidden;--lyric-size:36px;--dim:.25}\n#luma-root[hidden],#luma-root [hidden]{display:none!important}\n#luma-root *{box-sizing:border-box}\n#luma-root .backdrop{position:absolute;inset:-100px;background:center/cover;filter:blur(85px) saturate(1.5);opacity:.8;transform:scale(1.1);pointer-events:none}\n#luma-root .shade{position:absolute;inset:0;background:rgba(0,0,0,var(--dim));pointer-events:none}\n#luma-root .bar{position:absolute;inset:20px 25px auto;display:flex;align-items:center;gap:10px;z-index:3}\n#luma-root button{font:inherit;color:inherit;cursor:pointer}\n#luma-root .tool{border:1px solid #ffffff18;border-radius:50%;width:38px;height:38px;background:#ffffff0c;display:grid;place-items:center}\n#luma-root button:hover{background:#ffffff10}\n#luma-root svg{width:20px;height:20px;fill:currentColor}\n#luma-root .status{margin-left:auto;font-size:12px;color:#ffffffa0}\n#luma-root .layout{position:relative;height:100%;padding:85px 9vw 45px;display:grid;grid-template-columns:minmax(230px,360px) minmax(0,1fr);gap:8vw;align-items:center}\n#luma-root .cover{display:block;width:100%;aspect-ratio:1;object-fit:cover;border-radius:13px;background:#28282b;box-shadow:0 30px 80px #0007}\n#luma-root .title{font-size:23px;font-weight:700;margin:22px 0 4px;letter-spacing:-.6px}\n#luma-root .artist{font-size:16px;color:#ffffffaa;margin-bottom:20px}\n#luma-root input[type=range]{width:100%;height:5px;accent-color:white;cursor:pointer}\n#luma-root .times{display:flex;justify-content:space-between;color:#ffffff90;font-size:12px;margin-top:6px}\n#luma-root .controls{display:flex;justify-content:center;gap:24px;margin:15px 0}\n#luma-root .controls button{background:none;border:0;padding:8px;display:grid;place-items:center}\n#luma-root .controls svg{width:29px;height:29px}\n#luma-root .controls .play svg{width:38px;height:38px}\n#luma-root .volume{display:flex;align-items:center;gap:12px;margin-top:14px;color:#ffffffa0}\n#luma-root .lyrics{position:relative;height:100%;overflow:auto;scrollbar-width:none;padding:40vh 8px;mask-image:linear-gradient(transparent,#000 12%,#000 88%,transparent)}\n#luma-root .line{display:block;width:100%;text-align:left;border:0;background:transparent;padding:15px 0;font-size:var(--lyric-size);font-weight:750;letter-spacing:-1px;line-height:1.35;white-space:pre-wrap;opacity:.25;transform:scale(.96);transform-origin:left;transition:transform .5s,opacity .4s}\n#luma-root .line.active{opacity:1;transform:scale(1)}\n#luma-root .line.past{opacity:.35}\n#luma-root .word{display:inline-block;white-space:pre;color:transparent;background:linear-gradient(90deg,#fff var(--fill,0%),#ffffff55 var(--fill,0%));background-clip:text;-webkit-background-clip:text}\n#luma-root .line:not(.active) .word{background:none;color:inherit}\n#luma-root .message{font-size:22px;line-height:1.6;white-space:pre-wrap;color:#ffffffc0}\n#luma-root .settings{position:absolute;right:25px;top:68px;width:300px;max-height:75vh;overflow:auto;z-index:4;padding:20px;border-radius:16px;background:#232326f5;box-shadow:0 20px 60px #0007;border:1px solid #ffffff15}\n#luma-root .settings h2{margin:0 0 15px;font-size:18px}\n#luma-root .settings label{display:block;margin:16px 0;font-size:13px;line-height:1.5}\n#luma-root .settings small{display:block;color:#ffffff90;margin-top:6px;line-height:1.5}\n#luma-root .settings button{border:1px solid #ffffff20;background:#ffffff0c;border-radius:8px;padding:8px 12px;margin:3px}\n@media(max-width:760px){#luma-root .layout{padding:78px 25px 25px;gap:25px;grid-template-columns:minmax(170px,1fr) minmax(0,1.2fr)}#luma-root .line{font-size:26px}#luma-root .status{font-size:10px}}\n@media(prefers-reduced-motion:reduce){#luma-root .line{transition:none;transform:none}}\n";
   document.head.append(style);
   const desktop = document.createElement("style");
   desktop.textContent =
@@ -101,7 +109,7 @@
       <label class="setting-toggle"><span><strong>Spinning vinyl artwork</strong><small>Show the album art as a record while music plays.</small></span><input type="checkbox" class="vinyl"></label>
       <label class="setting-toggle"><span><strong>Desktop colors</strong><small>Apply Luma colors to Spotify; may conflict with other themes.</small></span><input type="checkbox" class="desktop"></label>
     </section>
-    <section class="settings-section settings-actions"><h3>Lyrics</h3><div><button data-action="import">Import LRC</button><button data-action="retry">Retry lyrics</button></div><small>Lyrics lookup sends the track title, artist, album and duration to LRCLIB. Imported files stay on this device. Word timestamps require Enhanced LRC.</small></section>
+    <section class="settings-section settings-actions"><h3>Lyrics</h3><div><button data-action="import">Import LRC</button><button data-action="retry">Retry lyrics</button></div><small>Lyrics lookup sends the track title, artist, album and duration to LRCLIB. For timed words, create or export Enhanced LRC with <a href="https://www.quicklrc.com/subtitle-formats/enhanced-lrc" target="_blank" rel="noopener noreferrer">QuickLRC</a>, then import the file here. Imported files stay on this device.</small></section>
     <footer class="settings-footer"><button data-action="reset-settings">${svg("M3 12a9 9 0 1 0 2.64-6.36L3 8m0-5v5h5")}<span>Reset to defaults</span></button></footer>`;
   let key = null,
     lines = [],
@@ -398,6 +406,7 @@
           target.append(document.createTextNode(segment));
         }
       };
+      if (migratedDefaultDim) save();
       if (options.lyricMode === "word" && line.display.length) {
         for (let j = 0; j < line.display.length; j++) {
           const w = line.display[j];
@@ -1135,6 +1144,21 @@
     @media(max-width:760px){#luma-root .layout{padding:82px 20px 22px;gap:20px;grid-template-columns:minmax(180px,.85fr) minmax(0,1.15fr)}#luma-root .player{padding:14px;border-radius:22px}#luma-root .artwork-stage,#luma-root.vinyl .artwork-stage{margin-bottom:18px}#luma-root .title{font-size:20px}#luma-root .controls{gap:12px}}
     @media(max-width:520px){#luma-root .layout{grid-template-columns:minmax(0,1fr);align-content:start;overflow:auto;padding:82px 18px 20px;gap:16px}#luma-root .player{display:grid;grid-template-columns:72px minmax(0,1fr);column-gap:14px;align-items:center;padding:13px 15px}#luma-root .artwork-stage,#luma-root.vinyl .artwork-stage{grid-row:1 / span 3;width:72px;height:72px;margin:0}#luma-root .player .title,#luma-root .player .artist{grid-column:2}#luma-root .player .title{align-self:end;font-size:17px}#luma-root .player .artist{align-self:start;margin:2px 0 0;font-size:12px}#luma-root .player .seek,#luma-root .times,#luma-root .controls,#luma-root .volume{grid-column:1 / -1}#luma-root .player .seek{margin-top:12px}#luma-root .controls{margin:5px 0}#luma-root .settings{top:76px;right:12px;width:calc(100vw - 24px);max-height:calc(100vh - 92px)}#luma-root .lyrics{min-height:42vh;padding:20vh 8px}}
     @media(prefers-reduced-motion:reduce){#luma-root .controls button,#luma-root .tool{transition:none}}
+  `;
+  appearance.textContent += `
+    #luma-root .bar{inset:76px 28px auto;justify-content:flex-end}
+    #luma-root .settings{top:132px;max-height:calc(100vh - 156px)}
+    #luma-root .shade{background:rgba(0,0,0,var(--dim));transition:background .2s ease}
+    #luma-root .player{background:linear-gradient(145deg,rgba(255,255,255,.11),rgba(var(--accent-rgb),.07) 42%,rgba(255,255,255,.025)),rgba(20,21,26,.36);backdrop-filter:blur(30px) saturate(1.55);-webkit-backdrop-filter:blur(30px) saturate(1.55);box-shadow:0 20px 56px #0003,0 1px 0 #ffffff24 inset}
+    #luma-root .settings{border-color:rgba(255,255,255,.28);background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(var(--accent-rgb),.075) 40%,rgba(255,255,255,.025)),rgba(19,20,25,.4);backdrop-filter:blur(44px) saturate(1.7);-webkit-backdrop-filter:blur(44px) saturate(1.7);box-shadow:0 28px 80px #0006,0 1px 0 #ffffff24 inset,0 0 38px rgba(var(--accent-rgb),.08)}
+    #luma-root .settings-header{background:linear-gradient(110deg,rgba(255,255,255,.09),rgba(var(--accent-rgb),.065)),rgba(24,25,30,.38);backdrop-filter:blur(36px) saturate(1.6);-webkit-backdrop-filter:blur(36px) saturate(1.6);border-bottom-color:rgba(255,255,255,.16)}
+    #luma-root .settings-section{margin:8px 10px;padding:16px;border:1px solid rgba(255,255,255,.11);border-radius:18px;background:linear-gradient(145deg,rgba(255,255,255,.065),rgba(var(--accent-rgb),.035)),rgba(255,255,255,.018)}
+    #luma-root .controls .play{position:relative;isolation:isolate;background:transparent!important;color:#fff;box-shadow:none!important}
+    #luma-root .controls .play:before{content:"";position:absolute;z-index:0;inset:5px;border-radius:50%;background:var(--accent);box-shadow:0 2px 12px rgba(var(--accent-rgb),.25);transition:inset .18s,filter .18s}
+    #luma-root .controls .play svg{position:relative;z-index:1}
+    #luma-root .controls .play:hover:before{inset:2px;filter:brightness(1.08)}
+    #luma-root .controls button:not(.play):hover{background:rgba(255,255,255,.08)}
+    @media(max-width:600px){#luma-root .bar{inset:72px 16px auto}#luma-root .settings{top:126px;right:12px;width:calc(100vw - 24px);max-height:calc(100vh - 146px)}}
   `;
   document.head.append(appearance);
 })();
