@@ -38,7 +38,10 @@
     try {
       localStorage.setItem("luma-settings", JSON.stringify(options));
     } catch (error) {
-      console.warn("[Luma Lyrics] Could not remove the retired slider preference.", error);
+      console.warn(
+        "[Luma Lyrics] Could not remove the retired slider preference.",
+        error,
+      );
     }
   }
   const save = () => {
@@ -103,7 +106,8 @@
   artworkStage.className = "artwork-stage";
   cover.before(artworkStage);
   artworkStage.append(cover);
-  q(".settings").innerHTML = `<header class="settings-header"><div><span class="settings-eyebrow">PERSONALIZE</span><h2>Settings</h2></div><button class="settings-close" data-action="settings-close" aria-label="Close settings" title="Close settings">${stroke("close")}</button></header>
+  q(".settings").innerHTML =
+    `<header class="settings-header"><div><span class="settings-eyebrow">PERSONALIZE</span><h2>Settings</h2></div><button class="settings-close" data-action="settings-close" aria-label="Close settings" title="Close settings">${stroke("close")}</button></header>
     <section class="settings-section"><h3>Lyrics</h3>
       <div class="setting-control mode-control"><span>Display style</span><button class="mode-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="lyric-mode-options"><span class="mode-label">Word by word</span>${stroke("down")}</button><div class="mode-options" id="lyric-mode-options" role="listbox" aria-label="Lyrics display style" hidden><button type="button" role="option" data-mode-value="word">Word by word</button><button type="button" role="option" data-mode-value="block">Line by line</button><button type="button" role="option" data-mode-value="gentle">Gentle</button><button type="button" role="option" data-mode-value="static">Static</button></div></div>
       <label class="setting-control"><span>Text size <output class="size-value"></output></span><input class="size" type="range" min="24" max="52" step="1"></label>
@@ -182,7 +186,8 @@
     q(".size").value = options.size;
     q(".size-value").textContent = Number(options.size) + " px";
     q(".darkness").value = options.dim;
-    q(".darkness-value").textContent = Math.round(Number(options.dim) * 100) + "%";
+    q(".darkness-value").textContent =
+      Math.round(Number(options.dim) * 100) + "%";
     const modeLabels = {
       word: "Word by word",
       block: "Line by line",
@@ -190,7 +195,9 @@
       static: "Static",
     };
     q(".mode-label").textContent = modeLabels[options.lyricMode];
-    for (const option of q(".mode-options").querySelectorAll("[data-mode-value]"))
+    for (const option of q(".mode-options").querySelectorAll(
+      "[data-mode-value]",
+    ))
       option.setAttribute(
         "aria-selected",
         String(option.dataset.modeValue === options.lyricMode),
@@ -215,7 +222,9 @@
     canvas.height = 32;
     const context = canvas.getContext("2d", { willReadFrequently: true });
     if (!context) {
-      console.warn("[Luma Lyrics] Could not sample album artwork for its accent color.");
+      console.warn(
+        "[Luma Lyrics] Could not sample album artwork for its accent color.",
+      );
       return;
     }
     try {
@@ -248,7 +257,9 @@
         }
       }
       if (!count) {
-        console.warn("[Luma Lyrics] Album artwork did not contain sampleable pixels.");
+        console.warn(
+          "[Luma Lyrics] Album artwork did not contain sampleable pixels.",
+        );
         return;
       }
       red = Math.round(red / count);
@@ -262,8 +273,7 @@
         saturation = 0;
       if (delta) {
         saturation = delta / (1 - Math.abs(2 * lightness - 1));
-        if (max === red / 255)
-          hue = ((green - blue) / 255 / delta) % 6;
+        if (max === red / 255) hue = ((green - blue) / 255 / delta) % 6;
         else if (max === green / 255) hue = (blue - red) / 255 / delta + 2;
         else hue = (red - green) / 255 / delta + 4;
         hue *= 60;
@@ -271,8 +281,7 @@
       }
       saturation = Math.max(0.48, Math.min(0.82, saturation));
       const accentLightness = Math.max(0.48, Math.min(0.68, lightness));
-      const chroma =
-          (1 - Math.abs(2 * accentLightness - 1)) * saturation,
+      const chroma = (1 - Math.abs(2 * accentLightness - 1)) * saturation,
         x = chroma * (1 - Math.abs(((hue / 60) % 2) - 1)),
         offset = accentLightness - chroma / 2;
       let channels;
@@ -289,7 +298,10 @@
       root.style.setProperty("--accent", `rgb(${rgb.join(",")})`);
     } catch (error) {
       setDefaultAccent();
-      console.warn("[Luma Lyrics] Could not sample album artwork for its accent color.", error);
+      console.warn(
+        "[Luma Lyrics] Could not sample album artwork for its accent color.",
+        error,
+      );
     }
   }
   applySettings();
@@ -298,7 +310,9 @@
     const offset = Number(text.match(/\[offset:([+-]?\d+)\]/i)?.[1] || 0),
       result = [];
     for (const row of text.split(/\r?\n/)) {
-      const tags = [...row.matchAll(/<(\d+):(\d+(?:\.\d+)?)>|\[(\d+):(\d+(?:\.\d+)?)\]/g)];
+      const tags = [
+        ...row.matchAll(/<(\d+):(\d+(?:\.\d+)?)>|\[(\d+):(\d+(?:\.\d+)?)\]/g),
+      ];
       if (!tags.length) continue;
       const timeOf = (tag) =>
           (Number(tag[1] ?? tag[3]) * 60 + Number(tag[2] ?? tag[4])) * 1000 +
@@ -314,14 +328,20 @@
         const words = tags
           .map((tag, i) => ({
             ms: Math.max(0, timeOf(tag)),
-            text: row
-              .slice(tag.index + tag[0].length, tags[i + 1]?.index ?? row.length),
+            text: row.slice(
+              tag.index + tag[0].length,
+              tags[i + 1]?.index ?? row.length,
+            ),
           }))
           .filter((word) => word.text.trim());
         if (!words.length) continue;
         result.push({
           ms: Math.max(0, timeOf(tags[0])),
-          text: words.map((word) => word.text).join("").trim() || "♪",
+          text:
+            words
+              .map((word) => word.text)
+              .join("")
+              .trim() || "♪",
           words,
           exact: true,
         });
@@ -340,7 +360,8 @@
     result.forEach((line, i) => {
       line.lineIndex = i;
       line.words.forEach((word, j) => {
-        word.endTime = line.words[j + 1]?.ms ?? result[i + 1]?.ms ?? line.ms + 4000;
+        word.endTime =
+          line.words[j + 1]?.ms ?? result[i + 1]?.ms ?? line.ms + 4000;
       });
     });
     return result;
@@ -472,7 +493,9 @@
         if (cover.src === art) setArtworkAccent(cover);
       };
       cover.onerror = () => {
-        console.warn("[Luma Lyrics] Album artwork could not be loaded for its accent color.");
+        console.warn(
+          "[Luma Lyrics] Album artwork could not be loaded for its accent color.",
+        );
       };
       q(".cover").src = art;
       q(".backdrop").style.backgroundImage = `url(${JSON.stringify(art)})`;
@@ -523,7 +546,8 @@
           credentials: "omit",
           signal: c.signal,
           headers: {
-            "Lrclib-Client": "LumaLyrics/1.1.1 (Spicetify independent extension)",
+            "Lrclib-Client":
+              "LumaLyrics/1.1.1 (Spicetify independent extension)",
           },
         });
         if (response.status === 429 || response.status === 503) {
@@ -682,7 +706,9 @@
         }
       }
       const wordElement =
-        wordIndex >= 0 ? pane.querySelector(`#word-${active}-${wordIndex}`) : null;
+        wordIndex >= 0
+          ? pane.querySelector(`#word-${active}-${wordIndex}`)
+          : null;
       if (wordElement !== highlightedWord) {
         highlightedWord?.classList.remove("active");
         highlightedWord = wordElement;
@@ -691,7 +717,9 @@
       let nextLineIndex = active,
         nextWordIndex = wordIndex + 1;
       if (wordIndex < 0) {
-        nextWordIndex = line.display.findIndex((word) => word.ms > lyricProgress);
+        nextWordIndex = line.display.findIndex(
+          (word) => word.ms > lyricProgress,
+        );
         if (nextWordIndex < 0) {
           nextLineIndex++;
           nextWordIndex = 0;
@@ -794,7 +822,8 @@
         q(".mode-trigger").focus();
       } else if (e.target.closest(".mode-trigger")) {
         const menu = q(".mode-options"),
-          expanded = q(".mode-trigger").getAttribute("aria-expanded") === "true";
+          expanded =
+            q(".mode-trigger").getAttribute("aria-expanded") === "true";
         menu.hidden = expanded;
         q(".mode-trigger").setAttribute("aria-expanded", String(!expanded));
         if (!expanded)
@@ -862,10 +891,7 @@
             : Number(e.target.value);
       save();
       applySettings();
-      if (
-        (field === "estimated" || field === "lyricMode") &&
-        lines.length
-      )
+      if ((field === "estimated" || field === "lyricMode") && lines.length)
         render();
     });
   q(".file").onchange = async (e) => {
@@ -915,8 +941,8 @@
           : e.key === "End"
             ? choices.length - 1
             : ((choices.indexOf(document.activeElement) >= 0
-                  ? choices.indexOf(document.activeElement)
-                  : selected) +
+                ? choices.indexOf(document.activeElement)
+                : selected) +
                 (e.key === "ArrowDown" ? 1 : choices.length - 1)) %
               choices.length;
       e.preventDefault();
@@ -998,7 +1024,7 @@
     @media(max-width:340px){#luma-root .slider-options{grid-template-columns:repeat(3,minmax(0,1fr))}}
   `;
   appearance.textContent +=
-    '#luma-root[data-lyric-mode=block] .line.active{transform:none}#luma-root[data-lyric-mode=gentle] .line{transform:none;filter:none;opacity:.4;transition:opacity .8s ease}#luma-root[data-lyric-mode=gentle] .line.active{opacity:.9}#luma-root[data-lyric-mode=static] .line{transform:none;filter:none;transition:none;opacity:.55}#luma-root[data-lyric-mode=static] .line.active{opacity:1}#luma-root .placeholder{height:1.35em;margin:15px 0;border-radius:8px;background:linear-gradient(90deg,#ffffff0b 20%,#ffffff1b 45%,#ffffff0b 70%);background-size:220% 100%;animation:luma-placeholder 1.5s ease-in-out infinite}#luma-root .placeholder:nth-child(3n){width:76%}#luma-root .placeholder:nth-child(3n + 1){width:91%}#luma-root .placeholder:nth-child(3n + 2){width:62%}@keyframes luma-placeholder{to{background-position-x:-220%}}@media(prefers-reduced-motion:reduce){#luma-root .placeholder{animation:none}}';
+    "#luma-root[data-lyric-mode=block] .line.active{transform:none}#luma-root[data-lyric-mode=gentle] .line{transform:none;filter:none;opacity:.4;transition:opacity .8s ease}#luma-root[data-lyric-mode=gentle] .line.active{opacity:.9}#luma-root[data-lyric-mode=static] .line{transform:none;filter:none;transition:none;opacity:.55}#luma-root[data-lyric-mode=static] .line.active{opacity:1}#luma-root .placeholder{height:1.35em;margin:15px 0;border-radius:8px;background:linear-gradient(90deg,#ffffff0b 20%,#ffffff1b 45%,#ffffff0b 70%);background-size:220% 100%;animation:luma-placeholder 1.5s ease-in-out infinite}#luma-root .placeholder:nth-child(3n){width:76%}#luma-root .placeholder:nth-child(3n + 1){width:91%}#luma-root .placeholder:nth-child(3n + 2){width:62%}@keyframes luma-placeholder{to{background-position-x:-220%}}@media(prefers-reduced-motion:reduce){#luma-root .placeholder{animation:none}}";
   appearance.textContent += `
     #luma-root .settings{border-radius:18px;background:linear-gradient(145deg,rgba(var(--accent-rgb),.1),rgba(255,255,255,.035) 48%,rgba(var(--accent-rgb),.055)),rgba(20,21,24,.72);backdrop-filter:blur(30px) saturate(1.45);-webkit-backdrop-filter:blur(30px) saturate(1.45);box-shadow:0 22px 70px #0007,0 1px 0 #ffffff20 inset,0 0 34px rgba(var(--accent-rgb),.08)}
     #luma-root .settings-header{background:linear-gradient(110deg,rgba(var(--accent-rgb),.09),rgba(28,28,32,.74));backdrop-filter:blur(30px) saturate(1.45);-webkit-backdrop-filter:blur(30px) saturate(1.45);border-bottom-color:#ffffff15}
