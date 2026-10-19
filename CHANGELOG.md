@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1
+
+Updated the project version to v1.1 across the extension metadata and user-facing references.
+
 ## 1.0
 
 First public release.
