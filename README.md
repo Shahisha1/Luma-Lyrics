@@ -15,10 +15,10 @@ An independent [Spicetify](https://spicetify.app) extension that turns Spotify's
 - **Line-synced lyrics:** timed lyrics from [LRCLIB](https://lrclib.net), with a plain-text fallback.
 - **Enhanced LRC import:** load a local file to get word-level timing.
 - **Click to seek:** click any lyric line to jump to it. Scrolling manually pauses auto-centering briefly.
-- **Settings panel:** lyric size, background darkness, estimated word animation, and desktop colors.
+- **Settings panel:** lyric size, background darkness, Bar/Wavy/Slim/Squiggly player slider styles, optional spinning-vinyl artwork, estimated word animation, and desktop colors.
 - **Optional desktop recoloring:** Apple-inspired colors, opt-in only.
 - **Discreet entry point:** a small icon beside Spotify's playback extra controls, with no floating button.
-- **Accessibility:** respects the reduced-motion preference for line transitions and scrolling.
+- **Accessibility:** respects the reduced-motion preference for lyric transitions, scrolling, and vinyl rotation. The Close button is kept away from Spotify's upper-left app menu so it remains accessible in windowed mode.
 
 ## Status
 
@@ -51,7 +51,7 @@ Settings stay in `localStorage` until you clear them separately.
 
 Automatic LRCLIB lookups don't include verified word timestamps.
 
-- **Estimated word animation** is off by default and clearly labeled. It splits time between lyric lines by character count, so it won't accurately follow the singing.
+- **Estimated word animation** is off by default and clearly labeled. It splits time between lyric lines by character count, so it won't accurately follow the singing. Word highlighting transitions smoothly between updates.
 - **For real word timing**, import an Enhanced LRC file with `mm:ss.xx` word-start tags. Fill is interpolated between word starts, and the last word uses the next line's timing or an explicit end tag.
 - Not included: automatic word-timing providers, syllable alignment, translation, and romanization.
 
