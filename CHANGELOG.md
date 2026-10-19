@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.1
+
+- Updated the playback and Settings sliders so their colored tracks follow the current value while dragging.
+
 ## v1.1
 
 Updated the project version to v1.1 across the extension metadata and user-facing references.

@@ -1,4 +1,4 @@
-// Luma Lyrics v1.1
+// Luma Lyrics v1.1.1
 (async () => {
   while (
     !globalThis.Spicetify?.Player ||
@@ -83,10 +83,17 @@
   const q = (s) => root.querySelector(s),
     pane = q(".lyrics"),
     seek = q(".seek");
-  function updateSeekVisual(value) {
-    const progress = Math.max(0, Math.min(1000, Number(value) || 0));
-    seek.style.setProperty("--range-progress", (progress / 10).toFixed(1) + "%");
+  function updateRangeVisual(input) {
+    const min = Number(input.min) || 0;
+    const max = Number(input.max);
+    const value = Number(input.value);
+    const progress =
+      max > min
+        ? Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100))
+        : 0;
+    input.style.setProperty("--range-progress", progress.toFixed(1) + "%");
   }
+  const updateSeekVisual = () => updateRangeVisual(seek);
   const cover = q(".cover"),
     artworkStage = document.createElement("div");
   const setDefaultAccent = () => {
@@ -196,16 +203,8 @@
       (options.syncOffset > 0 ? "+" : "") +
       (options.syncOffset / 1000).toFixed(2) +
       " s";
-    for (const input of q(".settings").querySelectorAll('input[type="range"]')) {
-      const min = Number(input.min),
-        max = Number(input.max),
-        value = Number(input.value);
-      input.style.setProperty(
-        "--range-progress",
-        (max > min ? ((value - min) / (max - min)) * 100 : 0).toFixed(1) +
-          "%",
-      );
-    }
+    for (const input of q(".settings").querySelectorAll('input[type="range"]'))
+      updateRangeVisual(input);
     q(".vinyl").checked = options.vinyl;
     q(".estimated").checked = options.estimated;
     q(".desktop").checked = options.desktop;
@@ -524,7 +523,7 @@
           credentials: "omit",
           signal: c.signal,
           headers: {
-            "Lrclib-Client": "LumaLyrics/1.1 (Spicetify independent extension)",
+            "Lrclib-Client": "LumaLyrics/1.1.1 (Spicetify independent extension)",
           },
         });
         if (response.status === 429 || response.status === 503) {
@@ -647,10 +646,7 @@
       q(".seek").value = duration ? (progress / duration) * 1000 : 0;
     if (document.activeElement !== q(".vol")) q(".vol").value = p.getVolume();
     updateSeekVisual(seek.value);
-    q(".vol").style.setProperty(
-      "--range-progress",
-      (Number(q(".vol").value) * 100).toFixed(1) + "%",
-    );
+    updateRangeVisual(q(".vol"));
     const playing = p.isPlaying();
     root.classList.toggle("playing", playing);
     const state = playing ? "pause" : "play";
@@ -842,9 +838,12 @@
       Spicetify.showNotification("Luma: " + e.message);
     }
   });
-  seek.oninput = () => updateSeekVisual(seek.value);
+  seek.oninput = updateSeekVisual;
   seek.onchange = () => player().seek(Number(seek.value) / 1000);
-  q(".vol").oninput = (e) => player().setVolume(Number(e.target.value));
+  q(".vol").oninput = (e) => {
+    updateRangeVisual(e.currentTarget);
+    player().setVolume(Number(e.currentTarget.value));
+  };
   for (const [selector, field] of [
     [".size", "size"],
     [".darkness", "dim"],
