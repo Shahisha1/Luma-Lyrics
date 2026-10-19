@@ -1,6 +1,7 @@
 # Luma Lyrics v1.1.1
 
 ![Version](https://img.shields.io/badge/version-v1.1.1-blue) ![License](https://img.shields.io/github/license/Shahisha1/Luma-Lyrics) ![Spicetify](https://img.shields.io/badge/Spicetify-extension-1db954)
+
 See the [public releases](https://github.com/Shahisha1/Luma-Lyrics/releases) to download Luma Lyrics.
 
 Luma Lyrics adds synchronized lyrics and a full-window music player to Spotify desktop through [Spicetify](https://spicetify.app).
