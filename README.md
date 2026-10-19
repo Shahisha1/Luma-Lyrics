@@ -1,4 +1,4 @@
-# Luma Lyrics (Beta)
+# Luma Lyrics 1.0
 
 ![Version](https://img.shields.io/badge/version-0.2.0--beta.1-blue)
 ![License](https://img.shields.io/github/license/Shahisha1/Luma-Lyrics)
