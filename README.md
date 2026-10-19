@@ -32,7 +32,7 @@ Luma Lyrics offers several ways to follow lyrics. These screenshots show each mo
 
 ### Settings
 
-![Lyrics display settings](screenshots/settings.png)
+<img src="screenshots/settings.png" alt="Lyrics display settings" width="320">
 
 ## Features
 
