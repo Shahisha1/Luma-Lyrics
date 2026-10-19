@@ -12,12 +12,18 @@ Luma Lyrics adds synchronized lyrics and a full-window music player to Spotify d
 
 ## Features
 
-- Synchronized lyrics with a word-by-word highlight when word timings are available.
-- Optional estimated word highlighting when only line timings are available.
+- Synchronized lyrics with word-by-word highlighting for Enhanced LRC and inline timestamp formats.
+- Slightly larger main lyric text, with bracketed ad-libs and secondary lyrics shown beneath in a smaller size.
+- Word-by-word highlighting, with estimated timing enabled by default when only line timings are available.
+- Choose word-by-word, line-by-line, gentle, or static lyric display.
+- Tune lyric-scroll smoothness or turn it off for instant movement. Loading placeholders appear while lyrics are fetched.
+- Adjust lyric timing earlier or later to compensate for a slightly offset lyric source.
 - Import Enhanced LRC files for word-level timing. Imported files stay on your device.
 - Built-in playback, volume, and seek controls.
-- Four player slider styles: Bar, Wavy, Slim, and Squiggly.
+- Material-style playback, seek, and volume controls with artwork-matched accents.
 - Optional spinning-vinyl artwork and adjustable lyric size and background.
+- Liquid-glass player and settings panels with clear Material-style surfaces, using accent colors sampled from the current album art.
+- Reset all appearance and lyric preferences to their defaults from Settings.
 - Optional desktop colors.
 - Reduced-motion support.
 
@@ -36,7 +42,7 @@ Luma Lyrics adds synchronized lyrics and a full-window music player to Spotify d
 
 ## Lyrics and word timing
 
-Lyrics are looked up through [LRCLIB](https://lrclib.net). Available line timings are synchronized with playback. Verified word timings require an Enhanced LRC file; estimated word highlighting is only an approximation and is off by default.
+Lyrics are looked up through [LRCLIB](https://lrclib.net). Available line timings are synchronized with playback. Use **Lyrics sync adjustment** in Settings if a lyric source is slightly early or late; negative shifts lyrics earlier and positive shifts them later. Verified word timings require an Enhanced LRC file; estimated word highlighting is only an approximation and cannot match the singer exactly.
 
 ## Privacy
 

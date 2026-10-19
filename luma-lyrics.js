@@ -8,20 +8,31 @@
     await new Promise((r) => setTimeout(r, 300));
   if (document.getElementById("luma-root")) return;
   const player = () => globalThis.Spicetify.Player;
-  let options = {
-    size: 36,
+  const defaultOptions = {
+    size: 40,
     dim: 0.4,
-    estimated: false,
+    estimated: true,
     desktop: false,
-    sliderStyle: "bar",
     vinyl: false,
+    syncOffset: 0,
+    lyricMode: "word",
+    scrollSmoothness: 65,
   };
+  let options = { ...defaultOptions };
   try {
     options = {
       ...options,
       ...JSON.parse(localStorage.getItem("luma-settings") || "{}"),
     };
   } catch {}
+  if ("sliderStyle" in options) {
+    delete options.sliderStyle;
+    try {
+      localStorage.setItem("luma-settings", JSON.stringify(options));
+    } catch (error) {
+      console.warn("[Luma Lyrics] Could not remove the retired slider preference.", error);
+    }
+  }
   const save = () => {
     try {
       localStorage.setItem("luma-settings", JSON.stringify(options));
@@ -39,6 +50,7 @@
     close: "M6 6l12 12M18 6 6 18",
     full: "M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5",
     settings: "M4 6h16M4 12h16M4 18h16M8 3v6m8 0v6m-6 0v6",
+    down: "m6 9 6 6 6-6",
   };
   const stroke = (name) =>
     `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="${paths[name]}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`;
@@ -57,30 +69,55 @@
   root.setAttribute("aria-modal", "true");
   root.setAttribute("aria-label", "Luma Lyrics");
   root.innerHTML = `<div class="backdrop"></div><div class="shade"></div><div class="bar"><button class="tool" data-action="close" aria-label="Close" title="Close">${stroke("close")}</button><button class="tool" data-action="full" aria-label="Toggle fullscreen" title="Fullscreen">${stroke("full")}</button><span class="status">LRCLIB · line sync</span><button class="tool" data-action="settings" aria-label="Settings" aria-expanded="false" title="Settings">${stroke("settings")}</button></div>
- <div class="layout"><div><img class="cover" alt="Album artwork"><div class="title">Nothing playing</div><div class="artist"></div><input class="seek" type="range" min="0" max="1000" value="0" aria-label="Playback position"><div class="times"><span class="elapsed">0:00</span><span class="duration">0:00</span></div><div class="controls"><button data-action="previous" aria-label="Previous">${icons.previous}</button><button class="play" data-action="play" aria-label="Play or pause">${icons.play}</button><button data-action="next" aria-label="Next">${icons.next}</button></div><label class="volume">${svg("M3 9h4l5-4v14l-5-4H3z")}<input type="range" class="vol" min="0" max="1" step=".01" aria-label="Volume"></label></div><div class="lyrics" tabindex="0" aria-label="Lyrics"></div></div>
- <div class="settings" hidden><h2>Luma settings</h2><label>Lyric size<input class="size" type="range" min="24" max="52" step="1"></label><label>Background darkness<input class="darkness" type="range" min=".15" max=".8" step=".05"></label><label><input type="checkbox" class="estimated"> Estimated word animation<small>Approximate visual effect, not singer-aligned word timing.</small></label><label><input type="checkbox" class="desktop"> Apple-inspired desktop colors<small>Optional; can conflict with other themes.</small></label><button data-action="import">Import LRC</button><button data-action="retry">Retry lyrics</button><small>LRCLIB receives song title, artist, album and duration. Imported files stay local. Word timestamps require Enhanced LRC.</small></div><input class="file" type="file" accept=".lrc,text/plain" hidden>`;
+ <div class="layout"><div class="player"><img class="cover" alt="Album artwork"><div class="title">Nothing playing</div><div class="artist"></div><input class="seek" type="range" min="0" max="1000" value="0" aria-label="Playback position"><div class="times"><span class="elapsed">0:00</span><span class="duration">0:00</span></div><div class="controls"><button data-action="previous" aria-label="Previous">${icons.previous}</button><button class="play" data-action="play" aria-label="Play or pause">${icons.play}</button><button data-action="next" aria-label="Next">${icons.next}</button></div><label class="volume">${svg("M3 9h4l5-4v14l-5-4H3z")}<input type="range" class="vol" min="0" max="1" step=".01" aria-label="Volume"></label></div><div class="lyrics" tabindex="0" aria-label="Lyrics"></div></div>
+ <div class="settings" hidden></div><input class="file" type="file" accept=".lrc,text/plain" hidden>`;
   document.body.append(root);
   const q = (s) => root.querySelector(s),
-    pane = q(".lyrics");
+    pane = q(".lyrics"),
+    seek = q(".seek");
+  function updateSeekVisual(value) {
+    const progress = Math.max(0, Math.min(1000, Number(value) || 0));
+    seek.style.setProperty("--range-progress", (progress / 10).toFixed(1) + "%");
+  }
   const cover = q(".cover"),
     artworkStage = document.createElement("div");
+  const setDefaultAccent = () => {
+    root.style.setProperty("--accent-rgb", "185,163,255");
+    root.style.setProperty("--accent", "rgb(185,163,255)");
+  };
   artworkStage.className = "artwork-stage";
   cover.before(artworkStage);
   artworkStage.append(cover);
-  q(".settings h2").insertAdjacentHTML(
-    "afterend",
-    '<label>Player slider style<select class="slider-style"><option value="bar">Bar</option><option value="wavy">Wavy</option><option value="slim">Slim</option><option value="squiggly">Squiggly</option></select></label><label><input type="checkbox" class="vinyl"> Spinning vinyl artwork<small>Turn the album cover into a record while music is playing.</small></label>',
-  );
+  q(".settings").innerHTML = `<header class="settings-header"><div><span class="settings-eyebrow">PERSONALIZE</span><h2>Settings</h2></div><button class="settings-close" data-action="settings-close" aria-label="Close settings" title="Close settings">${stroke("close")}</button></header>
+    <section class="settings-section"><h3>Lyrics</h3>
+      <div class="setting-control mode-control"><span>Display style</span><button class="mode-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="lyric-mode-options"><span class="mode-label">Word by word</span>${stroke("down")}</button><div class="mode-options" id="lyric-mode-options" role="listbox" aria-label="Lyrics display style" hidden><button type="button" role="option" data-mode-value="word">Word by word</button><button type="button" role="option" data-mode-value="block">Line by line</button><button type="button" role="option" data-mode-value="gentle">Gentle</button><button type="button" role="option" data-mode-value="static">Static</button></div></div>
+      <label class="setting-control"><span>Text size <output class="size-value"></output></span><input class="size" type="range" min="24" max="52" step="1"></label>
+      <label class="setting-control"><span>Scroll smoothness <output class="scroll-smoothness-value">65%</output></span><input class="scroll-smoothness" type="range" min="0" max="100" step="5"></label>
+      <label class="setting-control"><span>Background darkness <output class="darkness-value"></output></span><input class="darkness" type="range" min=".15" max=".8" step=".05"></label>
+      <label class="setting-control"><span>Lyrics sync <output class="sync-offset-value">0.00 s</output></span><input class="sync-offset" type="range" min="-5000" max="5000" step="50"><small>Shift lyrics earlier or later to match playback.</small></label>
+      <label class="setting-toggle"><span><strong>Estimated word animation</strong><small>Approximate timing when word timestamps are unavailable.</small></span><input type="checkbox" class="estimated"></label>
+    </section>
+    <section class="settings-section"><h3>Appearance</h3>
+      <label class="setting-toggle"><span><strong>Spinning vinyl artwork</strong><small>Show the album art as a record while music plays.</small></span><input type="checkbox" class="vinyl"></label>
+      <label class="setting-toggle"><span><strong>Desktop colors</strong><small>Apply Luma colors to Spotify; may conflict with other themes.</small></span><input type="checkbox" class="desktop"></label>
+    </section>
+    <section class="settings-section settings-actions"><h3>Lyrics</h3><div><button data-action="import">Import LRC</button><button data-action="retry">Retry lyrics</button></div><small>Lyrics lookup sends the track title, artist, album and duration to LRCLIB. Imported files stay on this device. Word timestamps require Enhanced LRC.</small></section>
+    <footer class="settings-footer"><button data-action="reset-settings">${svg("M3 12a9 9 0 1 0 2.64-6.36L3 8m0-5v5h5")}<span>Reset to defaults</span></button></footer>`;
   let key = null,
     lines = [],
     active = -1,
     token = 0,
+    highlightedWord = null,
+    upcomingWord = null,
     controller = null,
     previousFocus = null,
     scrollUntil = 0,
     centerFrame = 0,
+    wheelFrame = 0,
+    wheelTarget = 0,
     lastFetch = 0,
     cooldown = 0,
+    frameId = 0,
     busy = Promise.resolve();
   const cache = new Map(),
     imports = new Map();
@@ -91,70 +128,246 @@
   const note = (text) => {
     lines = [];
     active = -1;
+    highlightedWord?.classList.remove("active");
+    upcomingWord?.classList.remove("upcoming");
+    highlightedWord = upcomingWord = null;
     pane.replaceChildren();
     const n = document.createElement("div");
     n.className = "message";
     n.textContent = text;
     pane.append(n);
   };
+  function showLoading() {
+    lines = [];
+    active = -1;
+    pane.replaceChildren();
+    for (let i = 0; i < 8; i++) {
+      const placeholder = document.createElement("div");
+      placeholder.className = "placeholder";
+      placeholder.setAttribute("aria-hidden", "true");
+      pane.append(placeholder);
+    }
+    q(".status").textContent = "Searching for lyrics…";
+  }
   function applySettings() {
     root.style.setProperty("--lyric-size", Number(options.size) + "px");
     root.style.setProperty("--dim", Number(options.dim));
-    if (!["bar", "wavy", "slim", "squiggly"].includes(options.sliderStyle))
-      options.sliderStyle = "bar";
-    root.dataset.sliderStyle = options.sliderStyle;
+    options.syncOffset = Number.isFinite(Number(options.syncOffset))
+      ? Math.max(-5000, Math.min(5000, Number(options.syncOffset)))
+      : 0;
+    if (!["word", "block", "gentle", "static"].includes(options.lyricMode))
+      options.lyricMode = "word";
+    options.scrollSmoothness = Number.isFinite(Number(options.scrollSmoothness))
+      ? Math.max(0, Math.min(100, Number(options.scrollSmoothness)))
+      : 65;
+    root.dataset.lyricMode = options.lyricMode;
+    root.dataset.sliderStyle = "bar";
     root.classList.toggle("vinyl", Boolean(options.vinyl));
     desktop.disabled = !options.desktop;
     q(".size").value = options.size;
+    q(".size-value").textContent = Number(options.size) + " px";
     q(".darkness").value = options.dim;
-    q(".slider-style").value = options.sliderStyle;
+    q(".darkness-value").textContent = Math.round(Number(options.dim) * 100) + "%";
+    const modeLabels = {
+      word: "Word by word",
+      block: "Line by line",
+      gentle: "Gentle",
+      static: "Static",
+    };
+    q(".mode-label").textContent = modeLabels[options.lyricMode];
+    for (const option of q(".mode-options").querySelectorAll("[data-mode-value]"))
+      option.setAttribute(
+        "aria-selected",
+        String(option.dataset.modeValue === options.lyricMode),
+      );
+    q(".scroll-smoothness").value = options.scrollSmoothness;
+    q(".scroll-smoothness-value").textContent =
+      Math.round(options.scrollSmoothness) + "%";
+    q(".sync-offset").value = options.syncOffset;
+    q(".sync-offset-value").textContent =
+      (options.syncOffset > 0 ? "+" : "") +
+      (options.syncOffset / 1000).toFixed(2) +
+      " s";
+    for (const input of q(".settings").querySelectorAll('input[type="range"]')) {
+      const min = Number(input.min),
+        max = Number(input.max),
+        value = Number(input.value);
+      input.style.setProperty(
+        "--range-progress",
+        (max > min ? ((value - min) / (max - min)) * 100 : 0).toFixed(1) +
+          "%",
+      );
+    }
     q(".vinyl").checked = options.vinyl;
     q(".estimated").checked = options.estimated;
     q(".desktop").checked = options.desktop;
   }
+  function setArtworkAccent(image) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 32;
+    canvas.height = 32;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) {
+      console.warn("[Luma Lyrics] Could not sample album artwork for its accent color.");
+      return;
+    }
+    try {
+      context.drawImage(image, 0, 0, 32, 32);
+      const pixels = context.getImageData(0, 0, 32, 32).data;
+      let red = 0,
+        green = 0,
+        blue = 0,
+        count = 0;
+      for (let i = 0; i < pixels.length; i += 16) {
+        const r = pixels[i],
+          g = pixels[i + 1],
+          b = pixels[i + 2],
+          high = Math.max(r, g, b),
+          low = Math.min(r, g, b);
+        if (pixels[i + 3] < 128 || high - low < 24 || high < 36 || low > 238)
+          continue;
+        red += r;
+        green += g;
+        blue += b;
+        count++;
+      }
+      if (!count) {
+        for (let i = 0; i < pixels.length; i += 16) {
+          if (pixels[i + 3] < 128) continue;
+          red += pixels[i];
+          green += pixels[i + 1];
+          blue += pixels[i + 2];
+          count++;
+        }
+      }
+      if (!count) {
+        console.warn("[Luma Lyrics] Album artwork did not contain sampleable pixels.");
+        return;
+      }
+      red = Math.round(red / count);
+      green = Math.round(green / count);
+      blue = Math.round(blue / count);
+      const max = Math.max(red, green, blue) / 255,
+        min = Math.min(red, green, blue) / 255,
+        delta = max - min,
+        lightness = (max + min) / 2;
+      let hue = 0,
+        saturation = 0;
+      if (delta) {
+        saturation = delta / (1 - Math.abs(2 * lightness - 1));
+        if (max === red / 255)
+          hue = ((green - blue) / 255 / delta) % 6;
+        else if (max === green / 255) hue = (blue - red) / 255 / delta + 2;
+        else hue = (red - green) / 255 / delta + 4;
+        hue *= 60;
+        if (hue < 0) hue += 360;
+      }
+      saturation = Math.max(0.48, Math.min(0.82, saturation));
+      const accentLightness = Math.max(0.48, Math.min(0.68, lightness));
+      const chroma =
+          (1 - Math.abs(2 * accentLightness - 1)) * saturation,
+        x = chroma * (1 - Math.abs(((hue / 60) % 2) - 1)),
+        offset = accentLightness - chroma / 2;
+      let channels;
+      if (hue < 60) channels = [chroma, x, 0];
+      else if (hue < 120) channels = [x, chroma, 0];
+      else if (hue < 180) channels = [0, chroma, x];
+      else if (hue < 240) channels = [0, x, chroma];
+      else if (hue < 300) channels = [x, 0, chroma];
+      else channels = [chroma, 0, x];
+      const rgb = channels.map((channel) =>
+        Math.round((channel + offset) * 255),
+      );
+      root.style.setProperty("--accent-rgb", rgb.join(","));
+      root.style.setProperty("--accent", `rgb(${rgb.join(",")})`);
+    } catch (error) {
+      setDefaultAccent();
+      console.warn("[Luma Lyrics] Could not sample album artwork for its accent color.", error);
+    }
+  }
   applySettings();
+  setDefaultAccent();
   function parse(text) {
     const offset = Number(text.match(/\[offset:([+-]?\d+)\]/i)?.[1] || 0),
       result = [];
     for (const row of text.split(/\r?\n/)) {
-      const tags = [...row.matchAll(/\[(\d+):(\d+(?:\.\d+)?)\]/g)];
+      const tags = [...row.matchAll(/<(\d+):(\d+(?:\.\d+)?)>|\[(\d+):(\d+(?:\.\d+)?)\]/g)];
       if (!tags.length) continue;
-      const body = row.replace(/\[[^\]]*\]/g, "");
-      const words = [...body.matchAll(/<(\d+):(\d+(?:\.\d+)?)>([^<]*)/g)].map(
-        (t) => ({ ms: (+t[1] * 60 + +t[2]) * 1000 + offset, text: t[3] }),
-      );
-      const first = (+tags[0][1] * 60 + +tags[0][2]) * 1000 + offset;
-      for (const t of tags) {
-        const ms = (+t[1] * 60 + +t[2]) * 1000 + offset;
+      const timeOf = (tag) =>
+          (Number(tag[1] ?? tag[3]) * 60 + Number(tag[2] ?? tag[4])) * 1000 +
+          offset,
+        hasEnhancedTags = tags.some((tag) => tag[1] !== undefined),
+        hasInlineSquareWordTags = tags.some(
+          (tag, i) =>
+            tag[3] !== undefined &&
+            i < tags.length - 1 &&
+            /\S/.test(row.slice(tag.index + tag[0].length, tags[i + 1].index)),
+        );
+      if (hasEnhancedTags || hasInlineSquareWordTags) {
+        const words = tags
+          .map((tag, i) => ({
+            ms: Math.max(0, timeOf(tag)),
+            text: row
+              .slice(tag.index + tag[0].length, tags[i + 1]?.index ?? row.length),
+          }))
+          .filter((word) => word.text.trim());
+        if (!words.length) continue;
         result.push({
-          ms: Math.max(0, ms),
-          text: body.replace(/<\d+:\d+(?:\.\d+)?>/g, "").trim() || "♪",
-          words: words.map((w) => ({
-            ...w,
-            ms: Math.max(0, w.ms + ms - first),
-          })),
-          exact: words.some((w) => w.text.trim()),
+          ms: Math.max(0, timeOf(tags[0])),
+          text: words.map((word) => word.text).join("").trim() || "♪",
+          words,
+          exact: true,
         });
+        continue;
       }
+      const body = row.replace(/\[[^\]]*\]/g, "").trim() || "♪";
+      for (const tag of tags)
+        result.push({
+          ms: Math.max(0, timeOf(tag)),
+          text: body,
+          words: [],
+          exact: false,
+        });
     }
-    return result.sort((a, b) => a.ms - b.ms);
+    result.sort((a, b) => a.ms - b.ms);
+    result.forEach((line, i) => {
+      line.lineIndex = i;
+      line.words.forEach((word, j) => {
+        word.endTime = line.words[j + 1]?.ms ?? result[i + 1]?.ms ?? line.ms + 4000;
+      });
+    });
+    return result;
   }
   function render() {
     active = -1;
+    highlightedWord?.classList.remove("active");
+    upcomingWord?.classList.remove("upcoming");
+    highlightedWord = upcomingWord = null;
     pane.replaceChildren();
     const duration = player().getDuration() || 0;
     const source = imports.has(key) ? "Local LRC" : "LRCLIB";
     q(".status").textContent =
       source +
       " · " +
-      (lines.some((l) => l.exact)
-        ? "word timestamps"
-        : options.estimated
-          ? "estimated words"
-          : "line sync");
+      (options.lyricMode === "word"
+        ? lines.some((l) => l.exact)
+          ? "word timestamps"
+          : options.estimated
+            ? "estimated words"
+            : "line sync"
+        : options.lyricMode === "block"
+          ? "line by line"
+          : options.lyricMode);
     lines.forEach((line, i) => {
-      line.end = lines[i + 1]?.ms || duration || line.ms + 4000;
-      line.display = line.exact ? line.words : [];
+      line.end =
+        lines[i + 1]?.ms ?? (duration > line.ms ? duration : line.ms + 4000);
+      line.display = line.exact
+        ? line.words.map((word) => ({
+            ...word,
+            ms: word.ms,
+            endTime: Math.min(word.endTime, line.end),
+          }))
+        : [];
       if (!line.exact && options.estimated) {
         const words = line.text.match(/\S+\s*/g) || [line.text];
         const total = words.reduce((s, w) => s + w.trim().length, 0) || 1;
@@ -162,20 +375,51 @@
         line.display = words.map((text) => {
           const ms = line.ms + (Math.max(0, line.end - line.ms) * used) / total;
           used += text.trim().length;
-          return { ms, text };
+          return { ms, endTime: ms, text };
         });
       }
       const b = document.createElement("button");
       b.className = "line";
-      b.onclick = () => player().seek(line.ms);
-      if (line.display.length) {
-        for (const w of line.display) {
-          const span = document.createElement("span");
-          span.className = "word";
-          span.textContent = w.text;
-          b.append(span);
+      b.id = `line-${i}`;
+      b.onclick = () =>
+        player().seek(Math.max(0, line.ms + options.syncOffset));
+      const mainRow = document.createElement("span");
+      mainRow.className = "lyric-main";
+      const secondaryRow = document.createElement("span");
+      secondaryRow.className = "lyric-secondary";
+      let bracketStack = [];
+      const addPlainSegments = (text) => {
+        const segments = text.split(/(\([^)]*\)|\[[^\]]*\])/g);
+        for (const segment of segments) {
+          if (!segment) continue;
+          const target = /^[([]/.test(segment.trimStart())
+            ? secondaryRow
+            : mainRow;
+          target.append(document.createTextNode(segment));
         }
-      } else b.textContent = line.text;
+      };
+      if (options.lyricMode === "word" && line.display.length) {
+        for (let j = 0; j < line.display.length; j++) {
+          const w = line.display[j];
+          const span = document.createElement("span");
+          span.className = "luma-lyric-token";
+          span.id = `word-${i}-${j}`;
+          span.textContent = w.text;
+          span.style.opacity = "0.52";
+          let secondary = bracketStack.length > 0;
+          for (const char of w.text) {
+            if (char === "(" || char === "[") {
+              if (!bracketStack.length) secondary = true;
+              bracketStack.push(char === "(" ? ")" : "]");
+            } else if (char === ")" || char === "]") {
+              if (bracketStack.at(-1) === char) bracketStack.pop();
+            }
+          }
+          (secondary ? secondaryRow : mainRow).append(span);
+        }
+      } else addPlainSegments(line.text);
+      if (mainRow.childNodes.length) b.append(mainRow);
+      if (secondaryRow.childNodes.length) b.append(secondaryRow);
       pane.append(b);
     });
   }
@@ -214,11 +458,22 @@
     if (art.startsWith("spotify:image:"))
       art = "https://i.scdn.co/image/" + art.split(":").pop();
     if (/^https?:\/\//.test(art)) {
+      setDefaultAccent();
+      cover.crossOrigin = "anonymous";
+      cover.onload = () => {
+        if (cover.src === art) setArtworkAccent(cover);
+      };
+      cover.onerror = () => {
+        console.warn("[Luma Lyrics] Album artwork could not be loaded for its accent color.");
+      };
       q(".cover").src = art;
       q(".backdrop").style.backgroundImage = `url(${JSON.stringify(art)})`;
     } else {
+      cover.onload = null;
+      cover.onerror = null;
       q(".cover").removeAttribute("src");
       q(".backdrop").style.backgroundImage = "none";
+      setDefaultAccent();
     }
     if (!m.title || !m.artist_name) {
       note("Play a music track to load lyrics.");
@@ -236,8 +491,7 @@
       show(cache.get(key));
       return;
     }
-    note("Loading lyrics…");
-    q(".status").textContent = "LRCLIB · loading";
+    showLoading();
     const params = new URLSearchParams({
       track_name: m.title,
       artist_name: m.artist_name,
@@ -261,8 +515,7 @@
           credentials: "omit",
           signal: c.signal,
           headers: {
-            "Lrclib-Client":
-              "LumaLyrics/1.0 (Spicetify independent extension)",
+            "Lrclib-Client": "LumaLyrics/1.0 (Spicetify independent extension)",
           },
         });
         if (response.status === 429 || response.status === 503) {
@@ -306,14 +559,24 @@
     if (!el) return;
     const target = el.offsetTop - pane.clientHeight / 2 + el.offsetHeight / 2;
     cancelAnimationFrame(centerFrame);
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    cancelAnimationFrame(wheelFrame);
+    wheelFrame = 0;
+    wheelTarget = target;
+    if (
+      matchMedia("(prefers-reduced-motion: reduce)").matches ||
+      options.lyricMode === "static" ||
+      options.scrollSmoothness === 0
+    ) {
       pane.scrollTop = target;
       return;
     }
     const start = pane.scrollTop,
       distance = target - start,
       began = performance.now(),
-      duration = Math.min(720, Math.max(380, Math.abs(distance) * 0.65));
+      duration =
+        200 +
+        options.scrollSmoothness * 8 +
+        Math.min(500, Math.abs(distance) * 0.2);
     const animate = (now) => {
       const progress = Math.min(1, (now - began) / duration);
       const eased = 1 - Math.pow(1 - progress, 4);
@@ -324,25 +587,57 @@
   }
   const pauseCentering = () => {
     cancelAnimationFrame(centerFrame);
+    cancelAnimationFrame(wheelFrame);
+    wheelFrame = 0;
+    wheelTarget = pane.scrollTop;
     scrollUntil = Date.now() + 4000;
   };
-  pane.addEventListener("wheel", pauseCentering, { passive: true });
+  const smoothWheel = (event) => {
+    event.preventDefault();
+    cancelAnimationFrame(centerFrame);
+    scrollUntil = Date.now() + 4000;
+    const max = pane.scrollHeight - pane.clientHeight;
+    const base = wheelFrame ? wheelTarget : pane.scrollTop;
+    wheelTarget = Math.max(0, Math.min(max, base + event.deltaY));
+    if (
+      matchMedia("(prefers-reduced-motion: reduce)").matches ||
+      options.lyricMode === "static" ||
+      options.scrollSmoothness === 0
+    ) {
+      cancelAnimationFrame(wheelFrame);
+      wheelFrame = 0;
+      pane.scrollTop = wheelTarget;
+      return;
+    }
+    if (wheelFrame) return;
+    const glide = () => {
+      const distance = wheelTarget - pane.scrollTop;
+      if (Math.abs(distance) < 0.6) {
+        pane.scrollTop = wheelTarget;
+        wheelFrame = 0;
+        return;
+      }
+      pane.scrollTop += distance * (0.35 - options.scrollSmoothness * 0.0025);
+      wheelFrame = requestAnimationFrame(glide);
+    };
+    wheelFrame = requestAnimationFrame(glide);
+  };
+  pane.addEventListener("wheel", smoothWheel, { passive: false });
   pane.addEventListener("touchstart", pauseCentering, { passive: true });
+  pane.addEventListener("pointerdown", pauseCentering, { passive: true });
   function tick() {
     if (root.hidden) return;
     load().catch((e) => note("Player update failed: " + e.message));
     const p = player(),
       duration = p.getDuration() || 0,
-      progress = p.getProgress() || 0;
+      progress = p.getProgress() || 0,
+      lyricProgress = Math.max(0, progress - options.syncOffset);
     q(".elapsed").textContent = fmt(progress);
     q(".duration").textContent = fmt(duration);
-    if (document.activeElement !== q(".seek"))
+    if (document.activeElement !== seek)
       q(".seek").value = duration ? (progress / duration) * 1000 : 0;
     if (document.activeElement !== q(".vol")) q(".vol").value = p.getVolume();
-    q(".seek").style.setProperty(
-      "--range-progress",
-      ((Number(q(".seek").value) / 1000) * 100).toFixed(1) + "%",
-    );
+    updateSeekVisual(seek.value);
     q(".vol").style.setProperty(
       "--range-progress",
       (Number(q(".vol").value) * 100).toFixed(1) + "%",
@@ -356,7 +651,7 @@
     }
     let index = -1;
     for (let i = 0; i < lines.length; i++) {
-      if (lines[i].ms <= progress) index = i;
+      if (lines[i].ms <= lyricProgress) index = i;
       else break;
     }
     if (index !== active) {
@@ -368,24 +663,95 @@
       center(index);
     }
     const line = lines[active];
-    if (line)
-      line.display.forEach((w, j) => {
-        const end = line.display[j + 1]?.ms || line.end;
-        const fraction =
-          progress < w.ms
-            ? 0
-            : end <= w.ms
-              ? 1
-              : Math.max(0, Math.min(1, (progress - w.ms) / (end - w.ms)));
-        pane.children[active]?.children[j]?.style.setProperty(
-          "--fill",
-          (fraction * 100).toFixed(1) + "%",
-        );
+    if (line && options.lyricMode === "word" && line.display.length) {
+      let wordIndex = -1;
+      for (let j = 0; j < line.display.length; j++) {
+        const word = line.display[j],
+          end = Math.min(
+            line.display[j + 1]?.ms ?? word.endTime ?? line.end,
+            line.end,
+          );
+        if (lyricProgress >= word.ms && lyricProgress < end) {
+          wordIndex = j;
+          break;
+        }
+      }
+      const wordElement =
+        wordIndex >= 0 ? pane.querySelector(`#word-${active}-${wordIndex}`) : null;
+      if (wordElement !== highlightedWord) {
+        highlightedWord?.classList.remove("active");
+        highlightedWord = wordElement;
+        highlightedWord?.classList.add("active");
+      }
+      let nextLineIndex = active,
+        nextWordIndex = wordIndex + 1;
+      if (wordIndex < 0) {
+        nextWordIndex = line.display.findIndex((word) => word.ms > lyricProgress);
+        if (nextWordIndex < 0) {
+          nextLineIndex++;
+          nextWordIndex = 0;
+        }
+      } else if (nextWordIndex >= line.display.length) {
+        nextLineIndex++;
+        nextWordIndex = 0;
+      }
+      while (
+        nextLineIndex < lines.length &&
+        !lines[nextLineIndex].display[nextWordIndex]
+      ) {
+        nextLineIndex++;
+        nextWordIndex = 0;
+      }
+      const upcomingElement =
+        nextLineIndex < lines.length
+          ? pane.querySelector(`#word-${nextLineIndex}-${nextWordIndex}`)
+          : null;
+      if (upcomingElement !== upcomingWord) {
+        upcomingWord?.classList.remove("upcoming");
+        upcomingWord = upcomingElement;
+        upcomingWord?.classList.add("upcoming");
+      }
+      line.display.forEach((word, j) => {
+        const end = Math.min(
+            line.display[j + 1]?.ms ?? word.endTime ?? line.end,
+            line.end,
+          ),
+          fraction =
+            lyricProgress < word.ms
+              ? 0
+              : end <= word.ms
+                ? 1
+                : Math.max(
+                    0,
+                    Math.min(1, (lyricProgress - word.ms) / (end - word.ms)),
+                  );
+        pane
+          .querySelector(`#word-${active}-${j}`)
+          ?.style.setProperty("opacity", (0.56 + fraction * 0.34).toFixed(3));
       });
+    } else {
+      highlightedWord?.classList.remove("active");
+      upcomingWord?.classList.remove("upcoming");
+      highlightedWord = upcomingWord = null;
+    }
+  }
+  function animate() {
+    if (root.hidden) {
+      frameId = 0;
+      return;
+    }
+    try {
+      tick();
+    } catch (e) {
+      console.error("[Luma Lyrics]", e);
+    }
+    frameId = requestAnimationFrame(animate);
   }
   let launcher;
   async function close() {
     root.hidden = true;
+    cancelAnimationFrame(frameId);
+    frameId = 0;
     ++token;
     controller?.abort();
     q(".settings").hidden = true;
@@ -401,7 +767,7 @@
     key = null;
     scrollUntil = 0;
     launcher.active = true;
-    tick();
+    if (!frameId) frameId = requestAnimationFrame(animate);
     q('[data-action="close"]').focus();
   }
   const launchIcon =
@@ -412,6 +778,28 @@
   root.addEventListener("click", async (e) => {
     const action = e.target.closest("[data-action]")?.dataset.action;
     try {
+      const modeOption = e.target.closest("[data-mode-value]");
+      if (modeOption) {
+        options.lyricMode = modeOption.dataset.modeValue;
+        q(".mode-options").hidden = true;
+        q(".mode-trigger").setAttribute("aria-expanded", "false");
+        save();
+        applySettings();
+        if (lines.length) render();
+        q(".mode-trigger").focus();
+      } else if (e.target.closest(".mode-trigger")) {
+        const menu = q(".mode-options"),
+          expanded = q(".mode-trigger").getAttribute("aria-expanded") === "true";
+        menu.hidden = expanded;
+        q(".mode-trigger").setAttribute("aria-expanded", String(!expanded));
+        if (!expanded)
+          menu
+            .querySelector(`[data-mode-value="${options.lyricMode}"]`)
+            ?.focus();
+      } else {
+        q(".mode-options").hidden = true;
+        q(".mode-trigger").setAttribute("aria-expanded", "false");
+      }
       if (action === "close") await close();
       if (action === "full") {
         if (document.fullscreenElement === root)
@@ -425,6 +813,17 @@
           String(!q(".settings").hidden),
         );
       }
+      if (action === "settings-close") {
+        q(".settings").hidden = true;
+        q('[data-action="settings"]').setAttribute("aria-expanded", "false");
+        q('[data-action="settings"]').focus();
+      }
+      if (action === "reset-settings") {
+        options = { ...defaultOptions };
+        save();
+        applySettings();
+        if (lines.length) render();
+      }
       if (action === "play") player().togglePlay();
       if (action === "previous") player().back();
       if (action === "next") player().next();
@@ -434,15 +833,17 @@
       Spicetify.showNotification("Luma: " + e.message);
     }
   });
-  q(".seek").onchange = (e) => player().seek(Number(e.target.value) / 1000);
+  seek.oninput = () => updateSeekVisual(seek.value);
+  seek.onchange = () => player().seek(Number(seek.value) / 1000);
   q(".vol").oninput = (e) => player().setVolume(Number(e.target.value));
   for (const [selector, field] of [
     [".size", "size"],
     [".darkness", "dim"],
     [".estimated", "estimated"],
     [".desktop", "desktop"],
-    [".slider-style", "sliderStyle"],
     [".vinyl", "vinyl"],
+    [".sync-offset", "syncOffset"],
+    [".scroll-smoothness", "scrollSmoothness"],
   ])
     q(selector).addEventListener("input", (e) => {
       options[field] =
@@ -453,7 +854,11 @@
             : Number(e.target.value);
       save();
       applySettings();
-      if (field === "estimated" && lines.length) render();
+      if (
+        (field === "estimated" || field === "lyricMode") &&
+        lines.length
+      )
+        render();
     });
   q(".file").onchange = async (e) => {
     const file = e.target.files[0],
@@ -478,11 +883,36 @@
   root.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       e.preventDefault();
-      if (!q(".settings").hidden) {
+      if (!q(".mode-options").hidden) {
+        q(".mode-options").hidden = true;
+        q(".mode-trigger").setAttribute("aria-expanded", "false");
+        q(".mode-trigger").focus();
+      } else if (!q(".settings").hidden) {
         q(".settings").hidden = true;
         q('[data-action="settings"]').setAttribute("aria-expanded", "false");
         q('[data-action="settings"]').focus();
       } else close();
+    }
+    if (
+      !q(".mode-options").hidden &&
+      ["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)
+    ) {
+      const choices = [...q(".mode-options").querySelectorAll("[role=option]")],
+        selected = choices.findIndex(
+          (choice) => choice.dataset.modeValue === options.lyricMode,
+        );
+      const next =
+        e.key === "Home"
+          ? 0
+          : e.key === "End"
+            ? choices.length - 1
+            : ((choices.indexOf(document.activeElement) >= 0
+                  ? choices.indexOf(document.activeElement)
+                  : selected) +
+                (e.key === "ArrowDown" ? 1 : choices.length - 1)) %
+              choices.length;
+      e.preventDefault();
+      choices[next].focus();
     }
     if (e.key === "Tab") {
       const els = [
@@ -501,7 +931,15 @@
   });
   const polish = document.createElement("style");
   polish.textContent =
-    '@property --luma-word-fill{syntax:"<percentage>";inherits:false;initial-value:0%}#luma-root .bar{top:56px;justify-content:flex-end}#luma-root .bar .status{order:0;margin-left:0}#luma-root .bar [data-action=settings]{order:1}#luma-root .bar [data-action=full]{order:2}#luma-root .bar [data-action=close]{order:3}#luma-root .settings{top:104px}#luma-root .lyrics{scroll-behavior:auto;overscroll-behavior:contain}#luma-root .line{transition:transform .65s cubic-bezier(.22,1,.36,1),opacity .65s ease,filter .65s ease;text-shadow:0 0 0 transparent}#luma-root .line:not(.active){filter:blur(.35px)}#luma-root .line.active{transform:translateX(5px) scale(1);text-shadow:0 8px 32px #ffffff20}#luma-root .word{--luma-word-fill:var(--fill,0%);background:linear-gradient(90deg,#fff var(--luma-word-fill),#ffffff55 var(--luma-word-fill));transition:--luma-word-fill 140ms cubic-bezier(.22,1,.36,1)}@media(max-width:500px){#luma-root .bar .status{display:none}}@media(prefers-reduced-motion:reduce){#luma-root .line,#luma-root .word{transition:none}#luma-root .line:not(.active){filter:none}#luma-root .line.active{text-shadow:none;transform:none}}';
+    '@property --luma-word-fill{syntax:"<percentage>";inherits:false;initial-value:0%}#luma-root .bar{top:56px;justify-content:flex-end}#luma-root .bar .status{order:0;margin-left:0}#luma-root .bar [data-action=settings]{order:1}#luma-root .bar [data-action=full]{order:2}#luma-root .bar [data-action=close]{order:3}#luma-root .settings{top:104px}#luma-root .lyrics{scroll-behavior:auto;overscroll-behavior:contain}#luma-root .line{transition:transform .65s cubic-bezier(.22,1,.36,1),opacity .65s ease,filter .65s ease;text-shadow:0 0 0 transparent}#luma-root .line:not(.active){filter:blur(.35px)}#luma-root .line.active{transform:translateX(5px) scale(1);text-shadow:0 8px 32px #ffffff20}#luma-root .word{--luma-word-fill:var(--fill,0%);background:linear-gradient(90deg,#fff var(--luma-word-fill),#ffffff55 var(--luma-word-fill));transition:--luma-word-fill 40ms linear}@media(max-width:500px){#luma-root .bar .status{display:none}}@media(prefers-reduced-motion:reduce){#luma-root .line,#luma-root .word{transition:none}#luma-root .line:not(.active){filter:none}#luma-root .line.active{text-shadow:none;transform:none}}';
+  polish.textContent +=
+    "#luma-root .lyrics .line .luma-lyric-token{display:inline-block;white-space:pre-wrap;background:transparent!important;background-image:none!important;background-clip:border-box!important;-webkit-background-clip:border-box!important;color:#ffffffa8!important;-webkit-text-fill-color:#ffffffa8!important;text-shadow:none;transform:scale(1);transform-origin:bottom center;transition:color .2s ease,opacity .12s linear,transform .2s ease,text-shadow .2s ease}#luma-root .lyrics .line .luma-lyric-token.active{color:var(--accent)!important;-webkit-text-fill-color:var(--accent)!important;font-weight:850;text-shadow:0 0 18px rgba(var(--accent-rgb),.48);transform:scale(1.08);opacity:1!important}#luma-root .lyrics .line .luma-lyric-token.upcoming{color:#ffffff78!important;-webkit-text-fill-color:#ffffff78!important;opacity:.72!important}@media(prefers-reduced-motion:reduce){#luma-root .lyrics .line .luma-lyric-token{transition:none}}";
+  polish.textContent +=
+    "#luma-root .lyrics{scroll-padding-block:38vh}#luma-root .line{padding:13px 0;letter-spacing:-.7px;transition:transform .7s cubic-bezier(.22,1,.36,1),opacity .7s ease,filter .7s ease}#luma-root .line:not(.active){filter:blur(.15px);opacity:.38}#luma-root .line.past{opacity:.48}#luma-root .line.active{transform:translateX(2px);text-shadow:0 4px 24px rgba(var(--accent-rgb),.12)}#luma-root .lyrics .line .luma-lyric-token{font-weight:inherit;transform:none;transition:color .24s ease,opacity .18s ease,text-shadow .24s ease}#luma-root .lyrics .line .luma-lyric-token.active{color:#fff!important;-webkit-text-fill-color:#fff!important;font-weight:780;text-shadow:0 0 12px rgba(var(--accent-rgb),.28);transform:none;opacity:inherit}#luma-root .lyrics .line .luma-lyric-token.upcoming{color:#ffffff88!important;-webkit-text-fill-color:#ffffff88!important;opacity:.78!important}";
+  polish.textContent +=
+    "#luma-root .lyrics .line .luma-lyric-token.active{color:var(--accent)!important;-webkit-text-fill-color:var(--accent)!important;font-weight:850;text-shadow:0 0 18px rgba(var(--accent-rgb),.48);transform:scale(1.08);opacity:1!important}";
+  polish.textContent +=
+    "#luma-root .line{white-space:normal}#luma-root .lyric-main{display:block;font-size:calc(var(--lyric-size) + 2px);line-height:1.28}#luma-root .lyric-secondary{display:block;margin-top:.12em;color:#ffffffa0;font-size:.68em;font-weight:500;letter-spacing:-.25px;line-height:1.25;opacity:.82}#luma-root .lyric-secondary .luma-lyric-token{font-size:inherit;font-weight:inherit}#luma-root .line.active .lyric-secondary{opacity:.9}#luma-root .line:not(.active) .lyric-secondary{opacity:.65}@media(max-width:760px){#luma-root .lyric-main{font-size:28px}}";
   document.head.append(polish);
   const appearance = document.createElement("style");
   appearance.textContent =
@@ -510,12 +948,193 @@
     "#luma-root input[type=range]::-webkit-slider-runnable-track{background:linear-gradient(90deg,var(--range-color) var(--range-progress,0%),#ffffff3a var(--range-progress,0%))}#luma-root input[type=range]::-moz-range-track{background:linear-gradient(90deg,var(--range-color) var(--range-progress,0%),#ffffff3a var(--range-progress,0%))}#luma-root[data-slider-style=minimal] input[type=range]::-webkit-slider-runnable-track{background:linear-gradient(90deg,#fff var(--range-progress,0%),#ffffff40 var(--range-progress,0%))}#luma-root[data-slider-style=minimal] input[type=range]::-moz-range-track{background:linear-gradient(90deg,#fff var(--range-progress,0%),#ffffff40 var(--range-progress,0%))}";
   appearance.textContent +=
     "#luma-root[data-slider-style=bar] input[type=range]::-webkit-slider-runnable-track,#luma-root[data-slider-style=bar] input[type=range]::-moz-range-track{height:8px;border-radius:99px}#luma-root[data-slider-style=bar] input[type=range]::-webkit-slider-thumb{width:16px;height:16px;margin-top:-4px}#luma-root[data-slider-style=bar] input[type=range]::-moz-range-thumb{width:12px;height:12px}#luma-root[data-slider-style=wavy] input[type=range]::-webkit-slider-runnable-track,#luma-root[data-slider-style=wavy] input[type=range]::-moz-range-track{height:10px;border-radius:0;clip-path:polygon(0 50%,4% 10%,8% 0,12% 10%,16% 50%,20% 90%,24% 100%,28% 90%,32% 50%,36% 10%,40% 0,44% 10%,48% 50%,52% 90%,56% 100%,60% 90%,64% 50%,68% 10%,72% 0,76% 10%,80% 50%,84% 90%,88% 100%,92% 90%,96% 50%,100% 10%)}#luma-root[data-slider-style=wavy] input[type=range]::-webkit-slider-thumb{width:14px;height:14px;margin-top:-2px}#luma-root[data-slider-style=wavy] input[type=range]::-moz-range-thumb{width:10px;height:10px}#luma-root[data-slider-style=slim] input[type=range]::-webkit-slider-runnable-track,#luma-root[data-slider-style=slim] input[type=range]::-moz-range-track{height:2px;border-radius:99px}#luma-root[data-slider-style=slim] input[type=range]::-webkit-slider-thumb{width:12px;height:12px;margin-top:-5px}#luma-root[data-slider-style=slim] input[type=range]::-moz-range-thumb{width:8px;height:8px}#luma-root[data-slider-style=squiggly] input[type=range]::-webkit-slider-runnable-track,#luma-root[data-slider-style=squiggly] input[type=range]::-moz-range-track{height:10px;border-radius:0;clip-path:polygon(0 50%,4% 0,8% 50%,12% 100%,16% 50%,20% 0,24% 50%,28% 100%,32% 50%,36% 0,40% 50%,44% 100%,48% 50%,52% 0,56% 50%,60% 100%,64% 50%,68% 0,72% 50%,76% 100%,80% 50%,84% 0,88% 50%,92% 100%,96% 50%,100% 0);mask-image:repeating-linear-gradient(90deg,#000 0 7px,transparent 7px 11px)}#luma-root[data-slider-style=squiggly] input[type=range]::-webkit-slider-thumb{width:13px;height:13px;margin-top:-2px}#luma-root[data-slider-style=squiggly] input[type=range]::-moz-range-thumb{width:9px;height:9px}";
+  appearance.textContent += `
+    #luma-root[data-slider-style=bar] .player .seek::-webkit-slider-runnable-track,
+    #luma-root[data-slider-style=bar] .player .seek::-moz-range-track{height:8px;border-radius:99px}
+    #luma-root[data-slider-style=wavy] .player .seek::-webkit-slider-runnable-track,
+    #luma-root[data-slider-style=wavy] .player .seek::-moz-range-track{height:10px;border-radius:0;clip-path:polygon(0 50%,4% 10%,8% 0,12% 10%,16% 50%,20% 90%,24% 100%,28% 90%,32% 50%,36% 10%,40% 0,44% 10%,48% 50%,52% 90%,56% 100%,60% 90%,64% 50%,68% 10%,72% 0,76% 10%,80% 50%,84% 90%,88% 100%,92% 90%,96% 50%,100% 10%)}
+    #luma-root[data-slider-style=slim] .player .seek::-webkit-slider-runnable-track,
+    #luma-root[data-slider-style=slim] .player .seek::-moz-range-track{height:2px;border-radius:99px}
+    #luma-root[data-slider-style=squiggly] .player .seek::-webkit-slider-runnable-track,
+    #luma-root[data-slider-style=squiggly] .player .seek::-moz-range-track{height:10px;border-radius:0;clip-path:polygon(0 50%,4% 0,8% 50%,12% 100%,16% 50%,20% 0,24% 50%,28% 100%,32% 50%,36% 0,40% 50%,44% 100%,48% 50%,52% 0,56% 50%,60% 100%,64% 50%,68% 0,72% 50%,76% 100%,80% 50%,84% 0,88% 50%,92% 100%,96% 50%,100% 0)}
+    #luma-root[data-slider-style=ring] .player .seek::-webkit-slider-runnable-track,
+    #luma-root[data-slider-style=ring] .player .seek::-moz-range-track{height:4px;border-radius:99px}
+    #luma-root[data-slider-style=ring] .player .seek::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;margin-top:-8px;border:4px solid #b9a3ff;border-radius:50%;background:#1b1b20;box-shadow:0 0 0 3px #b9a3ff30,0 0 15px #b9a3ff80}
+    #luma-root[data-slider-style=ring] .player .seek::-moz-range-thumb{width:12px;height:12px;border:4px solid #b9a3ff;border-radius:50%;background:#1b1b20;box-shadow:0 0 0 3px #b9a3ff30,0 0 15px #b9a3ff80}
+    #luma-root[data-slider-style=blocks] .player .seek::-webkit-slider-runnable-track{height:9px;border-radius:2px;-webkit-mask-image:repeating-linear-gradient(90deg,#000 0 8px,transparent 8px 12px);mask-image:repeating-linear-gradient(90deg,#000 0 8px,transparent 8px 12px)}
+    #luma-root[data-slider-style=blocks] .player .seek::-moz-range-track{height:9px;border-radius:2px;mask-image:repeating-linear-gradient(90deg,#000 0 8px,transparent 8px 12px)}
+    #luma-root[data-slider-style=blocks] .player .seek::-webkit-slider-thumb{width:13px;height:13px;margin-top:-2px}
+    #luma-root[data-slider-style=blocks] .player .seek::-moz-range-thumb{width:9px;height:9px}
+    #luma-root[data-slider-style=liquid] .player .seek::-webkit-slider-runnable-track{height:8px;border-radius:99px;box-shadow:0 0 10px #b9a3ff45}
+    #luma-root[data-slider-style=liquid] .player .seek::-moz-range-track{height:8px;border-radius:99px;box-shadow:0 0 10px #b9a3ff45}
+    #luma-root[data-slider-style=liquid] .player .seek::-webkit-slider-thumb{width:17px;height:17px;margin-top:-4px;border:2px solid #fff;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff 0 5%,#d8caff 12%,#a78bfa 50%,#6d4aca 100%);box-shadow:0 0 0 4px #b9a3ff20,0 0 16px #b9a3ffb0}
+    #luma-root[data-slider-style=liquid] .player .seek::-moz-range-thumb{width:13px;height:13px;border:2px solid #fff;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff 0 5%,#d8caff 12%,#a78bfa 50%,#6d4aca 100%);box-shadow:0 0 0 4px #b9a3ff20,0 0 16px #b9a3ffb0}
+    #luma-root .seek-control{position:relative;height:20px}
+    #luma-root .seek-ring{display:none;width:48px;height:48px;overflow:visible;cursor:pointer;touch-action:none;pointer-events:all}
+    #luma-root .seek-ring:focus-visible{outline:2px solid #b9a3ff;outline-offset:3px;border-radius:50%}
+    #luma-root .seek-ring circle{fill:none;stroke-width:4}
+    #luma-root .seek-ring .ring-track{stroke:#ffffff35}
+    #luma-root .seek-ring .ring-progress{stroke:#b9a3ff;stroke-linecap:round;transform:rotate(-90deg);transform-origin:28px 28px;filter:drop-shadow(0 0 4px #b9a3ff90)}
+    #luma-root[data-slider-style=ring] .seek-control{display:flex;height:52px;justify-content:center;align-items:center}
+    #luma-root[data-slider-style=ring] .seek-control .seek{display:none}
+    #luma-root[data-slider-style=ring] .seek-control .seek-ring{display:block}
+    #luma-root .volume input[type=range]::-webkit-slider-runnable-track{height:5px;border-radius:99px;clip-path:none;-webkit-mask-image:none;mask-image:none;box-shadow:inset 0 0 0 1px #ffffff12}
+    #luma-root .volume input[type=range]::-moz-range-track{height:5px;border-radius:99px;clip-path:none;mask-image:none;box-shadow:inset 0 0 0 1px #ffffff12}
+    #luma-root .volume input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;margin-top:-5px;border:2px solid #fff;border-radius:50%;background:#fff;box-shadow:0 1px 8px #0008}
+    #luma-root .volume input[type=range]::-moz-range-thumb{width:11px;height:11px;border:2px solid #fff;border-radius:50%;background:#fff;box-shadow:0 1px 8px #0008}
+    #luma-root .slider-options{grid-template-columns:repeat(4,minmax(0,1fr))}
+    #luma-root .preview-ring:before,#luma-root .preview-ring i{left:12px;top:50%;width:13px;height:13px;border:2px solid #b9a3ff;border-radius:50%;background:transparent;transform:translateY(-50%)}
+    #luma-root .preview-ring:before{display:none}
+    #luma-root .preview-blocks:before,#luma-root .preview-blocks i{height:8px;border-radius:0;mask-image:repeating-linear-gradient(90deg,#000 0 5px,transparent 5px 8px)}
+    #luma-root .preview-liquid i{width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#a78bfa 55%,#6d4aca)}
+    @media(max-width:340px){#luma-root .slider-options{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  `;
+  appearance.textContent +=
+    '#luma-root[data-lyric-mode=block] .line.active{transform:none}#luma-root[data-lyric-mode=gentle] .line{transform:none;filter:none;opacity:.4;transition:opacity .8s ease}#luma-root[data-lyric-mode=gentle] .line.active{opacity:.9}#luma-root[data-lyric-mode=static] .line{transform:none;filter:none;transition:none;opacity:.55}#luma-root[data-lyric-mode=static] .line.active{opacity:1}#luma-root .placeholder{height:1.35em;margin:15px 0;border-radius:8px;background:linear-gradient(90deg,#ffffff0b 20%,#ffffff1b 45%,#ffffff0b 70%);background-size:220% 100%;animation:luma-placeholder 1.5s ease-in-out infinite}#luma-root .placeholder:nth-child(3n){width:76%}#luma-root .placeholder:nth-child(3n + 1){width:91%}#luma-root .placeholder:nth-child(3n + 2){width:62%}@keyframes luma-placeholder{to{background-position-x:-220%}}@media(prefers-reduced-motion:reduce){#luma-root .placeholder{animation:none}}';
+  appearance.textContent += `
+    #luma-root .settings{border-radius:18px;background:linear-gradient(145deg,rgba(var(--accent-rgb),.1),rgba(255,255,255,.035) 48%,rgba(var(--accent-rgb),.055)),rgba(20,21,24,.72);backdrop-filter:blur(30px) saturate(1.45);-webkit-backdrop-filter:blur(30px) saturate(1.45);box-shadow:0 22px 70px #0007,0 1px 0 #ffffff20 inset,0 0 34px rgba(var(--accent-rgb),.08)}
+    #luma-root .settings-header{background:linear-gradient(110deg,rgba(var(--accent-rgb),.09),rgba(28,28,32,.74));backdrop-filter:blur(30px) saturate(1.45);-webkit-backdrop-filter:blur(30px) saturate(1.45);border-bottom-color:#ffffff15}
+    #luma-root .settings-eyebrow{color:#ffffff8a;font-size:9px;letter-spacing:1.1px}
+    #luma-root .settings-header h2{font-size:20px;font-weight:650;letter-spacing:-.3px}
+    #luma-root .settings-section{padding-top:15px;padding-bottom:13px;border-bottom-color:#ffffff10}
+    #luma-root .settings-section h3{color:#ffffffa0;font-size:10px;letter-spacing:.6px;text-transform:none}
+    #luma-root .settings .setting-control{margin:14px 0;gap:8px}
+    #luma-root .settings .mode-control{position:relative;z-index:2}
+    #luma-root .mode-trigger{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:42px;padding:9px 12px;border:1px solid #ffffff22;border-radius:11px;background:rgba(255,255,255,.055);color:#fff;text-align:left;font:inherit;transition:border-color .18s,background .18s,box-shadow .18s}
+    #luma-root .mode-trigger:hover,#luma-root .mode-trigger[aria-expanded=true]{border-color:rgba(var(--accent-rgb),.58);background:rgba(var(--accent-rgb),.08)}
+    #luma-root .mode-trigger[aria-expanded=true]{box-shadow:0 0 0 3px rgba(var(--accent-rgb),.1)}
+    #luma-root .mode-trigger svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:transform .18s}
+    #luma-root .mode-trigger[aria-expanded=true] svg{transform:rotate(180deg)}
+    #luma-root .mode-options{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:5;padding:5px;border:1px solid rgba(255,255,255,.2);border-radius:13px;background:linear-gradient(145deg,rgba(var(--accent-rgb),.09),rgba(255,255,255,.035)),rgba(24,25,29,.94);backdrop-filter:blur(30px) saturate(1.45);-webkit-backdrop-filter:blur(30px) saturate(1.45);box-shadow:0 16px 42px #0008,0 1px 0 #ffffff18 inset;transform-origin:top center;animation:luma-menu-in .16s ease-out}
+    #luma-root .mode-options[hidden]{display:none}
+    #luma-root .mode-options button{display:flex;align-items:center;width:100%;min-height:36px;margin:2px 0;padding:8px 10px;border:1px solid transparent;border-radius:8px;background:transparent;color:#ffffffc9;text-align:left;font:inherit;font-size:13px;transition:background .15s,color .15s,border-color .15s}
+    #luma-root .mode-options button:hover,#luma-root .mode-options button:focus-visible{outline:none;border-color:rgba(var(--accent-rgb),.22);background:rgba(255,255,255,.075);color:#fff}
+    #luma-root .mode-options button[aria-selected=true]{background:rgba(var(--accent-rgb),.15);color:#fff}
+    @keyframes luma-menu-in{from{opacity:0;transform:translateY(-4px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+    #luma-root .settings .setting-toggle{margin:14px 0}
+    #luma-root .setting-toggle small,#luma-root .settings-section>small{color:#ffffff78}
+    #luma-root .settings select{background:rgba(255,255,255,.045);border-color:#ffffff1c}
+    #luma-root .settings-footer{padding-top:10px}
+    #luma-root .settings .settings-footer button{background:rgba(255,255,255,.045);border-color:#ffffff1c;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+    #luma-root .settings .settings-footer button:hover{background:rgba(var(--accent-rgb),.12);border-color:rgba(var(--accent-rgb),.45)}
+  `;
+  appearance.textContent += `
+    #luma-root[data-slider-style=bar] .layout input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:99px}
+    #luma-root[data-slider-style=bar] .layout input[type=range]::-moz-range-track{height:8px;border-radius:99px}
+    #luma-root[data-slider-style=bar] .layout input[type=range]::-webkit-slider-thumb{width:16px;height:16px;margin-top:-4px}
+    #luma-root[data-slider-style=bar] .layout input[type=range]::-moz-range-thumb{width:12px;height:12px}
+    #luma-root[data-slider-style=wavy] .layout input[type=range]::-webkit-slider-runnable-track{height:12px;border-radius:0;clip-path:polygon(0 50%,4% 10%,8% 0,12% 10%,16% 50%,20% 90%,24% 100%,28% 90%,32% 50%,36% 10%,40% 0,44% 10%,48% 50%,52% 90%,56% 100%,60% 90%,64% 50%,68% 10%,72% 0,76% 10%,80% 50%,84% 90%,88% 100%,92% 90%,96% 50%,100% 10%)}
+    #luma-root[data-slider-style=wavy] .layout input[type=range]::-moz-range-track{height:12px;border-radius:0;clip-path:polygon(0 50%,4% 10%,8% 0,12% 10%,16% 50%,20% 90%,24% 100%,28% 90%,32% 50%,36% 10%,40% 0,44% 10%,48% 50%,52% 90%,56% 100%,60% 90%,64% 50%,68% 10%,72% 0,76% 10%,80% 50%,84% 90%,88% 100%,92% 90%,96% 50%,100% 10%)}
+    #luma-root[data-slider-style=wavy] .layout input[type=range]::-webkit-slider-thumb{width:14px;height:14px;margin-top:-1px}
+    #luma-root[data-slider-style=wavy] .layout input[type=range]::-moz-range-thumb{width:10px;height:10px}
+    #luma-root[data-slider-style=slim] .layout input[type=range]::-webkit-slider-runnable-track{height:2px;border-radius:99px}
+    #luma-root[data-slider-style=slim] .layout input[type=range]::-moz-range-track{height:2px;border-radius:99px}
+    #luma-root[data-slider-style=slim] .layout input[type=range]::-webkit-slider-thumb{width:12px;height:12px;margin-top:-5px}
+    #luma-root[data-slider-style=slim] .layout input[type=range]::-moz-range-thumb{width:8px;height:8px}
+    #luma-root[data-slider-style=squiggly] .layout input[type=range]::-webkit-slider-runnable-track{height:12px;border-radius:0;clip-path:polygon(0 50%,4% 0,8% 50%,12% 100%,16% 50%,20% 0,24% 50%,28% 100%,32% 50%,36% 0,40% 50%,44% 100%,48% 50%,52% 0,56% 50%,60% 100%,64% 50%,68% 0,72% 50%,76% 100%,80% 50%,84% 0,88% 50%,92% 100%,96% 50%,100% 0)}
+    #luma-root[data-slider-style=squiggly] .layout input[type=range]::-moz-range-track{height:12px;border-radius:0;clip-path:polygon(0 50%,4% 0,8% 50%,12% 100%,16% 50%,20% 0,24% 50%,28% 100%,32% 50%,36% 0,40% 50%,44% 100%,48% 50%,52% 0,56% 50%,60% 100%,64% 50%,68% 0,72% 50%,76% 100%,80% 50%,84% 0,88% 50%,92% 100%,96% 50%,100% 0)}
+    #luma-root[data-slider-style=squiggly] .layout input[type=range]::-webkit-slider-thumb{width:13px;height:13px;margin-top:-1px}
+    #luma-root[data-slider-style=squiggly] .layout input[type=range]::-moz-range-thumb{width:9px;height:9px}
+    #luma-root .settings{top:104px;right:24px;width:min(390px,calc(100vw - 32px));max-height:calc(100vh - 128px);overflow:auto;padding:0;border:1px solid #ffffff1c;border-radius:20px;background:rgba(25,25,28,.96);backdrop-filter:blur(28px) saturate(1.3);box-shadow:0 24px 80px #0009}
+    #luma-root .settings-header{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;padding:20px 22px 16px;background:rgba(25,25,28,.96);border-bottom:1px solid #ffffff12}
+    #luma-root .settings-eyebrow{font-size:10px;font-weight:700;letter-spacing:1.5px;color:#b9a3ff}
+    #luma-root .settings-header h2{margin:4px 0 0;font-size:22px;letter-spacing:-.5px}
+    #luma-root .settings .settings-close{display:grid;place-items:center;width:36px;height:36px;padding:0;margin:0;border:1px solid #ffffff18;border-radius:50%;background:#ffffff0a;color:#ffffffc9}
+    #luma-root .settings .settings-close:hover{background:#ffffff18;color:#fff}
+    #luma-root .settings-close svg{width:18px;height:18px}
+    #luma-root .settings-section{padding:16px 22px;border-bottom:1px solid #ffffff12}
+    #luma-root .settings-section h3{margin:0 0 13px;color:#ffffff78;font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase}
+    #luma-root .settings .setting-control{display:grid;gap:9px;margin:16px 0;color:#ffffffeb;font-size:13px}
+    #luma-root .setting-control>span{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    #luma-root .setting-control output{color:#ffffff95;font-variant-numeric:tabular-nums}
+    #luma-root .settings select{width:100%;min-height:38px;margin:0;padding:8px 11px;border:1px solid #ffffff20;border-radius:10px;background:#ffffff0b;color:#fff;font:inherit}
+    #luma-root .settings select:focus-visible,#luma-root .settings button:focus-visible,#luma-root .settings input:focus-visible{outline:2px solid #b9a3ff;outline-offset:2px}
+    #luma-root .settings select option{background:#202023;color:#fff}
+    #luma-root .settings .setting-control input[type=range]{height:18px;padding:0;accent-color:#b9a3ff}
+    #luma-root .settings input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:99px;background:linear-gradient(90deg,#b9a3ff var(--range-progress,50%),#ffffff24 var(--range-progress,50%));box-shadow:none}
+    #luma-root .settings input[type=range]::-moz-range-track{height:4px;border-radius:99px;background:linear-gradient(90deg,#b9a3ff var(--range-progress,50%),#ffffff24 var(--range-progress,50%));box-shadow:none}
+    #luma-root .settings input[type=range]::-webkit-slider-thumb{width:13px;height:13px;margin-top:-5px;border:2px solid #fff;background:#b9a3ff;box-shadow:0 0 0 3px #b9a3ff25}
+    #luma-root .settings input[type=range]::-moz-range-thumb{width:9px;height:9px;border:2px solid #fff;background:#b9a3ff;box-shadow:0 0 0 3px #b9a3ff25}
+    #luma-root .settings .setting-toggle{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:16px 0;color:#fff;font-size:13px}
+    #luma-root .setting-toggle strong{display:block;font-weight:600}
+    #luma-root .setting-toggle small,#luma-root .settings-section>small{display:block;margin-top:5px;color:#ffffff80;font-size:11px;line-height:1.5}
+    #luma-root .settings .setting-toggle input[type=checkbox]{flex:none;width:36px;height:20px;margin:0;appearance:none;border:1px solid #ffffff25;border-radius:99px;background:#ffffff20;cursor:pointer;transition:background .18s,border-color .18s}
+    #luma-root .settings .setting-toggle input[type=checkbox]:before{content:"";display:block;width:14px;height:14px;margin:2px;border-radius:50%;background:#ffffffc0;transition:transform .18s,background .18s}
+    #luma-root .settings .setting-toggle input[type=checkbox]:checked{border-color:#b9a3ff;background:#9274eb}
+    #luma-root .settings .setting-toggle input[type=checkbox]:checked:before{transform:translateX(16px);background:#fff}
+    #luma-root .settings-actions>div{display:flex;gap:8px}
+    #luma-root .settings .settings-actions button{margin:0;padding:8px 12px;border-radius:9px}
+    #luma-root .settings .settings-actions button:first-child{border-color:#b9a3ff55;background:#b9a3ff20;color:#fff}
+    #luma-root .settings{border-color:rgba(255,255,255,.32);background:linear-gradient(145deg,rgba(var(--accent-rgb),.15),rgba(255,255,255,.07) 48%,rgba(var(--accent-rgb),.08)),rgba(19,20,24,.55);backdrop-filter:blur(38px) saturate(1.8);-webkit-backdrop-filter:blur(38px) saturate(1.8);box-shadow:0 28px 90px #0008,0 1px 0 #ffffff30 inset,0 0 42px rgba(var(--accent-rgb),.12)}
+    #luma-root .settings-header{background:linear-gradient(110deg,rgba(var(--accent-rgb),.14),rgba(28,28,32,.62));backdrop-filter:blur(38px) saturate(1.8);-webkit-backdrop-filter:blur(38px) saturate(1.8);border-bottom-color:rgba(255,255,255,.2)}
+    #luma-root .settings-eyebrow{color:var(--accent)}
+    #luma-root .settings .setting-control input[type=range]{accent-color:var(--accent)}
+    #luma-root .settings input[type=range]::-webkit-slider-runnable-track{background:linear-gradient(90deg,var(--accent) var(--range-progress,50%),#ffffff35 var(--range-progress,50%))}
+    #luma-root .settings input[type=range]::-moz-range-track{background:linear-gradient(90deg,var(--accent) var(--range-progress,50%),#ffffff35 var(--range-progress,50%))}
+    #luma-root .settings input[type=range]::-webkit-slider-thumb{background:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),.25)}
+    #luma-root .settings input[type=range]::-moz-range-thumb{background:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),.25)}
+    #luma-root .settings .setting-toggle input[type=checkbox]:checked{border-color:var(--accent);background:var(--accent)}
+    #luma-root .settings button:focus-visible,#luma-root .settings input:focus-visible,#luma-root .settings select:focus-visible{outline-color:var(--accent)}
+    #luma-root .settings .settings-close{background:rgba(255,255,255,.11);border-color:rgba(255,255,255,.25);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+    #luma-root .settings .settings-actions button:first-child{border-color:rgba(var(--accent-rgb),.5);background:rgba(var(--accent-rgb),.18)}
+    #luma-root .settings-footer{display:flex;justify-content:flex-end;padding:12px 22px 16px}
+    #luma-root .settings .settings-footer button{display:inline-flex;align-items:center;gap:8px;margin:0;padding:9px 12px;border:1px solid rgba(255,255,255,.24);border-radius:10px;background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(var(--accent-rgb),.08));color:#ffffffd9;font-size:12px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);transition:background .18s,border-color .18s,transform .18s}
+    #luma-root .settings .settings-footer button:hover{transform:translateY(-1px);border-color:rgba(var(--accent-rgb),.6);background:rgba(var(--accent-rgb),.2)}
+    #luma-root .settings-footer svg{width:16px;height:16px}
+    #luma-root .player{padding:18px;border:1px solid rgba(255,255,255,.18);border-radius:24px;background:linear-gradient(145deg,rgba(255,255,255,.09),rgba(var(--accent-rgb),.045)),rgba(18,19,23,.16);backdrop-filter:blur(24px) saturate(1.45);-webkit-backdrop-filter:blur(24px) saturate(1.45);box-shadow:0 18px 55px #0002,0 1px 0 #ffffff1c inset}
+    #luma-root .player .seek{--range-color:var(--accent)}
+    #luma-root .seek-ring .ring-progress{stroke:var(--accent);filter:drop-shadow(0 0 5px rgba(var(--accent-rgb),.65))}
+    #luma-root .player .controls .play{background:linear-gradient(145deg,rgba(255,255,255,.96),rgba(var(--accent-rgb),.4));box-shadow:0 6px 24px #0004,0 0 22px rgba(var(--accent-rgb),.23)}
+    #luma-root .player .controls .play:hover{background:linear-gradient(145deg,#fff,rgba(var(--accent-rgb),.62))}
+    @media(max-width:760px){#luma-root .player{padding:12px}}
+    @media(max-width:600px){#luma-root .settings{top:100px;right:12px;width:calc(100vw - 24px);max-height:calc(100vh - 112px)}#luma-root .settings-section{padding-right:18px;padding-left:18px}#luma-root .settings-header{padding-right:18px;padding-left:18px}}
+  `;
+  appearance.textContent += `
+    #luma-root{--material-surface:rgba(28,29,34,.72);--material-surface-high:rgba(255,255,255,.085);--material-outline:rgba(255,255,255,.14);--material-on-surface:#f5f2f8}
+    #luma-root .shade{background:linear-gradient(135deg,rgba(5,7,11,.48),rgba(8,9,13,.24) 55%,rgba(5,7,11,.48))}
+    #luma-root .bar{inset:22px 28px auto}
+    #luma-root .tool{width:44px;height:44px;border:1px solid var(--material-outline);background:rgba(28,29,34,.32);backdrop-filter:blur(22px) saturate(1.5);-webkit-backdrop-filter:blur(22px) saturate(1.5);box-shadow:0 1px 0 #ffffff12 inset;transition:background .18s,border-color .18s,transform .18s}
+    #luma-root .tool:hover{background:rgba(var(--accent-rgb),.14);border-color:rgba(var(--accent-rgb),.42);transform:translateY(-1px)}
+    #luma-root .layout{grid-template-columns:minmax(250px,390px) minmax(0,1fr);gap:clamp(32px,6vw,96px);padding:96px clamp(32px,8vw,120px) 40px}
+    #luma-root .player{padding:clamp(18px,2vw,28px);border:1px solid var(--material-outline);border-radius:28px;background:linear-gradient(145deg,rgba(255,255,255,.075),rgba(var(--accent-rgb),.045) 62%,rgba(255,255,255,.025)),var(--material-surface);backdrop-filter:blur(32px) saturate(1.55);-webkit-backdrop-filter:blur(32px) saturate(1.55);box-shadow:0 24px 70px #0004,0 1px 0 #ffffff16 inset}
+    #luma-root .artwork-stage{margin-bottom:24px;border-radius:20px}
+    #luma-root .cover{border-radius:20px;box-shadow:0 18px 42px #0004}
+    #luma-root.vinyl .artwork-stage{margin-bottom:24px}
+    #luma-root .title{margin:0 0 5px;color:var(--material-on-surface);font-size:24px;font-weight:650;letter-spacing:-.45px;line-height:1.2}
+    #luma-root .artist{margin:0 0 20px;color:#e2dfe8b8;font-size:14px}
+    #luma-root .player .seek{--range-color:var(--accent);height:22px}
+    #luma-root .player .seek::-webkit-slider-runnable-track{height:5px;border-radius:99px;background:linear-gradient(90deg,var(--accent) var(--range-progress,0%),rgba(255,255,255,.2) var(--range-progress,0%));box-shadow:0 0 14px rgba(var(--accent-rgb),.12)}
+    #luma-root .player .seek::-moz-range-track{height:5px;border-radius:99px;background:linear-gradient(90deg,var(--accent) var(--range-progress,0%),rgba(255,255,255,.2) var(--range-progress,0%));box-shadow:0 0 14px rgba(var(--accent-rgb),.12)}
+    #luma-root .player .seek::-webkit-slider-thumb{width:13px;height:13px;margin-top:-4px;border:0;background:var(--accent);box-shadow:0 0 0 4px rgba(var(--accent-rgb),.17),0 1px 5px #0005}
+    #luma-root .player .seek::-moz-range-thumb{width:13px;height:13px;border:0;background:var(--accent);box-shadow:0 0 0 4px rgba(var(--accent-rgb),.17),0 1px 5px #0005}
+    #luma-root .times{margin-top:1px;color:#e5e1e9a8;font-size:11px;font-variant-numeric:tabular-nums}
+    #luma-root .controls{align-items:center;gap:24px;margin:12px 0}
+    #luma-root .controls button{width:44px;height:44px;padding:8px;border:0;border-radius:50%;background:transparent;color:#e7e3ebd0;transition:color .18s,background .18s,transform .18s}
+    #luma-root .controls button:not(.play):hover{background:rgba(var(--accent-rgb),.12);color:#fff;transform:scale(1.05)}
+    #luma-root .controls button:not(.play) svg{width:24px;height:24px}
+    #luma-root .controls .play{width:54px;height:54px;padding:8px;border:0;border-radius:50%;background:transparent!important;box-shadow:none!important;color:var(--accent);transform:none}
+    #luma-root .controls .play:hover{background:transparent!important;color:#fff;box-shadow:none!important;transform:scale(1.08)}
+    #luma-root .controls .play svg{width:36px;height:36px}
+    #luma-root .volume{gap:12px;margin-top:11px;color:#e7e3ebac}
+    #luma-root .volume>svg{width:18px;height:18px;flex:none}
+    #luma-root .volume input[type=range]::-webkit-slider-runnable-track{height:4px;background:linear-gradient(90deg,var(--accent) var(--range-progress,0%),rgba(255,255,255,.2) var(--range-progress,0%));box-shadow:none}
+    #luma-root .volume input[type=range]::-moz-range-track{height:4px;background:linear-gradient(90deg,var(--accent) var(--range-progress,0%),rgba(255,255,255,.2) var(--range-progress,0%));box-shadow:none}
+    #luma-root .volume input[type=range]::-webkit-slider-thumb{width:11px;height:11px;margin-top:-3px;border:0;background:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),.15)}
+    #luma-root .volume input[type=range]::-moz-range-thumb{width:11px;height:11px;border:0;background:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),.15)}
+    #luma-root .settings{top:82px;right:24px;width:min(420px,calc(100vw - 36px));max-height:calc(100vh - 108px);padding:8px;border:1px solid rgba(255,255,255,.18);border-radius:28px;background:linear-gradient(150deg,rgba(var(--accent-rgb),.1),rgba(255,255,255,.035) 45%,rgba(var(--accent-rgb),.04)),rgba(25,26,31,.78);backdrop-filter:blur(38px) saturate(1.6);-webkit-backdrop-filter:blur(38px) saturate(1.6);box-shadow:0 24px 80px #0006,0 1px 0 #ffffff18 inset}
+    #luma-root .settings-header{top:-8px;padding:22px 20px 15px;border:0;border-bottom:1px solid rgba(255,255,255,.1);border-radius:22px 22px 0 0;background:rgba(29,30,35,.66);backdrop-filter:blur(38px) saturate(1.6);-webkit-backdrop-filter:blur(38px) saturate(1.6)}
+    #luma-root .settings-eyebrow{color:rgba(var(--accent-rgb),.95);font-size:10px;letter-spacing:1.25px}
+    #luma-root .settings-header h2{font-size:22px;font-weight:650;letter-spacing:-.35px}
+    #luma-root .settings-section{margin:10px 4px;padding:16px;border:1px solid rgba(255,255,255,.085);border-radius:20px;background:linear-gradient(145deg,rgba(255,255,255,.045),rgba(var(--accent-rgb),.025)),rgba(255,255,255,.018)}
+    #luma-root .settings-section h3{margin-bottom:14px;color:rgba(var(--accent-rgb),.9);font-size:11px;letter-spacing:.5px;text-transform:uppercase}
+    #luma-root .settings .setting-control{margin:13px 0;color:var(--material-on-surface)}
+    #luma-root .settings .setting-toggle{margin:13px 0;color:var(--material-on-surface)}
+    #luma-root .settings select{background:rgba(255,255,255,.055);border-color:rgba(255,255,255,.16)}
+    #luma-root .settings-footer{padding:10px 10px 12px}
+    #luma-root .settings .settings-footer button{border-color:rgba(255,255,255,.16);background:rgba(255,255,255,.05)}
+    @media(max-width:760px){#luma-root .layout{padding:82px 20px 22px;gap:20px;grid-template-columns:minmax(180px,.85fr) minmax(0,1.15fr)}#luma-root .player{padding:14px;border-radius:22px}#luma-root .artwork-stage,#luma-root.vinyl .artwork-stage{margin-bottom:18px}#luma-root .title{font-size:20px}#luma-root .controls{gap:12px}}
+    @media(max-width:520px){#luma-root .layout{grid-template-columns:minmax(0,1fr);align-content:start;overflow:auto;padding:82px 18px 20px;gap:16px}#luma-root .player{display:grid;grid-template-columns:72px minmax(0,1fr);column-gap:14px;align-items:center;padding:13px 15px}#luma-root .artwork-stage,#luma-root.vinyl .artwork-stage{grid-row:1 / span 3;width:72px;height:72px;margin:0}#luma-root .player .title,#luma-root .player .artist{grid-column:2}#luma-root .player .title{align-self:end;font-size:17px}#luma-root .player .artist{align-self:start;margin:2px 0 0;font-size:12px}#luma-root .player .seek,#luma-root .times,#luma-root .controls,#luma-root .volume{grid-column:1 / -1}#luma-root .player .seek{margin-top:12px}#luma-root .controls{margin:5px 0}#luma-root .settings{top:76px;right:12px;width:calc(100vw - 24px);max-height:calc(100vh - 92px)}#luma-root .lyrics{min-height:42vh;padding:20vh 8px}}
+    @media(prefers-reduced-motion:reduce){#luma-root .controls button,#luma-root .tool{transition:none}}
+  `;
   document.head.append(appearance);
-  setInterval(() => {
-    try {
-      tick();
-    } catch (e) {
-      console.error("[Luma Lyrics]", e);
-    }
-  }, 50);
 })();
