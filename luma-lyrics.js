@@ -1,4 +1,4 @@
-// Luma Lyrics 0.2.0-beta.1 — independent implementation; no Liquid Lyrics dependency.
+// Luma Lyrics 1.0 — independent implementation; no Liquid Lyrics dependency.
 (async () => {
   while (
     !globalThis.Spicetify?.Player ||
@@ -262,7 +262,7 @@
           signal: c.signal,
           headers: {
             "Lrclib-Client":
-              "LumaLyrics/0.2.0-beta.1 (Spicetify independent extension)",
+              "LumaLyrics/1.0 (Spicetify independent extension)",
           },
         });
         if (response.status === 429 || response.status === 503) {

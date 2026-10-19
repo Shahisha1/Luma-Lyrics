@@ -1,9 +1,9 @@
 # Luma Lyrics 1.0
 
-![Version](https://img.shields.io/badge/version-0.2.0--beta.1-blue)
+![Version](https://img.shields.io/badge/version-1.0-blue)
 ![License](https://img.shields.io/github/license/Shahisha1/Luma-Lyrics)
 ![Spicetify](https://img.shields.io/badge/Spicetify-extension-1db954)
-![Status](https://img.shields.io/badge/status-beta-orange)
+![Status](https://img.shields.io/badge/status-stable-brightgreen)
 
 An independent [Spicetify](https://spicetify.app) extension that turns Spotify's desktop player into an immersive two-column view: large artwork on one side and line-synced lyrics on the other. No Liquid Lyrics dependency.
 
@@ -22,7 +22,7 @@ An independent [Spicetify](https://spicetify.app) extension that turns Spotify's
 
 ## Status
 
-Version `0.2.0-beta.1`. This is a beta release, so you may run into bugs, and Spotify or Spicetify updates can break it. If something doesn't work, please open an issue.
+Version `1.0`. Spotify or Spicetify updates can still break compatibility. If something doesn't work, please open an issue.
 
 ## Installation
 
