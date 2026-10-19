@@ -15,24 +15,24 @@ Luma Lyrics adds synchronized lyrics and a full-window music player to Spotify d
 Luma Lyrics offers several ways to follow lyrics. Screenshots for each mode will be added here.
 
 ### Word by word
-![Word-by-word Lyrics](word-by-word.png)
+
 
 
 ### Line by line
 
-<!-- Screenshot: screenshots/line-by-line.png -->
+
 
 ### Gentle
 
-<!-- Screenshot: screenshots/gentle.png -->
+
 
 ### Static
 
-<!-- Screenshot: screenshots/static.png -->
+
 
 ### Settings
 
-<!-- Screenshot: screenshots/settings.png -->
+
 
 ## Features
 
