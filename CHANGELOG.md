@@ -2,14 +2,10 @@
 
 ## 1.0
 
-- Modernized playback controls and sliders, with selectable Bar, Wavy, Slim, and Squiggly player slider styles.
-- Added optional spinning-vinyl artwork that follows playback and respects reduced-motion preferences.
-- Modernized lyric transitions and improved smooth line centering.
+First public release.
 
-## 0.2.0-beta.1
-
-- Native playback-bar launcher.
-- Settings panel and optional desktop styling.
-- LRCLIB line sync; explicitly estimated word animation.
-- Local Enhanced LRC import.
-- Initial beta release.
+- Added synchronized lyrics and optional estimated word highlighting.
+- Added playback, volume, and seek controls, with Bar, Wavy, Slim, and Squiggly slider styles.
+- Added optional spinning-vinyl artwork and appearance settings.
+- Added Enhanced LRC file import for word-level timing.
+- Improved lyric transitions and accessibility.
