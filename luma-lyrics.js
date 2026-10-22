@@ -1,4 +1,4 @@
-// Luma Lyrics v1.1.1
+// Luma Lyrics v1.2
 (async () => {
   while (
     !globalThis.Spicetify?.Player ||
@@ -55,7 +55,7 @@
   document.head.append(style);
   const desktop = document.createElement("style");
   desktop.textContent =
-    ':root{--spice-main:#1c1c1e;--spice-sidebar:#161617;--spice-player:#1c1c1e;--spice-card:#2c2c2e;--spice-button:#fa233b;--spice-button-active:#ff375f}.Root__main-view,.Root__nav-bar,.main-card-card{border-radius:12px!important}.main-nowPlayingBar-nowPlayingBar{background:#1c1c1e!important}button[data-testid="play-button"]{background:#fa233b!important;color:#fff!important}';
+    ':root{--spice-main:var(--luma-surface,#141218);--spice-sidebar:var(--luma-surface-low,#1d1b20);--spice-player:var(--luma-surface-container,#211f26);--spice-card:var(--luma-surface-high,#2b2930);--spice-button:var(--luma-primary,#d0bcff);--spice-button-active:var(--luma-primary,#d0bcff)}.Root__main-view,.Root__nav-bar,.main-card-card{border-radius:12px!important}.main-nowPlayingBar-nowPlayingBar{background:var(--luma-surface-container,#211f26)!important}button[data-testid="play-button"]{background:var(--luma-primary,#d0bcff)!important;color:var(--luma-on-primary,#381e72)!important}';
   document.head.append(desktop);
   const paths = {
     close: "M6 6l12 12M18 6 6 18",
@@ -99,10 +99,108 @@
   const updateSeekVisual = () => updateRangeVisual(seek);
   const cover = q(".cover"),
     artworkStage = document.createElement("div");
-  const setDefaultAccent = () => {
-    root.style.setProperty("--accent-rgb", "185,163,255");
-    root.style.setProperty("--accent", "rgb(185,163,255)");
+  // Material You style dynamic color: one hue from the artwork -> tonal palette.
+  // Tones follow Material 3 dark-scheme roles; tone is approximated in OKLCH.
+  const toneToL = (t) =>
+    Math.cbrt(t > 8 ? Math.pow((t + 16) / 116, 3) : t / 903.3);
+  const oklchToRgb = (L, C, hue) => {
+    const rad = (hue * Math.PI) / 180;
+    for (let i = 0; i < 80; i++) {
+      const a = C * Math.cos(rad),
+        b = C * Math.sin(rad),
+        l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3,
+        m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3,
+        s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3,
+        lin = [
+          4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+          -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+          -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s,
+        ];
+      if (C <= 0.0005 || lin.every((v) => v >= -0.0005 && v <= 1.0005))
+        return lin.map((v) => {
+          v = Math.max(0, Math.min(1, v));
+          v = v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055;
+          return Math.round(v * 255);
+        });
+      C = i > 70 ? 0 : C * 0.94;
+    }
+    return [128, 128, 128];
   };
+  const srgbToOklab = (r, g, b) => {
+    const lin = [r, g, b].map((v) => {
+      v /= 255;
+      return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    const l = Math.cbrt(
+        0.4122214708 * lin[0] + 0.5363325363 * lin[1] + 0.0514459929 * lin[2],
+      ),
+      m = Math.cbrt(
+        0.2119034982 * lin[0] + 0.6806995451 * lin[1] + 0.1073969566 * lin[2],
+      ),
+      s = Math.cbrt(
+        0.0883024619 * lin[0] + 0.2817188376 * lin[1] + 0.6299787005 * lin[2],
+      );
+    return [
+      0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
+      1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
+      0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
+    ];
+  };
+  const hex = (rgb) =>
+    "#" + rgb.map((v) => v.toString(16).padStart(2, "0")).join("");
+  const applyPalette = (hue, chroma) => {
+    const primaryC =
+        chroma < 0.05 ? chroma : Math.max(0.08, Math.min(0.13, chroma * 0.9)),
+      secondaryC = primaryC * 0.42,
+      tertiaryC = primaryC * 0.66,
+      neutralC = Math.min(0.014, primaryC * 0.2),
+      variantC = Math.min(0.022, primaryC * 0.3),
+      P = (t) => oklchToRgb(toneToL(t), primaryC, hue),
+      S = (t) => oklchToRgb(toneToL(t), secondaryC, hue),
+      T = (t) => oklchToRgb(toneToL(t), tertiaryC, hue + 60),
+      N = (t) => oklchToRgb(toneToL(t), neutralC, hue),
+      V = (t) => oklchToRgb(toneToL(t), variantC, hue);
+    const roles = {
+      primary: P(80),
+      "on-primary": P(20),
+      "primary-container": P(30),
+      "on-primary-container": P(90),
+      secondary: S(80),
+      "on-secondary": S(20),
+      "secondary-container": S(30),
+      "on-secondary-container": S(90),
+      tertiary: T(80),
+      "on-tertiary": T(20),
+      "tertiary-container": T(30),
+      "on-tertiary-container": T(90),
+      surface: N(6),
+      "surface-low": N(10),
+      "surface-container": N(12),
+      "surface-high": N(17),
+      "surface-highest": N(22),
+      "on-surface": N(90),
+      "on-surface-variant": V(80),
+      outline: V(60),
+      "outline-variant": V(30),
+    };
+    for (const [name, rgb] of Object.entries(roles)) {
+      root.style.setProperty("--md-" + name, "rgb(" + rgb.join(",") + ")");
+      root.style.setProperty("--md-" + name + "-rgb", rgb.join(","));
+    }
+    root.style.setProperty("--accent-rgb", roles.primary.join(","));
+    root.style.setProperty("--accent", "rgb(" + roles.primary.join(",") + ")");
+    const page = document.documentElement.style;
+    page.setProperty("--luma-primary", hex(roles.primary));
+    page.setProperty("--luma-on-primary", hex(roles["on-primary"]));
+    page.setProperty("--luma-surface", hex(roles.surface));
+    page.setProperty("--luma-surface-low", hex(roles["surface-low"]));
+    page.setProperty(
+      "--luma-surface-container",
+      hex(roles["surface-container"]),
+    );
+    page.setProperty("--luma-surface-high", hex(roles["surface-high"]));
+  };
+  const setDefaultAccent = () => applyPalette(295, 0.13);
   artworkStage.className = "artwork-stage";
   cover.before(artworkStage);
   artworkStage.append(cover);
@@ -230,72 +328,28 @@
     try {
       context.drawImage(image, 0, 0, 32, 32);
       const pixels = context.getImageData(0, 0, 32, 32).data;
-      let red = 0,
-        green = 0,
-        blue = 0,
-        count = 0;
-      for (let i = 0; i < pixels.length; i += 16) {
-        const r = pixels[i],
-          g = pixels[i + 1],
-          b = pixels[i + 2],
-          high = Math.max(r, g, b),
-          low = Math.min(r, g, b);
-        if (pixels[i + 3] < 128 || high - low < 24 || high < 36 || low > 238)
-          continue;
-        red += r;
-        green += g;
-        blue += b;
-        count++;
+      let sumA = 0,
+        sumB = 0,
+        sumC = 0,
+        sumW = 0;
+      for (let i = 0; i < pixels.length; i += 4) {
+        if (pixels[i + 3] < 128) continue;
+        const [L, a, b] = srgbToOklab(pixels[i], pixels[i + 1], pixels[i + 2]),
+          c = Math.hypot(a, b);
+        if (c < 0.04 || L < 0.2 || L > 0.96) continue;
+        const w = c * c;
+        sumA += a * w;
+        sumB += b * w;
+        sumC += c * w;
+        sumW += w;
       }
-      if (!count) {
-        for (let i = 0; i < pixels.length; i += 16) {
-          if (pixels[i + 3] < 128) continue;
-          red += pixels[i];
-          green += pixels[i + 1];
-          blue += pixels[i + 2];
-          count++;
-        }
-      }
-      if (!count) {
-        console.warn(
-          "[Luma Lyrics] Album artwork did not contain sampleable pixels.",
-        );
+      if (!sumW) {
+        // Near-monochrome artwork: keep the palette close to neutral.
+        applyPalette(295, 0.02);
         return;
       }
-      red = Math.round(red / count);
-      green = Math.round(green / count);
-      blue = Math.round(blue / count);
-      const max = Math.max(red, green, blue) / 255,
-        min = Math.min(red, green, blue) / 255,
-        delta = max - min,
-        lightness = (max + min) / 2;
-      let hue = 0,
-        saturation = 0;
-      if (delta) {
-        saturation = delta / (1 - Math.abs(2 * lightness - 1));
-        if (max === red / 255) hue = ((green - blue) / 255 / delta) % 6;
-        else if (max === green / 255) hue = (blue - red) / 255 / delta + 2;
-        else hue = (red - green) / 255 / delta + 4;
-        hue *= 60;
-        if (hue < 0) hue += 360;
-      }
-      saturation = Math.max(0.48, Math.min(0.82, saturation));
-      const accentLightness = Math.max(0.48, Math.min(0.68, lightness));
-      const chroma = (1 - Math.abs(2 * accentLightness - 1)) * saturation,
-        x = chroma * (1 - Math.abs(((hue / 60) % 2) - 1)),
-        offset = accentLightness - chroma / 2;
-      let channels;
-      if (hue < 60) channels = [chroma, x, 0];
-      else if (hue < 120) channels = [x, chroma, 0];
-      else if (hue < 180) channels = [0, chroma, x];
-      else if (hue < 240) channels = [0, x, chroma];
-      else if (hue < 300) channels = [x, 0, chroma];
-      else channels = [chroma, 0, x];
-      const rgb = channels.map((channel) =>
-        Math.round((channel + offset) * 255),
-      );
-      root.style.setProperty("--accent-rgb", rgb.join(","));
-      root.style.setProperty("--accent", `rgb(${rgb.join(",")})`);
+      const hue = ((Math.atan2(sumB, sumA) * 180) / Math.PI + 360) % 360;
+      applyPalette(hue, sumC / sumW);
     } catch (error) {
       setDefaultAccent();
       console.warn(
@@ -1186,4 +1240,94 @@
     @media(max-width:600px){#luma-root .bar{inset:72px 16px auto}#luma-root .settings{top:126px;right:12px;width:calc(100vw - 24px);max-height:calc(100vh - 146px)}}
   `;
   document.head.append(appearance);
+  const material = document.createElement("style");
+  const track = (sel, decl) =>
+    `${sel}::-webkit-slider-runnable-track{${decl}}${sel}::-moz-range-track{${decl}}`;
+  const thumb = (sel, decl, webkitOnly = "") =>
+    `${sel}::-webkit-slider-thumb{-webkit-appearance:none;${decl};${webkitOnly}}${sel}::-moz-range-thumb{${decl}}`;
+  const fill = (alpha) =>
+    `linear-gradient(90deg,var(--md-primary) var(--range-progress,0%),rgba(var(--md-on-surface-rgb),${alpha}) var(--range-progress,0%))`;
+  const handle =
+    "width:5px;border:0;border-radius:3px;background:var(--md-primary);box-shadow:0 1px 5px rgba(0,0,0,.4)";
+  const playerRange = "#luma-root[data-slider-style] .layout input[type=range]";
+  const panel = "#luma-root .settings input[type=range]";
+  material.textContent = `
+    #luma-root{background:var(--md-surface);color:var(--md-on-surface);accent-color:var(--md-primary)}
+    #luma-root .shade{background:rgba(var(--md-surface-rgb),var(--dim))}
+    #luma-root button:focus-visible,#luma-root input:focus-visible,#luma-root .lyrics:focus-visible{outline:2px solid var(--md-primary);outline-offset:2px}
+
+    #luma-root .tool{border:0;background:rgba(var(--md-secondary-container-rgb),.55);color:var(--md-on-secondary-container);box-shadow:inset 0 1px 0 rgba(var(--md-on-surface-rgb),.14)}
+    #luma-root .tool:hover{border:0;background:rgba(var(--md-secondary-container-rgb),.8);transform:translateY(-1px)}
+    #luma-root .tool:active{transform:scale(.94)}
+    #luma-root .status{color:var(--md-on-surface-variant)}
+
+    #luma-root .player{border:1px solid rgba(var(--md-outline-variant-rgb),.55);border-radius:28px;background:linear-gradient(160deg,rgba(var(--md-primary-rgb),.1),transparent 55%),rgba(var(--md-surface-container-rgb),.58);backdrop-filter:blur(32px) saturate(1.6);-webkit-backdrop-filter:blur(32px) saturate(1.6);box-shadow:0 20px 56px rgba(0,0,0,.28),inset 0 1px 0 rgba(var(--md-on-surface-rgb),.16)}
+    #luma-root .title{color:var(--md-on-surface)}
+    #luma-root .artist,#luma-root .times,#luma-root .volume{color:var(--md-on-surface-variant)}
+
+    ${track(playerRange, `height:6px;border-radius:99px;background:${fill(".16")};box-shadow:none;clip-path:none;-webkit-mask-image:none;mask-image:none`)}
+    ${thumb(playerRange, `${handle};height:26px`, "margin-top:-10px")}
+    #luma-root[data-slider-style] .layout input[type=range]{--range-color:var(--md-primary)}
+    ${track("#luma-root[data-slider-style] .layout .volume input[type=range]", `height:4px;background:${fill(".16")}`)}
+    ${thumb("#luma-root[data-slider-style] .layout .volume input[type=range]", `${handle};height:20px`, "margin-top:-8px")}
+    #luma-root[data-slider-style] .layout input[type=range]:hover::-webkit-slider-thumb{transform:scaleY(1.12);box-shadow:0 0 0 5px rgba(var(--md-primary-rgb),.14)}
+
+    #luma-root .controls{gap:12px}
+    #luma-root .controls button:not(.play){width:58px;height:46px;border-radius:23px;background:rgba(var(--md-secondary-container-rgb),.7);color:var(--md-on-secondary-container)}
+    #luma-root .controls button:not(.play):hover{background:rgba(var(--md-secondary-container-rgb),.95);color:var(--md-on-secondary-container);transform:none}
+    #luma-root .controls button:not(.play):active{transform:scale(.94)}
+    #luma-root .controls .play{width:64px;height:64px;padding:0;color:var(--md-on-primary)}
+    #luma-root .controls .play:hover{color:var(--md-on-primary);transform:none}
+    #luma-root .controls .play:before{inset:0;border-radius:50%;background:var(--md-primary);box-shadow:0 4px 18px rgba(var(--md-primary-rgb),.3);transition:border-radius .3s cubic-bezier(.2,0,0,1),filter .18s,transform .18s}
+    #luma-root.playing .controls .play:before{border-radius:32%}
+    #luma-root .controls .play:hover:before{inset:0;filter:brightness(1.07)}
+    #luma-root .controls .play:active:before{transform:scale(.94)}
+    #luma-root .controls .play svg{width:30px;height:30px}
+
+    #luma-root .line{color:var(--md-on-surface)}
+    #luma-root .lyrics .line .luma-lyric-token{color:rgba(var(--md-on-surface-rgb),.66)!important;-webkit-text-fill-color:rgba(var(--md-on-surface-rgb),.66)!important}
+    #luma-root .lyrics .line .luma-lyric-token.upcoming{color:rgba(var(--md-on-surface-rgb),.5)!important;-webkit-text-fill-color:rgba(var(--md-on-surface-rgb),.5)!important}
+    #luma-root .lyrics .line .luma-lyric-token.active{color:var(--md-primary)!important;-webkit-text-fill-color:var(--md-primary)!important;text-shadow:0 0 18px rgba(var(--md-primary-rgb),.4)}
+    #luma-root .lyric-secondary{color:var(--md-on-surface-variant)}
+    #luma-root .message{color:var(--md-on-surface-variant)}
+    #luma-root .placeholder{background:linear-gradient(90deg,rgba(var(--md-on-surface-rgb),.05) 20%,rgba(var(--md-on-surface-rgb),.12) 45%,rgba(var(--md-on-surface-rgb),.05) 70%);background-size:220% 100%}
+
+    #luma-root .settings{border:1px solid rgba(var(--md-outline-variant-rgb),.6);border-radius:28px;background:linear-gradient(155deg,rgba(var(--md-primary-rgb),.08),transparent 50%),rgba(var(--md-surface-container-rgb),.62);backdrop-filter:blur(40px) saturate(1.7);-webkit-backdrop-filter:blur(40px) saturate(1.7);box-shadow:0 28px 80px rgba(0,0,0,.4),inset 0 1px 0 rgba(var(--md-on-surface-rgb),.14)}
+    #luma-root .settings-header{background:rgba(var(--md-surface-container-rgb),.5);border-bottom:1px solid rgba(var(--md-outline-variant-rgb),.5)}
+    #luma-root .settings-header h2{color:var(--md-on-surface)}
+    #luma-root .settings-eyebrow{color:var(--md-primary)}
+    #luma-root .settings .settings-close{border:0;background:rgba(var(--md-secondary-container-rgb),.6);color:var(--md-on-secondary-container)}
+    #luma-root .settings .settings-close:hover{background:rgba(var(--md-secondary-container-rgb),.9);color:var(--md-on-secondary-container)}
+    #luma-root .settings-section{border:0;border-radius:24px;background:rgba(var(--md-surface-high-rgb),.5)}
+    #luma-root .settings-section h3{color:var(--md-primary);text-transform:none;letter-spacing:.1px;font-size:12px}
+    #luma-root .settings .setting-control,#luma-root .settings .setting-toggle{color:var(--md-on-surface)}
+    #luma-root .setting-control output,#luma-root .settings small,#luma-root .setting-toggle small,#luma-root .settings-section>small{color:var(--md-on-surface-variant)}
+
+    ${track(panel, `height:4px;border-radius:99px;background:${fill(".18")}`)}
+    ${thumb(panel, `${handle};height:20px`, "margin-top:-8px")}
+    #luma-root .settings .setting-control input[type=range]{accent-color:var(--md-primary)}
+
+    #luma-root .settings .setting-toggle input[type=checkbox]{width:52px;height:32px;border:2px solid var(--md-outline);background:rgba(var(--md-surface-highest-rgb),.9)}
+    #luma-root .settings .setting-toggle input[type=checkbox]:before{width:16px;height:16px;margin:6px;background:var(--md-outline);transition:width .18s,height .18s,margin .18s,transform .18s,background .18s}
+    #luma-root .settings .setting-toggle input[type=checkbox]:checked{border-color:var(--md-primary);background:var(--md-primary)}
+    #luma-root .settings .setting-toggle input[type=checkbox]:checked:before{width:24px;height:24px;margin:2px;transform:translateX(20px);background:var(--md-on-primary)}
+
+    #luma-root .mode-trigger{border:1px solid rgba(var(--md-outline-rgb),.7);border-radius:16px;background:transparent;color:var(--md-on-surface)}
+    #luma-root .mode-trigger:hover{border-color:var(--md-primary);background:rgba(var(--md-primary-rgb),.08);box-shadow:none}
+    #luma-root .mode-trigger[aria-expanded=true]{border-color:var(--md-primary);background:rgba(var(--md-primary-rgb),.08);box-shadow:0 0 0 1px var(--md-primary)}
+    #luma-root .mode-options{border:1px solid rgba(var(--md-outline-variant-rgb),.7);border-radius:16px;background:rgba(var(--md-surface-high-rgb),.92)}
+    #luma-root .mode-options button{border-radius:12px;color:var(--md-on-surface)}
+    #luma-root .mode-options button:hover,#luma-root .mode-options button:focus-visible{border-color:transparent;background:rgba(var(--md-on-surface-rgb),.08);color:var(--md-on-surface)}
+    #luma-root .mode-options button[aria-selected=true]{background:var(--md-secondary-container);color:var(--md-on-secondary-container)}
+    #luma-root .settings select{border-color:rgba(var(--md-outline-rgb),.7);background:transparent;color:var(--md-on-surface)}
+    #luma-root .settings select option{background:var(--md-surface-high);color:var(--md-on-surface)}
+
+    #luma-root .settings .settings-actions button{border:0;border-radius:20px;padding:10px 18px;background:var(--md-secondary-container);color:var(--md-on-secondary-container);font-weight:600}
+    #luma-root .settings .settings-actions button:first-child{border:0;background:var(--md-primary);color:var(--md-on-primary)}
+    #luma-root .settings .settings-actions button:hover{filter:brightness(1.08)}
+    #luma-root .settings .settings-footer button{border:1px solid rgba(var(--md-outline-rgb),.7);border-radius:20px;background:transparent;color:var(--md-primary)}
+    #luma-root .settings .settings-footer button:hover{border-color:rgba(var(--md-outline-rgb),.7);background:rgba(var(--md-primary-rgb),.1);transform:none}
+    @media(prefers-reduced-motion:reduce){#luma-root .controls .play:before,#luma-root .settings .setting-toggle input[type=checkbox]:before{transition:none}}
+  `;
+  document.head.append(material);
 })();

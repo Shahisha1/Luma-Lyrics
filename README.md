@@ -1,4 +1,4 @@
-# Luma Lyrics v1.1.1
+# Luma Lyrics v1.2
 
 ![Version](https://img.shields.io/badge/version-v1.1.1-blue) ![License](https://img.shields.io/github/license/Shahisha1/Luma-Lyrics) ![Spicetify](https://img.shields.io/badge/Spicetify-extension-1db954)
 
@@ -20,10 +20,6 @@ Luma Lyrics offers several ways to follow lyrics. These screenshots show each mo
 
 ![Line-by-line lyrics display](screenshots/line.gif)
 
-### Gentle
-
-![Gentle lyrics display](screenshots/gentle.gif)
-
 ### Static
 
 ![Static lyrics display](screenshots/static.gif)
@@ -42,7 +38,7 @@ Luma Lyrics offers several ways to follow lyrics. These screenshots show each mo
 - Adjust lyric timing earlier or later to compensate for a slightly offset lyric source.
 - Import Enhanced LRC files for word-level timing. Imported files stay on your device.
 - Built-in playback, volume, and seek controls.
-- Material-style playback, seek, and volume controls with artwork-matched accents.
+- Material You dynamic color: the whole interface uses a tonal palette generated from the current album art, with Material 3 style controls, sliders, and switches.
 - Optional spinning-vinyl artwork and adjustable lyric size and background.
 - Liquid-glass player and settings panels with clear Material-style surfaces, using accent colors sampled from the current album art.
 - Reset all appearance and lyric preferences to their defaults from Settings.

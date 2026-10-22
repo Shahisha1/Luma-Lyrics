@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.2
+
+- Added Material You dynamic color: a full tonal palette (primary, secondary, tertiary, surface, outline) is generated from the current album art and applied to the player, lyrics, and Settings.
+- Restyled controls as Material 3 components: filled play button that morphs while playing, tonal previous/next and toolbar buttons, handle-style sliders, Material switches, and tonal Settings buttons.
+- Desktop colors now follow the same album-art palette instead of a fixed red accent.
+
 ## v1.1.1
 
 - Updated the playback and Settings sliders so their colored tracks follow the current value while dragging.
