@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Added automatic word-by-word lyrics: when LRCLIB returns verified word timing (`lyricsfile`) for the playing track, it is used automatically. Otherwise Luma Lyrics keeps using LRCLIB line timing, then estimated word timing.
+- Simplified Settings into **Lyrics** and **Appearance** sections, added a **Done** button, and made **Esc** close Settings and return to the lyrics.
+- Removed the **Import LRC** and **Retry lyrics** buttons. Lyrics are fetched automatically.
+
 ## v1.2
 
 - Added Material You dynamic color: a full tonal palette (primary, secondary, tertiary, surface, outline) is generated from the current album art and applied to the player, lyrics, and Settings.

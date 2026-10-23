@@ -1,4 +1,4 @@
-// Luma Lyrics v1.2
+// Luma Lyrics v2.0
 (async () => {
   while (
     !globalThis.Spicetify?.Player ||
@@ -81,7 +81,7 @@
   root.setAttribute("aria-label", "Luma Lyrics");
   root.innerHTML = `<div class="backdrop"></div><div class="shade"></div><div class="bar"><button class="tool" data-action="close" aria-label="Close" title="Close">${stroke("close")}</button><button class="tool" data-action="full" aria-label="Toggle fullscreen" title="Fullscreen">${stroke("full")}</button><span class="status">LRCLIB · line sync</span><button class="tool" data-action="settings" aria-label="Settings" aria-expanded="false" title="Settings">${stroke("settings")}</button></div>
  <div class="layout"><div class="player"><img class="cover" alt="Album artwork"><div class="title">Nothing playing</div><div class="artist"></div><input class="seek" type="range" min="0" max="1000" value="0" aria-label="Playback position"><div class="times"><span class="elapsed">0:00</span><span class="duration">0:00</span></div><div class="controls"><button data-action="previous" aria-label="Previous">${icons.previous}</button><button class="play" data-action="play" aria-label="Play or pause">${icons.play}</button><button data-action="next" aria-label="Next">${icons.next}</button></div><label class="volume">${svg("M3 9h4l5-4v14l-5-4H3z")}<input type="range" class="vol" min="0" max="1" step=".01" aria-label="Volume"></label></div><div class="lyrics" tabindex="0" aria-label="Lyrics"></div></div>
- <div class="settings" hidden></div><input class="file" type="file" accept=".lrc,text/plain" hidden>`;
+ <div class="settings" role="region" aria-label="Lyrics settings" hidden></div>`;
   document.body.append(root);
   const q = (s) => root.querySelector(s),
     pane = q(".lyrics"),
@@ -205,21 +205,21 @@
   cover.before(artworkStage);
   artworkStage.append(cover);
   q(".settings").innerHTML =
-    `<header class="settings-header"><div><span class="settings-eyebrow">PERSONALIZE</span><h2>Settings</h2></div><button class="settings-close" data-action="settings-close" aria-label="Close settings" title="Close settings">${stroke("close")}</button></header>
+    `<header class="settings-header"><div><span class="settings-eyebrow">PERSONALIZE</span><h2>Settings</h2></div><button class="settings-close" data-action="settings-close" aria-label="Close settings and return to lyrics" title="Close settings (Esc)">${stroke("close")}</button></header>
     <section class="settings-section"><h3>Lyrics</h3>
       <div class="setting-control mode-control"><span>Display style</span><button class="mode-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="lyric-mode-options"><span class="mode-label">Word by word</span>${stroke("down")}</button><div class="mode-options" id="lyric-mode-options" role="listbox" aria-label="Lyrics display style" hidden><button type="button" role="option" data-mode-value="word">Word by word</button><button type="button" role="option" data-mode-value="block">Line by line</button><button type="button" role="option" data-mode-value="gentle">Gentle</button><button type="button" role="option" data-mode-value="static">Static</button></div></div>
-      <label class="setting-control"><span>Text size <output class="size-value"></output></span><input class="size" type="range" min="24" max="52" step="1"></label>
-      <label class="setting-control"><span>Scroll smoothness <output class="scroll-smoothness-value">65%</output></span><input class="scroll-smoothness" type="range" min="0" max="100" step="5"></label>
-      <label class="setting-control"><span>Background darkness <output class="darkness-value"></output></span><input class="darkness" type="range" min=".15" max=".8" step=".05"></label>
-      <label class="setting-control"><span>Lyrics sync <output class="sync-offset-value">0.00 s</output></span><input class="sync-offset" type="range" min="-5000" max="5000" step="50"><small>Shift lyrics earlier or later to match playback.</small></label>
       <label class="setting-toggle"><span><strong>Estimated word animation</strong><small>Approximate timing when word timestamps are unavailable.</small></span><input type="checkbox" class="estimated"></label>
+      <label class="setting-control"><span>Lyrics sync <output class="sync-offset-value">0.00 s</output></span><input class="sync-offset" type="range" min="-5000" max="5000" step="50"><small>Shift lyrics earlier or later to match playback.</small></label>
+      <label class="setting-control"><span>Scroll smoothness <output class="scroll-smoothness-value">65%</output></span><input class="scroll-smoothness" type="range" min="0" max="100" step="5"></label>
+      <small>Lyrics come from LRCLIB, which receives the track title, artist, album and duration. Word-by-word timing is used automatically when LRCLIB has it; otherwise line timing is used.</small>
     </section>
     <section class="settings-section"><h3>Appearance</h3>
+      <label class="setting-control"><span>Text size <output class="size-value"></output></span><input class="size" type="range" min="24" max="52" step="1"></label>
+      <label class="setting-control"><span>Background darkness <output class="darkness-value"></output></span><input class="darkness" type="range" min=".15" max=".8" step=".05"></label>
       <label class="setting-toggle"><span><strong>Spinning vinyl artwork</strong><small>Show the album art as a record while music plays.</small></span><input type="checkbox" class="vinyl"></label>
       <label class="setting-toggle"><span><strong>Desktop colors</strong><small>Apply Luma colors to Spotify; may conflict with other themes.</small></span><input type="checkbox" class="desktop"></label>
     </section>
-    <section class="settings-section settings-actions"><h3>Lyrics</h3><div><button data-action="import">Import LRC</button><button data-action="retry">Retry lyrics</button></div><small>Lyrics lookup sends the track title, artist, album and duration to LRCLIB. For timed words, create or export Enhanced LRC with <a href="https://www.quicklrc.com/subtitle-formats/enhanced-lrc" target="_blank" rel="noopener noreferrer">QuickLRC</a>, then import the file here. Imported files stay on this device.</small></section>
-    <footer class="settings-footer"><button data-action="reset-settings">${svg("M3 12a9 9 0 1 0 2.64-6.36L3 8m0-5v5h5")}<span>Reset to defaults</span></button></footer>`;
+    <footer class="settings-footer"><button data-action="reset-settings">${svg("M3 12a9 9 0 1 0 2.64-6.36L3 8m0-5v5h5")}<span>Reset to defaults</span></button><button data-action="settings-close">Done</button></footer>`;
   let key = null,
     lines = [],
     active = -1,
@@ -236,8 +236,7 @@
     cooldown = 0,
     frameId = 0,
     busy = Promise.resolve();
-  const cache = new Map(),
-    imports = new Map();
+  const cache = new Map();
   const fmt = (ms) => {
     const n = Math.max(0, Math.floor((ms || 0) / 1000));
     return Math.floor(n / 60) + ":" + String(n % 60).padStart(2, "0");
@@ -360,6 +359,7 @@
   }
   applySettings();
   setDefaultAccent();
+  // <luma-pure> (no DOM or Spicetify access; exercised by tests/luma-lyrics.test.mjs)
   function parse(text) {
     const offset = Number(text.match(/\[offset:([+-]?\d+)\]/i)?.[1] || 0),
       result = [];
@@ -420,6 +420,324 @@
     });
     return result;
   }
+  // LRCLIB "Lyricsfile" adapter. LRCLIB returns a YAML `lyricsfile` string with word timing
+  // alongside the legacy `syncedLyrics`. Spec: https://github.com/tranxuanthang/lyricsfile
+  // The spec only allows mappings, sequences, strings, integers, booleans and null, so a small
+  // parser for that subset is enough (no dependency). Anything else throws and we fall back.
+  function parseYamlSubset(source) {
+    if (typeof source !== "string" || !source.trim() || source.length > 1500000)
+      throw new Error("Unusable lyricsfile");
+    const rows = source.replace(/^\uFEFF/, "").split(/\r?\n/);
+    const KEY =
+      /^("(?:[^"\\]|\\.)*"|'(?:[^']|'')*'|[A-Za-z0-9_][A-Za-z0-9_.-]*)[ \t]*:(?:[ \t]+(.*))?$/;
+    const isDash = (s) => s === "-" || s.startsWith("- ");
+    let i = 0,
+      depth = 0;
+    const indentOf = (row) => {
+      const n = /^ */.exec(row)[0].length;
+      if (row[n] === "\t") throw new Error("Tab indentation");
+      return n;
+    };
+    const skip = () => {
+      while (i < rows.length) {
+        const t = rows[i].trim();
+        if (!t || t[0] === "#") i++;
+        else break;
+      }
+    };
+    const scalar = (raw) => {
+      const s = raw.trim();
+      if (s === "" || s === "~" || /^(null|Null|NULL)$/.test(s)) return null;
+      if (s === "[]") return [];
+      if (s === "{}") return {};
+      if (s[0] === '"') {
+        const m = /^"((?:[^"\\]|\\.)*)"\s*(?:#.*)?$/.exec(s);
+        if (!m) throw new Error("Bad string");
+        return JSON.parse('"' + m[1] + '"');
+      }
+      if (s[0] === "'") {
+        const m = /^'((?:[^']|'')*)'\s*(?:#.*)?$/.exec(s);
+        if (!m) throw new Error("Bad string");
+        return m[1].replace(/''/g, "'");
+      }
+      if ("&*!|>%@`[{".includes(s[0])) throw new Error("Unsupported YAML");
+      const plain = s.replace(/\s+#.*$/, "");
+      if (/^[+-]?\d+$/.test(plain)) return Number(plain);
+      if (/^(true|True|TRUE)$/.test(plain)) return true;
+      if (/^(false|False|FALSE)$/.test(plain)) return false;
+      return plain;
+    };
+    const blockScalar = (header, parentIndent) => {
+      const literal = header[0] === "|",
+        out = [];
+      let blockIndent = -1;
+      while (i < rows.length) {
+        const row = rows[i];
+        if (!row.trim()) {
+          out.push("");
+          i++;
+          continue;
+        }
+        const ind = indentOf(row);
+        if (ind <= parentIndent) break;
+        if (blockIndent < 0) blockIndent = ind;
+        out.push(row.slice(Math.min(ind, blockIndent)));
+        i++;
+      }
+      while (out.length && out[out.length - 1] === "") out.pop();
+      const body = literal ? out.join("\n") : out.join(" ");
+      return header.includes("-") ? body : body + "\n";
+    };
+    const parseNode = (minIndent) => {
+      skip();
+      if (i >= rows.length) return null;
+      const ind = indentOf(rows[i]);
+      if (ind < minIndent) return null;
+      const content = rows[i].slice(ind);
+      if (++depth > 16) throw new Error("Too deeply nested");
+      try {
+        if (isDash(content)) return parseSeq(ind);
+        if (KEY.test(content)) return parseMap(ind);
+        i++;
+        return scalar(content);
+      } finally {
+        depth--;
+      }
+    };
+    const parseMap = (ind) => {
+      const obj = Object.create(null);
+      for (;;) {
+        skip();
+        if (i >= rows.length) break;
+        const here = indentOf(rows[i]);
+        if (here < ind) break;
+        if (here > ind) throw new Error("Bad indentation");
+        const content = rows[i].slice(ind);
+        if (isDash(content)) break;
+        const m = KEY.exec(content);
+        if (!m) throw new Error("Bad mapping");
+        const key = m[1][0] === '"' || m[1][0] === "'" ? scalar(m[1]) : m[1];
+        if (key in obj) throw new Error("Duplicate key");
+        i++;
+        const rest = (m[2] || "").trim();
+        let value;
+        if (rest === "" || rest[0] === "#") {
+          skip();
+          const next = i < rows.length ? indentOf(rows[i]) : -1;
+          if (next > ind) value = parseNode(ind + 1);
+          else if (next === ind && isDash(rows[i].slice(next)))
+            value = parseSeq(ind);
+          else value = null;
+        } else if (/^[|>][+-]?\d*\s*(#.*)?$/.test(rest))
+          value = blockScalar(rest, ind);
+        else value = scalar(rest);
+        obj[key] = value;
+      }
+      return obj;
+    };
+    const parseSeq = (ind) => {
+      const arr = [];
+      for (;;) {
+        skip();
+        if (i >= rows.length) break;
+        const here = indentOf(rows[i]);
+        if (here < ind) break;
+        if (here > ind) throw new Error("Bad indentation");
+        const content = rows[i].slice(ind);
+        if (!isDash(content)) break;
+        const after = content.slice(1),
+          rest = after.trimStart(),
+          restIndent = ind + 1 + (after.length - rest.length);
+        if (rest === "" || rest[0] === "#") {
+          i++;
+          arr.push(parseNode(ind + 1));
+        } else if (KEY.test(rest)) {
+          rows[i] = " ".repeat(restIndent) + rest;
+          arr.push(parseMap(restIndent));
+        } else {
+          i++;
+          arr.push(scalar(rest));
+        }
+      }
+      return arr;
+    };
+    skip();
+    if (rows[i]?.trim() === "---") i++;
+    const doc = parseNode(0);
+    skip();
+    if (i < rows.length && rows[i].trim() !== "...")
+      throw new Error("Unexpected content");
+    return doc;
+  }
+  // Converts a lyricsfile into Luma's internal lines ({ ms, text, words, exact }).
+  // `wordTimed` is true only when real word timestamps cover most of the lyrics.
+  function lyricsfileToLines(source) {
+    const doc = parseYamlSubset(source),
+      isMap = (v) => v && typeof v === "object" && !Array.isArray(v);
+    if (!isMap(doc) || doc.version !== "1.0" || !isMap(doc.metadata))
+      throw new Error("Unsupported lyricsfile");
+    const metadata = doc.metadata,
+      time = (v, label) => {
+        if (!Number.isSafeInteger(v) || v < 0)
+          throw new Error("Invalid " + label);
+        return v;
+      },
+      optionalEnd = (v, start, label) => {
+        if (v == null) return null;
+        const end = time(v, label);
+        if (end < start) throw new Error("Invalid " + label);
+        return end;
+      };
+    if (!Array.isArray(doc.lines) || !doc.lines.length)
+      return { metadata, lines: [], wordTimed: false };
+    const parsed = doc.lines
+      .map((raw) => {
+        if (!isMap(raw) || typeof raw.text !== "string")
+          throw new Error("Invalid line");
+        const start = time(raw.start_ms, "line start"),
+          end = optionalEnd(raw.end_ms, start, "line end");
+        if (raw.words != null && !Array.isArray(raw.words))
+          throw new Error("Invalid words");
+        const words = [];
+        for (const w of raw.words || []) {
+          if (!isMap(w) || typeof w.text !== "string")
+            throw new Error("Invalid word");
+          const ms = time(w.start_ms, "word start"),
+            wordEnd = optionalEnd(w.end_ms, ms, "word end");
+          if (!w.text.trim()) {
+            // Keep spacing that was written as its own segment.
+            if (words.length) words[words.length - 1].text += w.text;
+            continue;
+          }
+          words.push({ ms, text: w.text, end: wordEnd });
+        }
+        words.sort((a, b) => a.ms - b.ms);
+        return { ms: start, end, text: raw.text, words };
+      })
+      .sort((a, b) => a.ms - b.ms);
+    const out = parsed.map((l, idx) => {
+      const hasWords = l.words.length > 0,
+        fallbackEnd = l.end ?? parsed[idx + 1]?.ms;
+      return {
+        ms: hasWords ? Math.min(l.ms, l.words[0].ms) : l.ms,
+        text:
+          (hasWords ? l.words.map((w) => w.text).join("") : l.text).trim() ||
+          "♪",
+        words: l.words.map((w, j) => ({
+          ms: w.ms,
+          text: w.text,
+          endTime: Math.max(
+            w.ms,
+            w.end ?? l.words[j + 1]?.ms ?? fallbackEnd ?? w.ms + 4000,
+          ),
+        })),
+        exact: hasWords,
+        lineIndex: idx,
+      };
+    });
+    const textLines = parsed.filter((l) => l.text.trim()).length,
+      wordLines = out.filter((l) => l.exact).length;
+    return {
+      metadata,
+      lines: out,
+      wordTimed:
+        wordLines > 0 &&
+        wordLines >= textLines / 2 &&
+        out.some((l) => l.words.some((w) => w.ms > 0)),
+    };
+  }
+  function normalizeName(value) {
+    const base = String(value ?? "")
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/&/g, " and ");
+    const clean = (s) => s.replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+    return (
+      clean(
+        base
+          .replace(/\([^)]*\)|\[[^\]]*\]/g, " ")
+          .replace(
+            /\s[-–—]\s.*\b(remaster(ed)?|version|mix|edit|live|mono|stereo|deluxe|radio|acoustic|feat\.?|ft\.?)\b.*$/,
+            " ",
+          ),
+      ) || clean(base)
+    );
+  }
+  function sameName(a, b) {
+    const x = normalizeName(a),
+      y = normalizeName(b);
+    if (!x || !y) return false;
+    if (x === y) return true;
+    const tx = new Set(x.split(" ")),
+      ty = new Set(y.split(" ")),
+      shared = [...tx].filter((t) => ty.has(t)).length;
+    return shared / new Set([...tx, ...ty]).size >= 0.6;
+  }
+  function splitArtists(value) {
+    return String(value ?? "")
+      .split(/,|;|\/|&|\band\b|\bfeat\.?|\bft\.?|\bx\b|\bwith\b/i)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  // Decides whether a lyrics record plausibly belongs to the playing track.
+  // Only fields that are actually present are compared; any disagreement rejects the record.
+  function trackMatches(record, metadata, track) {
+    let compared = 0;
+    const present = (v) => typeof v === "string" && v.trim();
+    for (const title of [record?.trackName, record?.name, metadata?.title])
+      if (present(title) && present(track?.title)) {
+        compared++;
+        if (!sameName(title, track.title)) return { ok: false, reason: "title" };
+      }
+    const wanted = (track?.artists || []).flatMap(splitArtists);
+    for (const artist of [record?.artistName, metadata?.artist])
+      if (present(artist) && wanted.length) {
+        compared++;
+        const found = splitArtists(artist);
+        if (!found.some((f) => wanted.some((w) => sameName(f, w))))
+          return { ok: false, reason: "artist" };
+      }
+    if (track?.durationMs > 0)
+      for (const ms of [
+        Number(record?.duration) * 1000,
+        Number(metadata?.duration_ms),
+      ])
+        if (Number.isFinite(ms) && ms > 0) {
+          compared++;
+          if (Math.abs(ms - track.durationMs) > 3000)
+            return { ok: false, reason: "duration" };
+        }
+    return compared ? { ok: true } : { ok: false, reason: "no metadata" };
+  }
+  // Fallback order: verified word-timed lyricsfile -> existing LRCLIB synced lyrics.
+  // (Estimated word timing for line-only lyrics is applied later, in render().)
+  function pickLyrics(record, track) {
+    if (typeof record?.lyricsfile === "string" && record.lyricsfile.trim()) {
+      try {
+        const result = lyricsfileToLines(record.lyricsfile);
+        if (result.wordTimed) {
+          const match = trackMatches(record, result.metadata, track);
+          if (match.ok) return { lines: result.lines, source: "word-timed" };
+          console.debug("[Luma Lyrics] Ignoring word-timed lyrics:", match.reason);
+        }
+      } catch (error) {
+        console.debug("[Luma Lyrics] Ignoring unusable lyricsfile:", error.message);
+      }
+    }
+    const lines =
+      typeof record?.syncedLyrics === "string" ? parse(record.syncedLyrics) : [];
+    return { lines, source: lines.length ? "synced" : "none" };
+  }
+  // What Escape should do. Settings/menu close from anywhere while Luma is open; closing the
+  // whole overlay still requires focus inside it; text fields are never interrupted.
+  function escapeStep({ overlayOpen, menuOpen, settingsOpen, inRoot, editable }) {
+    if (!overlayOpen || editable) return null;
+    if (menuOpen) return "menu";
+    if (settingsOpen) return "settings";
+    return inRoot ? "overlay" : null;
+  }
+  // </luma-pure>
   function render() {
     active = -1;
     highlightedWord?.classList.remove("active");
@@ -427,10 +745,8 @@
     highlightedWord = upcomingWord = null;
     pane.replaceChildren();
     const duration = player().getDuration() || 0;
-    const source = imports.has(key) ? "Local LRC" : "LRCLIB";
     q(".status").textContent =
-      source +
-      " · " +
+      "LRCLIB · " +
       (options.lyricMode === "word"
         ? lines.some((l) => l.exact)
           ? "word timestamps"
@@ -506,12 +822,12 @@
       pane.append(b);
     });
   }
-  function show(record) {
+  function show(record, trackInfo) {
     if (record.instrumental) {
       note("Instrumental — no lyrics.");
       return;
     }
-    lines = record.syncedLyrics ? parse(record.syncedLyrics) : [];
+    lines = pickLyrics(record, trackInfo).lines;
     if (lines.length) render();
     else
       note(
@@ -520,7 +836,7 @@
           : "No lyrics found for this recording.",
       );
   }
-  async function load(force = false) {
+  async function load() {
     const item = player().data?.item,
       m = item?.metadata || {};
     const current = JSON.stringify([
@@ -529,7 +845,7 @@
       m.artist_name || "",
       m.album_title || "",
     ]);
-    if (!force && current === key) return;
+    if (current === key) return;
     key = current;
     const id = ++token;
     controller?.abort();
@@ -568,12 +884,16 @@
       note("Lyrics are available for music tracks.");
       return;
     }
-    if (imports.has(key)) {
-      show(imports.get(key));
-      return;
-    }
-    if (!force && cache.has(key)) {
-      show(cache.get(key));
+    const trackInfo = {
+      title: m.title,
+      artists: Object.keys(m)
+        .filter((k) => /^artist_name(:\d+)?$/.test(k))
+        .map((k) => m[k]),
+      album: m.album_title || "",
+      durationMs: player().getDuration() || 0,
+    };
+    if (cache.has(key)) {
+      show(cache.get(key), trackInfo);
       return;
     }
     showLoading();
@@ -591,7 +911,7 @@
       );
       if (c.signal.aborted) return;
       if (Date.now() < cooldown)
-        throw Error("Lyrics service is busy. Retry in a minute.");
+        throw Error("Lyrics service is busy. Try again in a minute.");
       lastFetch = Date.now();
       const timer = setTimeout(() => c.abort(), 15000);
       let response;
@@ -612,16 +932,18 @@
             (raw && Number.isFinite(n)
               ? n * 1000
               : Math.max(60000, (Date.parse(raw) || 0) - Date.now()));
-          throw Error("Lyrics service is busy. Retry later.");
+          throw Error("Lyrics service is busy. Try again later.");
         }
         if (response.status === 404)
-          throw Error("No matching lyrics. Try importing an LRC file.");
+          throw Error("No lyrics found for this track.");
         if (!response.ok)
           throw Error("Lyrics service error " + response.status);
         const record = await response.json();
+        if (!record || typeof record !== "object")
+          throw Error("Unexpected lyrics response.");
         cache.set(current, record);
         if (cache.size > 50) cache.delete(cache.keys().next().value);
-        if (id === token) show(record);
+        if (id === token) show(record, trackInfo);
       } finally {
         clearTimeout(timer);
       }
@@ -634,7 +956,7 @@
       if (id === token)
         note(
           e.name === "AbortError"
-            ? "Request timed out. Open settings to retry."
+            ? "Request timed out. Reopen Luma Lyrics to try again."
             : "Could not load lyrics.\n" + e.message,
         );
     }
@@ -834,6 +1156,15 @@
     }
     frameId = requestAnimationFrame(animate);
   }
+  function setSettings(open, restoreFocus = false) {
+    const gear = q('[data-action="settings"]');
+    q(".settings").hidden = !open;
+    gear.setAttribute("aria-expanded", String(open));
+    q(".mode-options").hidden = true;
+    q(".mode-trigger").setAttribute("aria-expanded", "false");
+    if (open) q(".settings-close").focus();
+    else if (restoreFocus) gear.focus();
+  }
   let launcher;
   async function close() {
     root.hidden = true;
@@ -841,8 +1172,7 @@
     frameId = 0;
     ++token;
     controller?.abort();
-    q(".settings").hidden = true;
-    q('[data-action="settings"]').setAttribute("aria-expanded", "false");
+    setSettings(false);
     if (launcher) launcher.active = false;
     if (document.fullscreenElement === root)
       await document.exitFullscreen().catch(() => {});
@@ -894,18 +1224,8 @@
           await document.exitFullscreen();
         else await root.requestFullscreen();
       }
-      if (action === "settings") {
-        q(".settings").hidden = !q(".settings").hidden;
-        q('[data-action="settings"]').setAttribute(
-          "aria-expanded",
-          String(!q(".settings").hidden),
-        );
-      }
-      if (action === "settings-close") {
-        q(".settings").hidden = true;
-        q('[data-action="settings"]').setAttribute("aria-expanded", "false");
-        q('[data-action="settings"]').focus();
-      }
+      if (action === "settings") setSettings(q(".settings").hidden);
+      if (action === "settings-close") setSettings(false, true);
       if (action === "reset-settings") {
         options = { ...defaultOptions };
         save();
@@ -915,8 +1235,6 @@
       if (action === "play") player().togglePlay();
       if (action === "previous") player().back();
       if (action === "next") player().next();
-      if (action === "retry") load(true);
-      if (action === "import") q(".file").click();
     } catch (e) {
       Spicetify.showNotification("Luma: " + e.message);
     }
@@ -948,39 +1266,36 @@
       if ((field === "estimated" || field === "lyricMode") && lines.length)
         render();
     });
-  q(".file").onchange = async (e) => {
-    const file = e.target.files[0],
-      target = key;
-    if (!file) return;
-    try {
-      if (file.size > 2000000) throw Error("LRC file is too large.");
-      const text = await file.text();
-      if (!parse(text).length) throw Error("No valid LRC timestamps found.");
-      imports.set(target, { syncedLyrics: text });
-      if (imports.size > 30) imports.delete(imports.keys().next().value);
-      if (target === key) {
-        ++token;
-        controller?.abort();
-        show(imports.get(target));
-      }
-    } catch (err) {
-      Spicetify.showNotification("Luma: " + err.message);
-    }
-    e.target.value = "";
-  };
-  root.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
+  const isEditable = (el) =>
+    Boolean(el) &&
+    (el.isContentEditable ||
+      el.tagName === "TEXTAREA" ||
+      (el.tagName === "INPUT" &&
+        !["range", "checkbox", "radio", "button", "submit", "reset", "file", "color"].includes(el.type)));
+  document.addEventListener(
+    "keydown",
+    (e) => {
+      if (e.key !== "Escape" || e.defaultPrevented || e.isComposing) return;
+      const step = escapeStep({
+        overlayOpen: !root.hidden,
+        menuOpen: !q(".mode-options").hidden,
+        settingsOpen: !q(".settings").hidden,
+        inRoot: root.contains(e.target),
+        editable: isEditable(e.target),
+      });
+      if (!step) return;
       e.preventDefault();
-      if (!q(".mode-options").hidden) {
+      e.stopPropagation();
+      if (step === "menu") {
         q(".mode-options").hidden = true;
         q(".mode-trigger").setAttribute("aria-expanded", "false");
         q(".mode-trigger").focus();
-      } else if (!q(".settings").hidden) {
-        q(".settings").hidden = true;
-        q('[data-action="settings"]').setAttribute("aria-expanded", "false");
-        q('[data-action="settings"]').focus();
-      } else close();
-    }
+      } else if (step === "settings") setSettings(false, true);
+      else close();
+    },
+    true,
+  );
+  root.addEventListener("keydown", (e) => {
     if (
       !q(".mode-options").hidden &&
       ["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)
@@ -1150,9 +1465,6 @@
     #luma-root .settings .setting-toggle input[type=checkbox]:before{content:"";display:block;width:14px;height:14px;margin:2px;border-radius:50%;background:#ffffffc0;transition:transform .18s,background .18s}
     #luma-root .settings .setting-toggle input[type=checkbox]:checked{border-color:#b9a3ff;background:#9274eb}
     #luma-root .settings .setting-toggle input[type=checkbox]:checked:before{transform:translateX(16px);background:#fff}
-    #luma-root .settings-actions>div{display:flex;gap:8px}
-    #luma-root .settings .settings-actions button{margin:0;padding:8px 12px;border-radius:9px}
-    #luma-root .settings .settings-actions button:first-child{border-color:#b9a3ff55;background:#b9a3ff20;color:#fff}
     #luma-root .settings{border-color:rgba(255,255,255,.32);background:linear-gradient(145deg,rgba(var(--accent-rgb),.15),rgba(255,255,255,.07) 48%,rgba(var(--accent-rgb),.08)),rgba(19,20,24,.55);backdrop-filter:blur(38px) saturate(1.8);-webkit-backdrop-filter:blur(38px) saturate(1.8);box-shadow:0 28px 90px #0008,0 1px 0 #ffffff30 inset,0 0 42px rgba(var(--accent-rgb),.12)}
     #luma-root .settings-header{background:linear-gradient(110deg,rgba(var(--accent-rgb),.14),rgba(28,28,32,.62));backdrop-filter:blur(38px) saturate(1.8);-webkit-backdrop-filter:blur(38px) saturate(1.8);border-bottom-color:rgba(255,255,255,.2)}
     #luma-root .settings-eyebrow{color:var(--accent)}
@@ -1164,7 +1476,6 @@
     #luma-root .settings .setting-toggle input[type=checkbox]:checked{border-color:var(--accent);background:var(--accent)}
     #luma-root .settings button:focus-visible,#luma-root .settings input:focus-visible,#luma-root .settings select:focus-visible{outline-color:var(--accent)}
     #luma-root .settings .settings-close{background:rgba(255,255,255,.11);border-color:rgba(255,255,255,.25);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
-    #luma-root .settings .settings-actions button:first-child{border-color:rgba(var(--accent-rgb),.5);background:rgba(var(--accent-rgb),.18)}
     #luma-root .settings-footer{display:flex;justify-content:flex-end;padding:12px 22px 16px}
     #luma-root .settings .settings-footer button{display:inline-flex;align-items:center;gap:8px;margin:0;padding:9px 12px;border:1px solid rgba(255,255,255,.24);border-radius:10px;background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(var(--accent-rgb),.08));color:#ffffffd9;font-size:12px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);transition:background .18s,border-color .18s,transform .18s}
     #luma-root .settings .settings-footer button:hover{transform:translateY(-1px);border-color:rgba(var(--accent-rgb),.6);background:rgba(var(--accent-rgb),.2)}
@@ -1322,11 +1633,9 @@
     #luma-root .settings select{border-color:rgba(var(--md-outline-rgb),.7);background:transparent;color:var(--md-on-surface)}
     #luma-root .settings select option{background:var(--md-surface-high);color:var(--md-on-surface)}
 
-    #luma-root .settings .settings-actions button{border:0;border-radius:20px;padding:10px 18px;background:var(--md-secondary-container);color:var(--md-on-secondary-container);font-weight:600}
-    #luma-root .settings .settings-actions button:first-child{border:0;background:var(--md-primary);color:var(--md-on-primary)}
-    #luma-root .settings .settings-actions button:hover{filter:brightness(1.08)}
     #luma-root .settings .settings-footer button{border:1px solid rgba(var(--md-outline-rgb),.7);border-radius:20px;background:transparent;color:var(--md-primary)}
     #luma-root .settings .settings-footer button:hover{border-color:rgba(var(--md-outline-rgb),.7);background:rgba(var(--md-primary-rgb),.1);transform:none}
+    #luma-root .settings-footer{flex-wrap:wrap;gap:8px}
     @media(prefers-reduced-motion:reduce){#luma-root .controls .play:before,#luma-root .settings .setting-toggle input[type=checkbox]:before{transition:none}}
   `;
   document.head.append(material);
