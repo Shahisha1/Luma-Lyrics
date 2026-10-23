@@ -2,7 +2,7 @@
   {
     "name": "Luma Lyrics v2.0",
     "description": "Immersive lyrics, blurred artwork backgrounds, optional desktop colors, and clearly labeled estimated word animation.",
-    "preview": "preview.png",
+    "preview": "preview.gif",
     "main": "luma-lyrics.js",
     "readme": "README.md",
     "tags": [

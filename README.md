@@ -1,24 +1,62 @@
-# Luma Lyrics v2.0
+<div align="center">
 
-![Version](https://img.shields.io/badge/version-v2.0-blue) ![License](https://img.shields.io/github/license/Shahisha1/Luma-Lyrics) ![Spicetify](https://img.shields.io/badge/Spicetify-extension-1db954)
+<h1>Luma Lyrics</h1>
 
-See the [public releases](https://github.com/Shahisha1/Luma-Lyrics/releases) to download Luma Lyrics.
+<p><strong>Synchronized lyrics and a full-window music player for Spotify desktop</strong></p>
 
-Luma Lyrics adds synchronized lyrics and a full-window music player to Spotify desktop through [Spicetify](https://spicetify.app).
+<p>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v2.0-blue" alt="Version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Shahisha1/Luma-Lyrics" alt="License"></a>
+  <a href="https://spicetify.app"><img src="https://img.shields.io/badge/Spicetify-extension-1db954" alt="Spicetify extension"></a>
+</p>
 
-![Luma Lyrics preview](preview.png)
+<p><a href="https://github.com/Shahisha1/Luma-Lyrics/releases/latest">Download the latest release</a> · <a href="https://github.com/Shahisha1/Luma-Lyrics/issues">Report a problem</a></p>
+
+<img src="preview.gif" alt="Luma Lyrics preview" width="640">
+
+</div>
+
+## Contents
+
+- [Features](#features)
+- [Display modes](#display-modes)
+- [Install](#install)
+- [Lyrics and word timing](#lyrics-and-word-timing)
+- [Privacy](#privacy)
+- [Troubleshooting and feedback](#troubleshooting-and-feedback)
+- [References and inspiration](#references-and-inspiration)
+- [License](#license)
+
+## Features
+
+- **Synchronized lyrics** with automatic word-by-word highlighting when LRCLIB has real word timing. Enhanced LRC and inline timestamp formats are also supported when a lyric source includes them.
+- **Clear lyric styling:** slightly larger main lyrics, with bracketed ad-libs and secondary lyrics displayed beneath in a smaller size.
+- **Four display modes:** word by word, line by line, gentle, and static.
+- **Flexible timing:** estimated word animation when only line timings are available, plus controls to adjust lyrics earlier or later.
+- **Smooth presentation:** tune lyric-scroll smoothness or turn it off for instant movement; loading placeholders appear while lyrics are fetched.
+- **Player controls:** built-in playback, volume, and seek controls.
+- **Material You colors:** the interface uses a tonal palette generated from the current album art, with Material 3 style controls, sliders, and switches.
+- **Liquid-glass panels:** player and settings panels use clear Material-style surfaces with accent colors sampled from the current album art.
+- **Personalization:** optional spinning-vinyl artwork, adjustable lyric size and background, and optional desktop colors.
+- **Compact settings:** **Lyrics** and **Appearance** sections; open Settings with the gear button and close it with the close button, **Done**, or **Esc**.
+- **Easy reset:** restore all appearance and lyric preferences to their defaults from Settings.
+- **Reduced-motion support.**
 
 ## Display modes
 
-Luma Lyrics offers several ways to follow lyrics. These screenshots show each mode in action.
+Choose the style that suits how you like to follow along.
 
 ### Word by word
 
-![Word-by-word lyrics highlighting](screenshots/word.gif)
+![Word-by-word lyrics highlighting](screenshots/word%20by%20word.gif)
 
 ### Line by line
 
-![Line-by-line lyrics display](screenshots/line.gif)
+![Line-by-line lyrics display](screenshots/line%20by%20line.gif)
+
+### Gentle
+
+![Gentle lyrics display](screenshots/gentle.gif)
 
 ### Static
 
@@ -26,24 +64,9 @@ Luma Lyrics offers several ways to follow lyrics. These screenshots show each mo
 
 ### Settings
 
-<img src="screenshots/settings.png" alt="Lyrics display settings" width="320">
-
-## Features
-
-- Synchronized lyrics with automatic word-by-word highlighting when LRCLIB has real word timing, and Enhanced LRC and inline timestamp formats when a lyric source includes them.
-- Slightly larger main lyric text, with bracketed ad-libs and secondary lyrics shown beneath in a smaller size.
-- Word-by-word highlighting, with estimated timing enabled by default when only line timings are available.
-- Choose word-by-word, line-by-line, gentle, or static lyric display.
-- Tune lyric-scroll smoothness or turn it off for instant movement. Loading placeholders appear while lyrics are fetched.
-- Adjust lyric timing earlier or later to compensate for a slightly offset lyric source.
-- Built-in playback, volume, and seek controls.
-- Material You dynamic color: the whole interface uses a tonal palette generated from the current album art, with Material 3 style controls, sliders, and switches.
-- Optional spinning-vinyl artwork and adjustable lyric size and background.
-- Liquid-glass player and settings panels with clear Material-style surfaces, using accent colors sampled from the current album art.
-- A compact Settings panel with two sections, **Lyrics** and **Appearance**. Open it with the gear button, then close it with the close button, **Done**, or **Esc** to return to the lyrics.
-- Reset all appearance and lyric preferences to their defaults from Settings.
-- Optional desktop colors.
-- Reduced-motion support.
+<p align="center">
+  <img src="screenshots/setting.png" alt="Lyrics display settings" width="320">
+</p>
 
 ## Install
 
@@ -68,10 +91,10 @@ Lyrics are looked up automatically through [LRCLIB](https://lrclib.net) with one
 
 The status line shows "word timestamps" only when the timing came from the lyric source.
 
-Limitations:
+### Limitations
 
 - Word timing exists only for songs where someone has contributed it to LRCLIB, so many tracks will use line timing.
-- The Lyricsfile specification is still a draft. Luma Lyrics ignores its `offset_ms` field because the spec has not defined how to apply it. Use **Lyrics sync** in Settings if a source is early or late.
+- The Lyricsfile specification is still a draft. Luma Lyrics ignores its `offset_ms` field because the specification has not defined how to apply it. Use **Lyrics sync** in Settings if a source is early or late.
 - Lyrics with overlapping lines, such as background vocals on their own line, are shown one line at a time.
 - If a lookup fails (network error, timeout, rate limit), reopen Luma Lyrics or change tracks to try again.
 
