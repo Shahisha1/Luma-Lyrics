@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.2.1
+
+- **Fixed the missing playbar toggle on newer Spotify builds** (e.g. 1.3.8.620, where `.main-nowPlayingBar-right` no longer exists): the fallback now anchors on Spotify's stable right-side buttons (`[data-testid="control-button-queue"]` / `control-button-npv`), clones their native styling, and retries for ~18s if the playbar mounts late.
+
 ## v2.2.0
 
 - **Complete UI refresh**: unified glass design system (pill toolbar, consistent radii/borders/easing), softer lyric-line hover states, refined now-playing card, and a dedicated lyrics window wrapper.

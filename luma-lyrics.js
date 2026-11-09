@@ -1367,57 +1367,65 @@
           false,
           true,
         );
-        setTimeout(() => {
+        let tries = 0;
+        const fallbackTick = () => {
           try {
             if (launcher?.element?.isConnected) return;
+            // Anchor on Spotify's own right-side buttons (stable testids); the
+            // hashed class names differ per build, so clone the sibling's.
+            const anchor =
+              document.querySelector('[data-testid="control-button-queue"]') ||
+              document.querySelector('[data-testid="control-button-npv"]');
             const mount =
+              anchor?.parentElement ||
               document.querySelector(".main-nowPlayingBar-extraControls") ||
               document.querySelector(".main-nowPlayingBar-right > div") ||
               document.querySelector(".main-nowPlayingBar-right") ||
-              document.querySelector('[data-testid="control-button-npv"]')
-                ?.parentElement;
-            if (!mount) return;
-            if (launcher?.element?.isConnected) return;
+              document.querySelector('[data-testid="now-playing-bar"]');
+            if (!mount) {
+              if (++tries < 12) setTimeout(fallbackTick, 1500);
+              else
+                console.warn(
+                  "[Luma Lyrics] No playbar mount point found. Open Luma from the console: LumaLyrics.toggle()",
+                );
+              return;
+            }
             const el = launcher.element || document.createElement("button");
-            if (!el.isConnected) {
-              if (!el.classList.contains("main-genericButton-button"))
-                el.classList.add("main-genericButton-button");
-              if (!el.querySelector("svg") && !el.querySelector(".luma-launcher-icon")) {
-                const span = document.createElement("span");
-                span.className = "luma-launcher-icon";
-                span.style.display = "grid";
-                span.style.placeItems = "center";
-                span.innerHTML = loadIcon;
-                el.append(span);
-              }
-              el.type = "button";
-              el.title = "Luma Lyrics";
-              el.setAttribute("aria-label", "Luma Lyrics");
-              if (!launcher.element) el.onclick = onToggle;
-              mount.prepend(el);
-            }
-            if (!launcher || !launcher.active === undefined) {
-              // keep existing instance
-            }
+            if (anchor && el !== anchor) el.className = anchor.className;
+            else if (!el.classList.contains("main-genericButton-button"))
+              el.classList.add("main-genericButton-button");
+            if (!el.querySelector("svg"))
+              el.innerHTML = `<span style="display:grid;place-items:center">${loadIcon}</span>`;
+            el.type = "button";
+            el.title = "Luma Lyrics";
+            el.setAttribute("aria-label", "Luma Lyrics");
+            el.onclick = onToggle;
+            mount.prepend(el);
             console.info("[Luma Lyrics] Playbar toggle mounted via fallback.");
           } catch (error) {
             console.warn("[Luma Lyrics] Playbar fallback failed:", error);
           }
-        }, 4500);
+        };
+        setTimeout(fallbackTick, 3000);
         return;
       }
     } catch (error) {
       console.warn("[Luma Lyrics] Playbar.Button failed:", error);
     }
     try {
+      const anchor =
+        document.querySelector('[data-testid="control-button-queue"]') ||
+        document.querySelector('[data-testid="control-button-npv"]');
       const mount =
+        anchor?.parentElement ||
         document.querySelector(".main-nowPlayingBar-extraControls") ||
         document.querySelector(".main-nowPlayingBar-right > div") ||
-        document.querySelector(".main-nowPlayingBar-right");
+        document.querySelector(".main-nowPlayingBar-right") ||
+        document.querySelector('[data-testid="now-playing-bar"]');
       if (!mount) return;
       const el = document.createElement("button");
       el.type = "button";
-      el.className = "main-genericButton-button";
+      el.className = anchor ? anchor.className : "main-genericButton-button";
       el.title = "Luma Lyrics";
       el.setAttribute("aria-label", "Luma Lyrics");
       el.innerHTML = `<span style="display:grid;place-items:center">${loadIcon}</span>`;
@@ -1440,7 +1448,7 @@
   createLauncher();
 
   window.LumaLyrics = {
-    version: "2.2.0",
+    version: "2.2.1",
     open,
     close: () => close(),
     toggle,
@@ -1481,7 +1489,7 @@
   window.addEventListener("luma:set-sync-offset", (e) => {
     if (typeof e?.detail?.ms === "number") setSyncOffset(e.detail.ms);
   });
-  emitLuma("luma:ready", { version: "2.2.0" });
+  emitLuma("luma:ready", { version: "2.2.1" });
   root.addEventListener("click", async (e) => {
     const action = e.target.closest("[data-action]")?.dataset.action;
     const syncAdjust = e.target.closest("[data-sync-adjust]");
