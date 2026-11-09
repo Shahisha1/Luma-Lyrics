@@ -62,9 +62,6 @@
     full: "M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5",
     settings: "M4 6h16M4 12h16M4 18h16M8 3v6m8 0v6m-6 0v6",
     down: "m6 9 6 6 6-6",
-    minus: "M5 12h14",
-    plus: "M12 5v14M5 12h14",
-    copy: "M9 9h10v10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V9zM5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1",
   };
   const stroke = (name) =>
     `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="${paths[name]}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`;
@@ -82,8 +79,8 @@
   root.setAttribute("role", "dialog");
   root.setAttribute("aria-modal", "true");
   root.setAttribute("aria-label", "Luma Lyrics");
-  root.innerHTML = `<div class="backdrop"></div><div class="shade"></div><div class="bar"><button class="tool" data-action="close" aria-label="Close" title="Close">${stroke("close")}</button><button class="tool" data-action="full" aria-label="Toggle fullscreen" title="Fullscreen">${stroke("full")}</button><div class="size-stepper" role="group" aria-label="Lyrics text size"><button class="tool stepper" data-action="size-down" aria-label="Smaller lyrics text" title="Smaller text (A−)">${stroke("minus")}</button><span class="stepper-value" aria-hidden="true">A</span><button class="tool stepper" data-action="size-up" aria-label="Larger lyrics text" title="Larger text (A+)">${stroke("plus")}</button></div><span class="status">LRCLIB · line sync</span><button class="tool" data-action="settings" aria-label="Settings" aria-expanded="false" title="Settings">${stroke("settings")}</button></div>
- <div class="layout"><div class="player" data-luma-card="now-playing"><div class="player-card-top"><div class="artwork-wrap"><img class="cover" alt="Album artwork" title="Double-click to toggle vinyl"></div><button class="vinyl-toggle" data-action="toggle-vinyl" type="button" aria-pressed="false" title="Toggle spinning vinyl">${svg("M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 14a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-5a1 1 0 1 0 0 2 1 1 0 0 0 0-2z")}<span>Vinyl</span></button></div><div class="player-meta"><div class="title">Nothing playing</div><div class="artist"></div></div><div class="player-progress"><input class="seek" type="range" min="0" max="1000" value="0" aria-label="Playback position"><div class="times" aria-hidden="true"><span class="elapsed">0:00</span><span class="duration">0:00</span></div></div><div class="controls"><button data-action="previous" aria-label="Previous">${icons.previous}</button><button class="play" data-action="play" aria-label="Play or pause">${icons.play}</button><button data-action="next" aria-label="Next">${icons.next}</button></div><label class="volume" aria-hidden="true"><input type="range" class="vol" min="0" max="1" step=".01" aria-label="Volume" tabindex="-1"></label></div><div class="lyrics-wrap"><div class="lyrics" tabindex="0" aria-label="Lyrics" data-luma-pane="lyrics"></div><div class="upnext" aria-hidden="true"><span class="upnext-label">Up next</span><span class="upnext-text"></span></div></div></div>
+  root.innerHTML = `<div class="backdrop"></div><div class="shade"></div><div class="bar"><button class="tool" data-action="close" aria-label="Close" title="Close">${stroke("close")}</button><button class="tool" data-action="full" aria-label="Toggle fullscreen" title="Fullscreen">${stroke("full")}</button><span class="status">LRCLIB · line sync</span><button class="tool" data-action="settings" aria-label="Settings" aria-expanded="false" title="Settings">${stroke("settings")}</button></div>
+ <div class="layout"><div class="player"><img class="cover" alt="Album artwork"><div class="title">Nothing playing</div><div class="artist"></div><input class="seek" type="range" min="0" max="1000" value="0" aria-label="Playback position"><div class="times"><span class="elapsed">0:00</span><span class="duration">0:00</span></div><div class="controls"><button data-action="previous" aria-label="Previous">${icons.previous}</button><button class="play" data-action="play" aria-label="Play or pause">${icons.play}</button><button data-action="next" aria-label="Next">${icons.next}</button></div><label class="volume">${svg("M3 9h4l5-4v14l-5-4H3z")}<input type="range" class="vol" min="0" max="1" step=".01" aria-label="Volume"></label></div><div class="lyrics" tabindex="0" aria-label="Lyrics"></div></div>
  <div class="settings" role="region" aria-label="Lyrics settings" hidden></div>`;
   document.body.append(root);
   const q = (s) => root.querySelector(s),
@@ -369,12 +366,6 @@
     for (const input of q(".settings").querySelectorAll('input[type="range"]'))
       updateRangeVisual(input);
     q(".vinyl").checked = options.vinyl;
-    const vinylToggle = q(".vinyl-toggle");
-    if (vinylToggle) {
-      vinylToggle.setAttribute("aria-pressed", String(Boolean(options.vinyl)));
-      vinylToggle.classList.toggle("active", Boolean(options.vinyl));
-      vinylToggle.title = options.vinyl ? "Disable spinning vinyl" : "Enable spinning vinyl";
-    }
     q(".estimated").checked = options.estimated;
     q(".desktop").checked = options.desktop;
   }
@@ -888,24 +879,8 @@
       const b = document.createElement("button");
       b.className = "line";
       b.id = `line-${i}`;
-      b.onclick = (ev) => {
-        if (ev.target.closest(".line-copy")) {
-          const text = line.text.replace(/\s+/g, " ").trim();
-          navigator.clipboard?.writeText(text).then(
-            () => Spicetify.showNotification("Luma: Lyric line copied"),
-            () => Spicetify.showNotification("Luma: Could not copy line"),
-          );
-          return;
-        }
+      b.onclick = () =>
         player().seek(Math.max(0, line.ms + options.syncOffset));
-      };
-      const lineCopy = document.createElement("span");
-      lineCopy.className = "line-copy";
-      lineCopy.setAttribute("role", "button");
-      lineCopy.setAttribute("tabindex", "-1");
-      lineCopy.setAttribute("aria-label", "Copy this line");
-      lineCopy.title = "Copy line";
-      lineCopy.innerHTML = stroke("copy");
       const mainRow = document.createElement("span");
       mainRow.className = "lyric-main";
       const secondaryRow = document.createElement("span");
@@ -943,7 +918,6 @@
       } else addPlainSegments(line.text);
       if (mainRow.childNodes.length) b.append(mainRow);
       if (secondaryRow.childNodes.length) b.append(secondaryRow);
-      b.append(lineCopy);
       pane.append(b);
     });
   }
@@ -1228,14 +1202,6 @@
       }
       if (targetIndex !== lastCentered) center(targetIndex);
     }
-    const upnext = q(".upnext");
-    if (upnext) {
-      const nextLine =
-        options.lyricMode !== "static" && index >= 0 ? lines[index + 1] : null;
-      upnext.hidden = !nextLine;
-      if (nextLine)
-        q(".upnext-text").textContent = nextLine.text.replace(/\s+/g, " ").trim();
-    }
     const line = lines[active];
     if (line && options.lyricMode === "word" && line.display.length) {
       let wordIndex = -1;
@@ -1348,7 +1314,6 @@
     if (!frameId) frameId = requestAnimationFrame(animate);
     q('[data-action="close"]').focus();
     emitLuma("luma:open");
-    bumpUiIdle();
   }
   function toggle() {
     root.hidden ? open() : close();
@@ -1448,7 +1413,7 @@
   createLauncher();
 
   window.LumaLyrics = {
-    version: "2.2.1",
+    version: "2.2.2",
     open,
     close: () => close(),
     toggle,
@@ -1467,29 +1432,10 @@
       applySettings();
     },
   };
-  // Immersive auto-hide: the top bar fades out while the cursor is still, and
-  // reappears on any movement (or when Settings is open).
-  let uiIdleTimer = 0;
-  function bumpUiIdle() {
-    clearTimeout(uiIdleTimer);
-    root.classList.remove("ui-idle");
-    if (root.hidden || !q(".settings").hidden) return;
-    uiIdleTimer = setTimeout(() => {
-      if (!root.hidden && q(".settings").hidden) root.classList.add("ui-idle");
-    }, 2600);
-  }
-  root.addEventListener("pointermove", bumpUiIdle);
-  root.addEventListener("pointerdown", bumpUiIdle);
-  artworkStage.addEventListener("dblclick", () => {
-    options.vinyl = !options.vinyl;
-    save();
-    applySettings();
-    Spicetify.showNotification(options.vinyl ? "Luma: Vinyl on" : "Luma: Vinyl off");
-  });
   window.addEventListener("luma:set-sync-offset", (e) => {
     if (typeof e?.detail?.ms === "number") setSyncOffset(e.detail.ms);
   });
-  emitLuma("luma:ready", { version: "2.2.1" });
+  emitLuma("luma:ready", { version: "2.2.2" });
   root.addEventListener("click", async (e) => {
     const action = e.target.closest("[data-action]")?.dataset.action;
     const syncAdjust = e.target.closest("[data-sync-adjust]");
@@ -1503,15 +1449,6 @@
         options.vinyl = !options.vinyl;
         save();
         applySettings();
-      }
-      if (action === "size-up" || action === "size-down") {
-        options.size = Math.max(
-          24,
-          Math.min(52, Number(options.size) + (action === "size-up" ? 2 : -2)),
-        );
-        save();
-        applySettings();
-        bumpUiIdle();
       }
       const modeOption = e.target.closest("[data-mode-value]");
       if (modeOption) {
@@ -1991,49 +1928,26 @@
   // spacing. These rules are appended last so they win over earlier passes.
   const ui = document.createElement("style");
   ui.textContent = `
-    /* ── Luma design system v2 ─────────────────────────────────────── */
-    #luma-root{--luma-radius:26px;--luma-pad:min(5vw,56px);--luma-gap:min(5vw,56px);--luma-glass:rgba(255,255,255,.055);--luma-glass-strong:rgba(255,255,255,.09);--luma-border:rgba(255,255,255,.12);--luma-border-strong:rgba(255,255,255,.22);--luma-ease:cubic-bezier(.22,1,.36,1)}
-    #luma-root .bar{top:22px;inset-inline:24px;padding:6px;border-radius:999px;background:linear-gradient(145deg,rgba(255,255,255,.07),rgba(var(--accent-rgb),.03)),rgba(20,20,24,.38);border:1px solid var(--luma-border);backdrop-filter:blur(22px) saturate(1.5);-webkit-backdrop-filter:blur(22px) saturate(1.5);box-shadow:0 12px 38px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.08);transition:opacity .45s ease,transform .45s var(--luma-ease)}
-    #luma-root .bar .tool{border:0;background:transparent;width:38px;height:38px;transition:background .18s,transform .18s var(--luma-ease)}
-    #luma-root .bar .tool:hover{background:var(--luma-glass-strong);transform:translateY(-1px)}
-    #luma-root .size-stepper{display:flex;align-items:center;gap:2px;padding:2px;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09)}
-    #luma-root .size-stepper .stepper{width:30px;height:30px;border-radius:50%}
-    #luma-root .size-stepper .stepper svg{width:15px;height:15px}
-    #luma-root .stepper-value{font-size:11px;font-weight:700;color:rgba(255,255,255,.6);min-width:14px;text-align:center}
-    #luma-root .status{padding:6px 12px;border-radius:999px;background:rgba(var(--md-surface-container-rgb,.2),.5);color:var(--md-on-surface-variant,#ffffffa8);font-size:11px;line-height:1;white-space:nowrap}
-    #luma-root.ui-idle .bar{opacity:0;pointer-events:none;transform:translateY(-8px)}
-    #luma-root .layout{grid-template-columns:minmax(215px,285px) minmax(0,1fr)!important;gap:var(--luma-gap)!important;padding:92px var(--luma-pad) 38px!important;align-items:center}
-    /* Now-playing card — essentials only */
-    #luma-root .player{display:flex!important;flex-direction:column;gap:16px;padding:20px!important;border-radius:var(--luma-radius);max-width:320px;overflow:visible}
+    #luma-root .bar{top:22px;inset-inline:24px}
+    #luma-root .status{padding:6px 10px;border-radius:999px;background:rgba(var(--md-surface-container-rgb,.2),.5);color:var(--md-on-surface-variant,#ffffffa8);font-size:11px;line-height:1;white-space:nowrap;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+    #luma-root .layout{grid-template-columns:minmax(220px,300px) minmax(0,1fr)!important;gap:min(5vw,56px)!important;padding:78px min(5vw,56px) 34px!important;align-items:center}
+    #luma-root .player{display:flex!important;flex-direction:column;gap:14px;padding:18px!important;border-radius:28px;max-width:320px}
     #luma-root .player-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-    #luma-root .artwork-wrap{flex:1;min-width:0;max-width:225px;position:relative}
-    #luma-root .artwork-wrap .artwork-stage,#luma-root .artwork-wrap .cover{width:100%}
-    #luma-root .artwork-wrap .cover{transition:transform .5s var(--luma-ease),box-shadow .5s ease}
+    #luma-root .artwork-wrap{flex:1;min-width:0;max-width:220px}
+    #luma-root .artwork-wrap .artwork-stage,#luma-root .artwork-wrap .cover,#luma-root .player>.artwork-stage{width:100%}
     #luma-root .player-meta{min-width:0}
-    #luma-root .player .title{margin:0!important;font-size:20px;line-height:1.18;letter-spacing:-.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    #luma-root .player .title{margin:0!important;font-size:20px;line-height:1.15;letter-spacing:-.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     #luma-root .player .artist{margin:4px 0 0!important;font-size:14px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(var(--md-on-surface-variant-rgb,255,255,255),.72)}
+    #luma-root .player-progress .seek{margin:0}
     #luma-root .player .times,#luma-root .player .volume{display:none!important}
-    #luma-root .player .controls{margin:0!important;gap:16px}
+    #luma-root .player .controls{margin:2px 0 0!important;gap:14px}
     #luma-root .player .controls button{width:44px;height:44px}
     #luma-root .player .controls .play{width:54px;height:54px}
-    #luma-root .vinyl-toggle{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;border:1px solid rgba(var(--md-outline-variant-rgb,255,255,255),.45);border-radius:999px;background:rgba(var(--md-surface-container-high-rgb,50,50,58),.45);color:var(--md-on-surface-variant,#ffffffc0);padding:8px 11px;font-size:11px;font-weight:600;line-height:1;cursor:pointer;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);transition:border-color .2s,background .2s,color .2s,transform .2s var(--luma-ease)}
-    #luma-root .vinyl-toggle:hover{border-color:rgba(var(--md-primary-rgb,180,160,255),.5);background:rgba(var(--md-primary-rgb,180,160,255),.14);color:var(--md-on-surface,#fff);transform:translateY(-1px)}
-    #luma-root .vinyl-toggle.active{border-color:rgba(var(--md-primary-rgb,180,160,255),.6);background:rgba(var(--md-primary-rgb,180,160,255),.22);color:var(--md-primary,#d0bcff);box-shadow:0 0 14px rgba(var(--accent-rgb),.18)}
-    /* Lyrics window */
-    #luma-root .lyrics-wrap{position:relative;height:100%;min-height:0}
-    #luma-root .lyrics{height:100%;padding:38vh 12px 40vh;mask-image:linear-gradient(transparent,#000 7%,#000 93%,transparent)}
-    #luma-root .line{position:relative;border-radius:14px;transition:transform .7s var(--luma-ease),opacity .7s ease,filter .7s ease}
-    #luma-root .line:hover{background:rgba(255,255,255,.045)}
-    #luma-root .line-copy{position:absolute;right:2px;top:50%;transform:translateY(-50%) scale(.85);display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.65);opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s var(--luma-ease),background .18s,color .18s;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
-    #luma-root .line-copy svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-    #luma-root .line:hover .line-copy{opacity:1;pointer-events:all;transform:translateY(-50%) scale(1)}
-    #luma-root .line-copy:hover{background:rgba(var(--accent-rgb),.2);border-color:rgba(var(--accent-rgb),.5);color:#fff}
-    /* Up-next pill */
-    #luma-root .upnext{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);z-index:2;display:flex;align-items:center;gap:10px;max-width:min(70%,560px);padding:9px 16px;border-radius:999px;background:linear-gradient(145deg,rgba(255,255,255,.07),rgba(var(--accent-rgb),.05)),rgba(22,22,26,.55);border:1px solid var(--luma-border);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);box-shadow:0 10px 30px rgba(0,0,0,.25);pointer-events:none;animation:luma-upnext-in .5s var(--luma-ease)}
-    #luma-root .upnext[hidden]{display:none}
-    #luma-root .upnext-label{flex:none;font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:rgba(var(--accent-rgb),.9)}
-    #luma-root .upnext-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:600;color:rgba(255,255,255,.78)}
-    @keyframes luma-upnext-in{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+    #luma-root .vinyl-toggle{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;border:1px solid rgba(var(--md-outline-variant-rgb,255,255,255),.45);border-radius:999px;background:rgba(var(--md-surface-container-high-rgb,50,50,58),.45);color:var(--md-on-surface-variant,#ffffffc0);padding:8px 10px;font-size:11px;font-weight:600;line-height:1;cursor:pointer;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+    #luma-root .vinyl-toggle svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;opacity:.9}
+    #luma-root .vinyl-toggle:hover{border-color:rgba(var(--md-primary-rgb,180,160,255),.45);background:rgba(var(--md-primary-rgb,180,160,255),.12);color:var(--md-on-surface,#fff)}
+    #luma-root .vinyl-toggle.active{border-color:rgba(var(--md-primary-rgb,180,160,255),.55);background:rgba(var(--md-primary-rgb,180,160,255),.2);color:var(--md-primary,#d0bcff)}
+    #luma-root .lyrics{padding:38vh 10px 40vh;mask-image:linear-gradient(transparent,#000 8%,#000 92%,transparent)}
     #luma-root .message{max-width:34rem}
     #luma-root .message-actions{margin-top:14px}
     #luma-root .retry-lyrics,#luma-root .sync-adjust button{margin:0;border:1px solid rgba(var(--md-outline-rgb,255,255,255),.35);border-radius:999px;background:rgba(var(--md-secondary-container-rgb,80,80,90),.45);color:var(--md-on-secondary-container,#fff);padding:8px 12px;font-size:12px;line-height:1}
@@ -2043,9 +1957,8 @@
     #luma-root .sync-adjust input[type=range]{flex:1 1 100%;min-width:0}
     #luma-root .settings .privacy-note{margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(var(--md-surface-high-rgb,50,50,58),.45);color:var(--md-on-surface-variant,#ffffff9a)}
     #luma-root .settings{top:74px;max-height:calc(100vh - 96px)}
-    @media(max-width:760px){#luma-root .layout{grid-template-columns:minmax(0,1fr)!important;padding:84px 16px 16px!important;gap:14px!important;align-content:start}#luma-root .player{max-width:none;display:grid!important;grid-template-columns:96px minmax(0,1fr);gap:10px 14px;align-items:center}#luma-root .player-card-top{grid-column:1;grid-row:1 / span 3;flex-direction:column;gap:8px}#luma-root .artwork-wrap{max-width:none}#luma-root .vinyl-toggle span{display:none}#luma-root .player-meta,#luma-root .player-progress,#luma-root .controls{grid-column:2}#luma-root .status{font-size:10px;padding:5px 8px}#luma-root .upnext{max-width:88%}}
-    @media(max-width:520px){#luma-root .status{max-width:40vw;overflow:hidden;text-overflow:ellipsis}#luma-root .lyrics{padding:16vh 6px 22vh}}
-    @media(prefers-reduced-motion:reduce){#luma-root .bar,#luma-root .upnext,#luma-root .artwork-wrap .cover,#luma-root .vinyl-toggle{transition:none;animation:none}}
+    @media(max-width:760px){#luma-root .bar{top:16px;inset-inline:14px}#luma-root .layout{grid-template-columns:minmax(0,1fr)!important;padding:70px 16px 16px!important;gap:14px!important;align-content:start}#luma-root .player{max-width:none;display:grid!important;grid-template-columns:96px minmax(0,1fr);gap:10px 14px;align-items:center}#luma-root .player-card-top{grid-column:1;grid-row:1 / span 3;flex-direction:column;gap:8px}#luma-root .artwork-wrap{max-width:none}#luma-root .vinyl-toggle span{display:none}#luma-root .player-meta,#luma-root .player-progress,#luma-root .controls{grid-column:2}#luma-root .status{font-size:10px;padding:5px 8px}}
+    @media(max-width:520px){#luma-root .status{max-width:46vw;overflow:hidden;text-overflow:ellipsis}#luma-root .lyrics{padding:16vh 6px 22vh}}
   `;
   document.head.append(ui);
 })();

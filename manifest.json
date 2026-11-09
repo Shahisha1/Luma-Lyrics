@@ -1,7 +1,7 @@
 [
   {
     "name": "Luma Lyrics",
-    "description": "Immersive synced lyrics for Spotify with a refined glass UI, decluttered now-playing card, quick vinyl toggle, copy-any-line, auto-hiding toolbar, up-next preview, and companion hooks for Luma Plus/Ambient.",
+    "description": "Immersive synced lyrics for Spotify with a glass overlay, LRCLIB line sync, spinning vinyl, and companion hooks for Luma Plus/Ambient. Works on new Spotify builds with a resilient playbar toggle.",
     "preview": "preview.gif",
     "main": "luma-lyrics.js",
     "readme": "README.md",

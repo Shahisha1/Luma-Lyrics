@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.2.2
+
+- **UI reverted to the original v2.0 look** — the v2.2.0 redesign (glass pill toolbar, copy-line chips, text stepper, up-next pill, auto-hiding bar) is fully removed. Everything looks and behaves exactly as you left it.
+- Kept the **v2.2.1 playbar toggle fix** (mounts on `[data-testid="control-button-queue"]` in new Spotify builds like 1.3.8.620).
+- Kept the **companion hooks** for Luma Plus / Luma Ambient: `window.LumaLyrics` API (`open/close/toggle/setSyncOffset/getState/toggleVinyl`), events `luma:ready/open/close/track/sync-offset-changed`, inbound `luma:set-sync-offset`.
+
 ## v2.2.1
 
 - **Fixed the missing playbar toggle on newer Spotify builds** (e.g. 1.3.8.620, where `.main-nowPlayingBar-right` no longer exists): the fallback now anchors on Spotify's stable right-side buttons (`[data-testid="control-button-queue"]` / `control-button-npv`), clones their native styling, and retries for ~18s if the playbar mounts late.
