@@ -1,7 +1,11 @@
 # Changelog
 
-## Unreleased
+## v2.0
 
+- Added a dependency-free test suite for the pure lyric parsing, matching, and keyboard helpers, plus a GitHub Actions workflow that runs it on every push and pull request.
+- Fixed the LRCLIB client identifier, which still reported version 1.1.1.
+- Fixed the saved-settings migration writing to local storage once per lyric line instead of once per render.
+- Smoothed word-by-word playback: the highlight now cross-fades into each word, the active word keeps a constant font weight so the line no longer jitters, estimated timing pauses on punctuation, and the view scrolls slightly ahead of the next line.
 - Added automatic word-by-word lyrics: when LRCLIB returns verified word timing (`lyricsfile`) for the playing track, it is used automatically. Otherwise Luma Lyrics keeps using LRCLIB line timing, then estimated word timing.
 - Simplified Settings into **Lyrics** and **Appearance** sections, added a **Done** button, and made **Esc** close Settings and return to the lyrics.
 - Removed the **Import LRC** and **Retry lyrics** buttons. Lyrics are fetched automatically.

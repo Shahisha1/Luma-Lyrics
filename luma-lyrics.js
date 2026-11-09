@@ -209,9 +209,9 @@
     <section class="settings-section"><h3>Lyrics</h3>
       <div class="setting-control mode-control"><span>Display style</span><button class="mode-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="lyric-mode-options"><span class="mode-label">Word by word</span>${stroke("down")}</button><div class="mode-options" id="lyric-mode-options" role="listbox" aria-label="Lyrics display style" hidden><button type="button" role="option" data-mode-value="word">Word by word</button><button type="button" role="option" data-mode-value="block">Line by line</button><button type="button" role="option" data-mode-value="gentle">Gentle</button><button type="button" role="option" data-mode-value="static">Static</button></div></div>
       <label class="setting-toggle"><span><strong>Estimated word animation</strong><small>Approximate timing when word timestamps are unavailable.</small></span><input type="checkbox" class="estimated"></label>
-      <label class="setting-control"><span>Lyrics sync <output class="sync-offset-value">0.00 s</output></span><input class="sync-offset" type="range" min="-5000" max="5000" step="50"><small>Shift lyrics earlier or later to match playback.</small></label>
+      <div class="setting-control"><span>Lyrics sync <output class="sync-offset-value">0.00 s</output></span><div class="sync-adjust"><button type="button" data-sync-adjust="-50" aria-label="Move lyrics 0.05 seconds earlier">−0.05s</button><input class="sync-offset" type="range" min="-5000" max="5000" step="50" aria-label="Lyrics sync offset"><button type="button" data-sync-adjust="50" aria-label="Move lyrics 0.05 seconds later">+0.05s</button><button type="button" data-sync-adjust="0" aria-label="Reset lyrics sync">Reset</button></div><small>Shift lyrics earlier or later to match playback.</small></div>
       <label class="setting-control"><span>Scroll smoothness <output class="scroll-smoothness-value">65%</output></span><input class="scroll-smoothness" type="range" min="0" max="100" step="5"></label>
-      <small>Lyrics come from LRCLIB, which receives the track title, artist, album and duration. Word-by-word timing is used automatically when LRCLIB has it; otherwise line timing is used.</small>
+      <small class="privacy-note">Lyrics come from LRCLIB, which receives the track title, artist, album, and duration. Word timing is used automatically when LRCLIB has it; otherwise line timing or estimated animation is used.</small>
     </section>
     <section class="settings-section"><h3>Appearance</h3>
       <label class="setting-control"><span>Text size <output class="size-value"></output></span><input class="size" type="range" min="24" max="52" step="1"></label>
@@ -232,18 +232,49 @@
     centerFrame = 0,
     wheelFrame = 0,
     wheelTarget = 0,
+    lastCentered = -1,
     lastFetch = 0,
     cooldown = 0,
     frameId = 0,
     busy = Promise.resolve();
   const cache = new Map();
+  let sourceState = null;
+  function setSourceState(state) {
+    sourceState = state;
+    const labels = {
+      idle: "",
+      loading: "Searching LRCLIB",
+      "word-timed": "Word timestamps",
+      synced: "Line timing",
+      estimated: "Estimated words",
+      gentle: "Gentle",
+      static: "Static",
+      plain: "Unsynced lyrics",
+      instrumental: "Instrumental",
+      missing: "No lyrics found",
+      error: "Could not load",
+      podcast: "Not a music track",
+    };
+    const label = labels[state] || state || "";
+    q(".status").textContent = label ? "LRCLIB · " + label : "";
+    q(".status").title = label
+      ? state === "estimated"
+        ? "LRCLIB provides line timing for this track; word timing is approximated."
+        : state === "plain"
+          ? "This track only has unsynchronized lyrics."
+          : ""
+      : "";
+  }
   const fmt = (ms) => {
     const n = Math.max(0, Math.floor((ms || 0) / 1000));
     return Math.floor(n / 60) + ":" + String(n % 60).padStart(2, "0");
   };
-  const note = (text) => {
+  // Shows a message in the lyric pane. Pass { retry: true } to add a button
+  // that forces the current track to be fetched again.
+  const note = (text, opts = {}) => {
     lines = [];
     active = -1;
+    lastCentered = -1;
     highlightedWord?.classList.remove("active");
     upcomingWord?.classList.remove("upcoming");
     highlightedWord = upcomingWord = null;
@@ -252,10 +283,22 @@
     n.className = "message";
     n.textContent = text;
     pane.append(n);
+    if (opts.retry) {
+      const actions = document.createElement("div");
+      actions.className = "message-actions";
+      const retry = document.createElement("button");
+      retry.type = "button";
+      retry.className = "retry-lyrics";
+      retry.dataset.action = "retry-lyrics";
+      retry.textContent = "Try again";
+      actions.append(retry);
+      pane.append(actions);
+    }
   };
   function showLoading() {
     lines = [];
     active = -1;
+    lastCentered = -1;
     pane.replaceChildren();
     for (let i = 0; i < 8; i++) {
       const placeholder = document.createElement("div");
@@ -263,7 +306,7 @@
       placeholder.setAttribute("aria-hidden", "true");
       pane.append(placeholder);
     }
-    q(".status").textContent = "Searching for lyrics…";
+    setSourceState("loading");
   }
   function applySettings() {
     root.style.setProperty("--lyric-size", Number(options.size) + "px");
@@ -347,8 +390,11 @@
         applyPalette(295, 0.02);
         return;
       }
-      const hue = ((Math.atan2(sumB, sumA) * 180) / Math.PI + 360) % 360;
-      applyPalette(hue, sumC / sumW);
+      const hue = ((Math.atan2(sumB, sumA) * 180) / Math.PI + 360) % 360,
+        // Keep highlights readable on the dark overlay: avoid very low-chroma
+        // artwork accents that blend into the text, and avoid oversaturated ones.
+        chroma = Math.max(0.055, Math.min(0.15, sumC / sumW));
+      applyPalette(hue, chroma);
     } catch (error) {
       setDefaultAccent();
       console.warn(
@@ -737,25 +783,53 @@
     if (settingsOpen) return "settings";
     return inRoot ? "overlay" : null;
   }
+  // A word stays current until its real end time when the source has one, or
+  // until the next word starts when the timing is estimated.
+  function endOfWord(line, j) {
+    const word = line.display[j];
+    return line.exact
+      ? Math.max(word.ms + 1, word.endTime ?? line.end)
+      : Math.min(line.display[j + 1]?.ms ?? line.end, line.end);
+  }
+  // Opacity for a single word: upcoming words sit dim, the current word ramps
+  // up across its duration, and sung words settle at full strength. The small
+  // pre-roll lets the highlight ease into the next word.
+  function wordFlowOpacity(start, end, progress) {
+    if (progress < start) {
+      const lead = 180,
+        approach = Math.max(0, Math.min(1, 1 - (start - progress) / lead));
+      return 0.5 + approach * 0.12;
+    }
+    if (progress >= end) return 1;
+    // Long words settle quickly instead of fading in for their whole duration.
+    const ramp = Math.max(1, Math.min(end - start, 480));
+    const fraction = Math.max(0, Math.min(1, (progress - start) / ramp));
+    return 0.62 + fraction * 0.38;
+  }
   // </luma-pure>
   function render() {
     active = -1;
+    lastCentered = -1;
     highlightedWord?.classList.remove("active");
     upcomingWord?.classList.remove("upcoming");
     highlightedWord = upcomingWord = null;
     pane.replaceChildren();
     const duration = player().getDuration() || 0;
-    q(".status").textContent =
-      "LRCLIB · " +
-      (options.lyricMode === "word"
+    if (migratedDefaultDim) {
+      migratedDefaultDim = false;
+      save();
+    }
+    const modeState =
+      options.lyricMode === "word"
         ? lines.some((l) => l.exact)
-          ? "word timestamps"
+          ? "word-timed"
           : options.estimated
-            ? "estimated words"
-            : "line sync"
+            ? "estimated"
+            : "synced"
         : options.lyricMode === "block"
-          ? "line by line"
-          : options.lyricMode);
+          ? "synced"
+          : options.lyricMode;
+    setSourceState(modeState);
     lines.forEach((line, i) => {
       line.end =
         lines[i + 1]?.ms ?? (duration > line.ms ? duration : line.ms + 4000);
@@ -768,11 +842,24 @@
         : [];
       if (!line.exact && options.estimated) {
         const words = line.text.match(/\S+\s*/g) || [line.text];
-        const total = words.reduce((s, w) => s + w.trim().length, 0) || 1;
+        // Weight each word by its length plus a small pause for punctuation, so
+        // commas and full stops do not rush past like ordinary syllables.
+        const weightOf = (text) => {
+          const trimmed = text.trim();
+          const pause = /[.!?…]$/.test(trimmed)
+            ? 3
+            : /[,;:]$/.test(trimmed)
+              ? 2
+              : /[-–—]$/.test(trimmed)
+                ? 1
+                : 0;
+          return Math.max(1, trimmed.length + pause);
+        };
+        const total = words.reduce((s, w) => s + weightOf(w), 0) || 1;
         let used = 0;
         line.display = words.map((text) => {
           const ms = line.ms + (Math.max(0, line.end - line.ms) * used) / total;
-          used += text.trim().length;
+          used += weightOf(text);
           return { ms, endTime: ms, text };
         });
       }
@@ -796,7 +883,6 @@
           target.append(document.createTextNode(segment));
         }
       };
-      if (migratedDefaultDim) save();
       if (options.lyricMode === "word" && line.display.length) {
         for (let j = 0; j < line.display.length; j++) {
           const w = line.display[j];
@@ -804,7 +890,7 @@
           span.className = "luma-lyric-token";
           span.id = `word-${i}-${j}`;
           span.textContent = w.text;
-          span.style.opacity = "0.52";
+          span.style.setProperty("--flow-opacity", "0.52");
           let secondary = bracketStack.length > 0;
           for (const char of w.text) {
             if (char === "(" || char === "[") {
@@ -824,19 +910,24 @@
   }
   function show(record, trackInfo) {
     if (record.instrumental) {
+      setSourceState("instrumental");
       note("Instrumental — no lyrics.");
       return;
     }
     lines = pickLyrics(record, trackInfo).lines;
-    if (lines.length) render();
-    else
-      note(
-        record.plainLyrics
-          ? "Unsynchronized lyrics\n\n" + record.plainLyrics
-          : "No lyrics found for this recording.",
-      );
+    if (lines.length) {
+      render();
+      return;
+    }
+    if (record.plainLyrics) {
+      setSourceState("plain");
+      note("Unsynchronized lyrics\n\n" + record.plainLyrics);
+      return;
+    }
+    setSourceState("missing");
+    note("No lyrics found for this recording.", { retry: true });
   }
-  async function load() {
+  async function load(force = false) {
     const item = player().data?.item,
       m = item?.metadata || {};
     const current = JSON.stringify([
@@ -845,7 +936,8 @@
       m.artist_name || "",
       m.album_title || "",
     ]);
-    if (current === key) return;
+    if (!force && current === key) return;
+    if (force && current) cache.delete(current);
     key = current;
     const id = ++token;
     controller?.abort();
@@ -877,10 +969,12 @@
       setDefaultAccent();
     }
     if (!m.title || !m.artist_name) {
+      setSourceState("idle");
       note("Play a music track to load lyrics.");
       return;
     }
     if (item?.uri?.startsWith("spotify:episode:")) {
+      setSourceState("podcast");
       note("Lyrics are available for music tracks.");
       return;
     }
@@ -921,7 +1015,7 @@
           signal: c.signal,
           headers: {
             "Lrclib-Client":
-              "LumaLyrics/1.1.1 (Spicetify independent extension)",
+              "LumaLyrics/2.0 (Spicetify independent extension)",
           },
         });
         if (response.status === 429 || response.status === 503) {
@@ -953,18 +1047,22 @@
     try {
       await pending;
     } catch (e) {
-      if (id === token)
+      if (id === token) {
+        setSourceState("error");
         note(
           e.name === "AbortError"
-            ? "Request timed out. Reopen Luma Lyrics to try again."
+            ? "Request timed out. Try again to fetch the lyrics."
             : "Could not load lyrics.\n" + e.message,
+          { retry: true },
         );
+      }
     }
   }
   function center(index) {
     if (index < 0 || Date.now() < scrollUntil) return;
     const el = pane.children[index];
     if (!el) return;
+    lastCentered = index;
     const target = el.offsetTop - pane.clientHeight / 2 + el.offsetHeight / 2;
     cancelAnimationFrame(centerFrame);
     cancelAnimationFrame(wheelFrame);
@@ -982,9 +1080,9 @@
       distance = target - start,
       began = performance.now(),
       duration =
-        200 +
-        options.scrollSmoothness * 8 +
-        Math.min(500, Math.abs(distance) * 0.2);
+        160 +
+        options.scrollSmoothness * 3 +
+        Math.min(240, Math.abs(distance) * 0.15);
     const animate = (now) => {
       const progress = Math.min(1, (now - began) / duration);
       const eased = 1 - Math.pow(1 - progress, 4);
@@ -998,12 +1096,14 @@
     cancelAnimationFrame(wheelFrame);
     wheelFrame = 0;
     wheelTarget = pane.scrollTop;
-    scrollUntil = Date.now() + 4000;
+    lastCentered = -1;
+    scrollUntil = Date.now() + 2500;
   };
   const smoothWheel = (event) => {
     event.preventDefault();
     cancelAnimationFrame(centerFrame);
-    scrollUntil = Date.now() + 4000;
+    lastCentered = -1;
+    scrollUntil = Date.now() + 2500;
     const max = pane.scrollHeight - pane.clientHeight;
     const base = wheelFrame ? wheelTarget : pane.scrollTop;
     wheelTarget = Math.max(0, Math.min(max, base + event.deltaY));
@@ -1032,7 +1132,15 @@
   };
   pane.addEventListener("wheel", smoothWheel, { passive: false });
   pane.addEventListener("touchstart", pauseCentering, { passive: true });
-  pane.addEventListener("pointerdown", pauseCentering, { passive: true });
+  // Only pen input pauses auto-centring here; a normal mouse click on a lyric
+  // should seek and re-centre immediately instead of waiting out the pause.
+  pane.addEventListener(
+    "pointerdown",
+    (event) => {
+      if (event.pointerType === "pen") pauseCentering();
+    },
+    { passive: true },
+  );
   function tick() {
     if (root.hidden) return;
     load().catch((e) => note("Player update failed: " + e.message));
@@ -1065,17 +1173,26 @@
         pane.children[i]?.classList.toggle("active", i === index);
         pane.children[i]?.classList.toggle("past", i < index);
       }
-      center(index);
+    }
+    // Scroll a little before the next line starts, so the new line is already
+    // centred when its first word is sung instead of sliding in late.
+    if (index >= 0 && Date.now() >= scrollUntil) {
+      const nextIndex = index + 1;
+      let targetIndex = index;
+      if (nextIndex < lines.length) {
+        const gap = Math.max(0, lines[nextIndex].ms - lines[index].ms),
+          lead = Math.min(600, gap * 0.5);
+        if (lyricProgress >= lines[nextIndex].ms - lead)
+          targetIndex = nextIndex;
+      }
+      if (targetIndex !== lastCentered) center(targetIndex);
     }
     const line = lines[active];
     if (line && options.lyricMode === "word" && line.display.length) {
       let wordIndex = -1;
       for (let j = 0; j < line.display.length; j++) {
         const word = line.display[j],
-          end = Math.min(
-            line.display[j + 1]?.ms ?? word.endTime ?? line.end,
-            line.end,
-          );
+          end = endOfWord(line, j);
         if (lyricProgress >= word.ms && lyricProgress < end) {
           wordIndex = j;
           break;
@@ -1121,22 +1238,14 @@
         upcomingWord?.classList.add("upcoming");
       }
       line.display.forEach((word, j) => {
-        const end = Math.min(
-            line.display[j + 1]?.ms ?? word.endTime ?? line.end,
-            line.end,
-          ),
-          fraction =
-            lyricProgress < word.ms
-              ? 0
-              : end <= word.ms
-                ? 1
-                : Math.max(
-                    0,
-                    Math.min(1, (lyricProgress - word.ms) / (end - word.ms)),
-                  );
+        const opacity = wordFlowOpacity(
+          word.ms,
+          endOfWord(line, j),
+          lyricProgress,
+        );
         pane
           .querySelector(`#word-${active}-${j}`)
-          ?.style.setProperty("opacity", (0.56 + fraction * 0.34).toFixed(3));
+          ?.style.setProperty("--flow-opacity", opacity.toFixed(3));
       });
     } else {
       highlightedWord?.classList.remove("active");
@@ -1187,14 +1296,23 @@
     if (!frameId) frameId = requestAnimationFrame(animate);
     q('[data-action="close"]').focus();
   }
-  const launchIcon =
+  const loadIcon =
     '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16m4-11h2m-2 3h2m-2 3h2"/></svg>';
-  launcher = new Spicetify.Playbar.Button("Luma Lyrics", launchIcon, () =>
+  launcher = new Spicetify.Playbar.Button("Luma Lyrics", loadIcon, () =>
     root.hidden ? open() : close(),
   );
   root.addEventListener("click", async (e) => {
     const action = e.target.closest("[data-action]")?.dataset.action;
+    const syncAdjust = e.target.closest("[data-sync-adjust]");
     try {
+      if (syncAdjust) {
+        const delta = Number(syncAdjust.dataset.syncAdjust);
+        options.syncOffset = delta
+          ? Math.max(-5000, Math.min(5000, options.syncOffset + delta))
+          : 0;
+        save();
+        applySettings();
+      }
       const modeOption = e.target.closest("[data-mode-value]");
       if (modeOption) {
         options.lyricMode = modeOption.dataset.modeValue;
@@ -1231,6 +1349,18 @@
         save();
         applySettings();
         if (lines.length) render();
+      }
+      if (action === "retry-lyrics") {
+        const btn = e.target.closest("[data-action=retry-lyrics]");
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = "Trying…";
+        }
+        key = null;
+        await load(true).catch((err) => {
+          setSourceState("error");
+          note("Could not load lyrics.\n" + err.message, { retry: true });
+        });
       }
       if (action === "play") player().togglePlay();
       if (action === "previous") player().back();
@@ -1639,4 +1769,42 @@
     @media(prefers-reduced-motion:reduce){#luma-root .controls .play:before,#luma-root .settings .setting-toggle input[type=checkbox]:before{transition:none}}
   `;
   document.head.append(material);
+  // Final word-flow pass: opacity is driven per frame by tick(), so the
+  // highlight can cross-fade into the next word instead of jumping. The active
+  // word keeps the same font weight as its neighbours to avoid reflow, and the
+  // old per-line blur is dropped so text stays crisp and cheap to composite.
+  const flow = document.createElement("style");
+  flow.textContent = `
+    #luma-root .lyrics .line .luma-lyric-token,
+    #luma-root .lyrics .line .luma-lyric-token.active,
+    #luma-root .lyrics .line .luma-lyric-token.upcoming{opacity:var(--flow-opacity,.52)!important;font-weight:inherit!important;transition:color .3s cubic-bezier(.22,1,.36,1),text-shadow .3s ease,transform .3s cubic-bezier(.22,1,.36,1)!important}
+    #luma-root .lyrics .line .luma-lyric-token.active{transform:translateY(-.02em) scale(1.045)!important;text-shadow:0 0 16px rgba(var(--accent-rgb),.38)!important}
+    #luma-root .line:not(.active){filter:none!important}
+    #luma-root .line{transition:transform .75s cubic-bezier(.22,1,.36,1),opacity .6s ease!important}
+    @media(prefers-reduced-motion:reduce){
+      #luma-root .lyrics .line .luma-lyric-token,#luma-root .lyrics .line .luma-lyric-token.active{transition:none!important;transform:none!important;text-shadow:none!important}
+      #luma-root .line{transition:none!important}
+    }
+  `;
+  document.head.append(flow);
+  // UI polish: clearer states, usable sync controls, and better small-screen
+  // spacing. These rules are appended last so they win over earlier passes.
+  const ui = document.createElement("style");
+  ui.textContent = `
+    #luma-root .bar{top:22px;inset-inline:24px}
+    #luma-root .status{padding:6px 10px;border-radius:999px;background:rgba(var(--md-surface-container-rgb,.2),.5);color:var(--md-on-surface-variant,#ffffffa8);font-size:11px;line-height:1;white-space:nowrap;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+    #luma-root .layout{padding-top:80px}
+    #luma-root .message{max-width:34rem}
+    #luma-root .message-actions{margin-top:14px}
+    #luma-root .retry-lyrics,#luma-root .sync-adjust button{margin:0;border:1px solid rgba(var(--md-outline-rgb,255,255,255),.35);border-radius:999px;background:rgba(var(--md-secondary-container-rgb,80,80,90),.45);color:var(--md-on-secondary-container,#fff);padding:8px 12px;font-size:12px;line-height:1}
+    #luma-root .retry-lyrics:hover,#luma-root .sync-adjust button:hover{background:rgba(var(--md-primary-rgb,180,160,255),.16);border-color:rgba(var(--md-primary-rgb,180,160,255),.55)}
+    #luma-root .retry-lyrics:disabled{opacity:.65;cursor:default}
+    #luma-root .sync-adjust{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    #luma-root .sync-adjust input[type=range]{flex:1 1 100%;min-width:0}
+    #luma-root .settings .privacy-note{margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(var(--md-surface-high-rgb,50,50,58),.45);color:var(--md-on-surface-variant,#ffffff9a)}
+    #luma-root .settings{top:74px;max-height:calc(100vh - 96px)}
+    @media(max-width:760px){#luma-root .bar{top:16px;inset-inline:14px}#luma-root .layout{padding-top:70px}#luma-root .status{font-size:10px;padding:5px 8px}}
+    @media(max-width:520px){#luma-root .status{max-width:46vw;overflow:hidden;text-overflow:ellipsis}}
+  `;
+  document.head.append(ui);
 })();

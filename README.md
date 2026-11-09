@@ -8,6 +8,7 @@
 <p>
   <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v2.0-blue" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/Shahisha1/Luma-Lyrics" alt="License"></a>
+  <a href="https://github.com/Shahisha1/Luma-Lyrics/actions/workflows/test.yml"><img src="https://github.com/Shahisha1/Luma-Lyrics/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
   <a href="https://spicetify.app"><img src="https://img.shields.io/badge/Spicetify-extension-1db954" alt="Spicetify extension"></a>
 </p>
 
@@ -20,6 +21,7 @@
 ## Why people like it
 
 - Catch the right word at the right time with synced lyrics.
+- Follow a highlight that eases from word to word instead of snapping.
 - Switch between word-by-word, line-by-line, gentle, and static modes.
 - Let the album art set the color mood with Material You-inspired styling.
 - Use the built-in player controls without leaving the lyric view.
@@ -81,6 +83,16 @@ If a lookup fails due to a network issue, timeout, or rate limit, reopen Luma Ly
 ## Troubleshooting
 
 Spotify or Spicetify updates and other themes may affect the extension. If something feels off, open an [issue](https://github.com/Shahisha1/Luma-Lyrics/issues) with your Spotify and Spicetify versions.
+
+## Development
+
+Luma Lyrics ships as one file, so there is no build step. The helpers that do not touch the DOM or Spicetify live in a marked `<luma-pure>` block, and the test suite extracts and exercises that block directly.
+
+```bash
+npm test
+```
+
+The suite uses Node's built-in test runner and has no dependencies. A GitHub Actions workflow runs it on every push and pull request.
 
 ## Credits
 
