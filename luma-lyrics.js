@@ -17,6 +17,9 @@
     syncOffset: 0,
     lyricMode: "word",
     scrollSmoothness: 65,
+    translate: false,
+    translateLang: "en",
+    romanize: false,
   };
   let options = { ...defaultOptions },
     migratedDefaultDim = false;
@@ -219,6 +222,12 @@
       <label class="setting-toggle"><span><strong>Spinning vinyl artwork</strong><small>Show the album art as a record while music plays.</small></span><input type="checkbox" class="vinyl"></label>
       <label class="setting-toggle"><span><strong>Desktop colors</strong><small>Apply Luma colors to Spotify; may conflict with other themes.</small></span><input type="checkbox" class="desktop"></label>
     </section>
+    <section class="settings-section"><h3>Translation</h3>
+      <label class="setting-toggle"><span><strong>Translate lyrics</strong><small>Show a translated line under each lyric. Uses Google Translate; needs internet.</small></span><input type="checkbox" class="translate"></label>
+      <label class="setting-control"><span>Translate into</span><select class="translate-lang" aria-label="Translation language"><option value="en">English</option><option value="es">Spanish</option><option value="fr">French</option><option value="de">German</option><option value="pt">Portuguese</option><option value="it">Italian</option><option value="ru">Russian</option><option value="ja">Japanese</option><option value="ko">Korean</option><option value="zh-CN">Chinese</option><option value="hi">Hindi</option><option value="ar">Arabic</option></select></label>
+      <label class="setting-toggle"><span><strong>Romanize lyrics</strong><small>Show romanized text under Korean, Japanese, and Cyrillic lyrics. Built in, works offline (kanji/Chinese are left as-is).</small></span><input type="checkbox" class="romanize"></label>
+      <small class="privacy-note">Translation sends the lyric text directly to Google Translate. Romanization runs locally in the extension — nothing leaves Spotify.</small>
+    </section>
     <footer class="settings-footer"><button data-action="reset-settings">${svg("M3 12a9 9 0 1 0 2.64-6.36L3 8m0-5v5h5")}<span>Reset to defaults</span></button><button data-action="settings-close">Done</button></footer>`;
   let key = null,
     lines = [],
@@ -367,6 +376,9 @@
       updateRangeVisual(input);
     q(".vinyl").checked = options.vinyl;
     q(".estimated").checked = options.estimated;
+    q(".translate").checked = Boolean(options.translate);
+    q(".romanize").checked = Boolean(options.romanize);
+    q(".translate-lang").value = options.translateLang || "en";
     q(".desktop").checked = options.desktop;
   }
   function setArtworkAccent(image) {
@@ -820,6 +832,125 @@
     return 0.62 + fraction * 0.38;
   }
   // </luma-pure>
+  // ── Romanization (offline, built in) ──────────────────────────────
+  // Korean: Revised Romanization. Japanese: Hepburn (kana; kanji left as-is).
+  // Cyrillic: ISO 9-style. Latin text and Chinese return "" (nothing to do).
+  const KO_I = ["g","kk","n","d","tt","r","m","b","p","s","ss","","j","jj","ch","k","t","p","h"],
+    KO_M = ["a","ae","ya","yae","eo","e","yeo","ye","o","wa","wae","oe","yo","u","wo","we","wi","yu","eu","ui","i"],
+    KO_F = ["","k","k","k","n","n","n","t","l","k","m","l","l","l","p","l","m","p","p","t","t","ng","t","t","k","t","p","t"],
+    CYR = {А:"A",Б:"B",В:"V",Г:"G",Д:"D",Е:"E",Ё:"Yo",Ж:"Zh",З:"Z",И:"I",Й:"Y",К:"K",Л:"L",М:"M",Н:"N",О:"O",П:"P",Р:"R",С:"S",Т:"T",У:"U",Ф:"F",Х:"Kh",Ц:"Ts",Ч:"Ch",Ш:"Sh",Щ:"Shch",Ъ:"",Ы:"Y",Ь:"",Э:"E",Ю:"Yu",Я:"Ya"},
+    KANA = Object.fromEntries(
+      [
+        ["あ","a"],["い","i"],["う","u"],["え","e"],["お","o"],["か","ka"],["き","ki"],["く","ku"],["け","ke"],["こ","ko"],
+        ["が","ga"],["ぎ","gi"],["ぐ","gu"],["げ","ge"],["ご","go"],["さ","sa"],["し","shi"],["す","su"],["せ","se"],["そ","so"],
+        ["ざ","za"],["じ","ji"],["ず","zu"],["ぜ","ze"],["ぞ","zo"],["た","ta"],["ち","chi"],["つ","tsu"],["て","te"],["と","to"],
+        ["だ","da"],["ぢ","ji"],["づ","zu"],["で","de"],["ど","do"],["な","na"],["に","ni"],["ぬ","nu"],["ね","ne"],["の","no"],
+        ["は","ha"],["ひ","hi"],["ふ","fu"],["へ","he"],["ほ","ho"],["ば","ba"],["び","bi"],["ぶ","bu"],["べ","be"],["ぼ","bo"],
+        ["ぱ","pa"],["ぴ","pi"],["ぷ","pu"],["ぺ","pe"],["ぽ","po"],["ま","ma"],["み","mi"],["む","mu"],["め","me"],["も","mo"],
+        ["や","ya"],["ゆ","yu"],["よ","yo"],["ら","ra"],["り","ri"],["る","ru"],["れ","re"],["ろ","ro"],["わ","wa"],["を","wo"],
+        ["ん","n"],["ゔ","vu"],
+      ],
+    ),
+    SMALL = {ゃ:"ya",ゅ:"yu",ょ:"yo",ぁ:"a",ぃ:"i",ぅ:"u",ぇ:"e",ぉ:"o",ャ:"ya",ュ:"yu",ョ:"yo"},
+    romajiOf = (ch) =>
+      KANA[ch] ??
+      (ch >= "ァ" && ch <= "ヶ"
+        ? KANA[String.fromCharCode(ch.charCodeAt(0) - 0x60)]
+        : null);
+  function romanizeText(text) {
+    if (!text || !/[가-힣ㄱ-ㅎ\u3040-\u30FF\u0400-\u04FF]/.test(text)) return "";
+    let out = "";
+    const chars = [...text];
+    for (let i = 0; i < chars.length; i++) {
+      const ch = chars[i], code = ch.charCodeAt(0);
+      if (code >= 0xac00 && code <= 0xd7a3) {
+        const base = code - 0xac00;
+        out += KO_I[(base / 588) | 0] + KO_M[((base % 588) / 28) | 0] + KO_F[base % 28];
+      } else if (code >= 0x1100 && code <= 0x11ff) {
+        out += KO_F[code - 0x1100]; // lone jongseong cluster
+      } else if (code >= 0x3131 && code <= 0x314e) {
+        out += KO_I[code - 0x3131]; // jamo consonant
+      } else if (code >= 0x314f && code <= 0x3163) {
+        out += KO_M[code - 0x314f]; // jamo vowel
+      } else if (ch === "っ" || ch === "ッ") {
+        const next = romajiOf(chars[i + 1] || "") || chars[i + 1] || "";
+        out += next[0] === "c" ? "t" : /^[kstpbjgdzchg]/.test(next[0] || "") ? next[0] : "";
+      } else if (ch === "ー") {
+        out += /[aeiou]/.test(out.slice(-1)) ? out.slice(-1) : "";
+      } else if (code >= 0x3040 && code <= 0x30ff) {
+        const base = romajiOf(ch), small = SMALL[chars[i + 1]];
+        if (base && small) {
+          out += base.slice(0, -1) + small;
+          i++; // consumed the combining small kana
+        } else out += base ?? ch;
+      } else if (code >= 0x400 && code <= 0x4ff) {
+        const upper = ch.toUpperCase(), r = CYR[upper] ?? "";
+        out += ch === upper ? r : r.toLowerCase();
+      } else out += ch;
+    }
+    return out;
+  }
+  // ── Translation (Google Translate public endpoint, batched & cached) ──
+  const translationCache = new Map();
+  async function translateLines(texts, lang, signal) {
+    const out = new Array(texts.length).fill(""), todo = [];
+    texts.forEach((t, i) => {
+      const k = lang + "\u0000" + t;
+      if (translationCache.has(k)) out[i] = translationCache.get(k);
+      else todo.push(i);
+    });
+    for (let i = 0; i < todo.length; ) {
+      const batch = [];
+      for (let len = 0; i < todo.length && batch.length < 40 && len < 1200; i++) {
+        const t = texts[todo[i]];
+        if (!t) { out[todo[i]] = ""; translationCache.set(lang + "\u0000" + t, ""); continue; }
+        batch.push(todo[i]);
+        len += t.length;
+      }
+      const res = await fetch(
+        `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(lang)}&dt=t&q=${encodeURIComponent(batch.map((idx) => texts[idx]).join("\n"))}`,
+        { signal },
+      );
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const parts = (await res.json())[0].map((s) => s[0]).join("").split("\n");
+      batch.forEach((idx, j) => {
+        const v = (parts[j] || "").trim();
+        translationCache.set(lang + "\u0000" + texts[idx], v);
+        out[idx] = v;
+      });
+    }
+    return out;
+  }
+  // Puts a romanized/translated line under each lyric line. Romanized
+  // original wins; falls back to the translation.
+  async function decorateLyrics() {
+    const myToken = token,
+      lineEls = [...pane.querySelectorAll(".line")];
+    if (!lines.length || lineEls.length !== lines.length) return;
+    const texts = lines.map((l) => l.text.replace(/\s+/g, " ").trim());
+    const roms = options.romanize ? texts.map(romanizeText) : texts.map(() => "");
+    const trs = options.translate
+      ? await translateLines(texts, options.translateLang || "en", controller?.signal).catch((e) => {
+          console.warn("[Luma Lyrics] Translation unavailable:", e.message);
+          return texts.map(() => "");
+        })
+      : texts.map(() => "");
+    if (myToken !== token) return; // track changed while fetching
+    lineEls.forEach((el, i) => {
+      let extra = el.querySelector(".lyric-translation");
+      const secondary = roms[i] || trs[i];
+      if (!secondary) {
+        extra?.remove();
+        return;
+      }
+      if (!extra) {
+        extra = document.createElement("span");
+        extra.className = "lyric-translation";
+        el.append(extra);
+      }
+      extra.textContent = secondary;
+    });
+  }
   function render() {
     active = -1;
     lastCentered = -1;
@@ -920,6 +1051,7 @@
       if (secondaryRow.childNodes.length) b.append(secondaryRow);
       pane.append(b);
     });
+    decorateLyrics();
   }
   function show(record, trackInfo) {
     if (record.instrumental) {
@@ -1413,7 +1545,7 @@
   createLauncher();
 
   window.LumaLyrics = {
-    version: "2.2.2",
+    version: "2.3.0",
     open,
     close: () => close(),
     toggle,
@@ -1435,7 +1567,7 @@
   window.addEventListener("luma:set-sync-offset", (e) => {
     if (typeof e?.detail?.ms === "number") setSyncOffset(e.detail.ms);
   });
-  emitLuma("luma:ready", { version: "2.2.2" });
+  emitLuma("luma:ready", { version: "2.3.0" });
   root.addEventListener("click", async (e) => {
     const action = e.target.closest("[data-action]")?.dataset.action;
     const syncAdjust = e.target.closest("[data-sync-adjust]");
@@ -1520,6 +1652,9 @@
     [".vinyl", "vinyl"],
     [".sync-offset", "syncOffset"],
     [".scroll-smoothness", "scrollSmoothness"],
+    [".translate", "translate"],
+    [".romanize", "romanize"],
+    [".translate-lang", "translateLang"],
   ])
     q(selector).addEventListener("input", (e) => {
       options[field] =
@@ -1530,7 +1665,10 @@
             : Number(e.target.value);
       save();
       applySettings();
-      if ((field === "estimated" || field === "lyricMode") && lines.length)
+      if (
+        ["estimated", "lyricMode", "translate", "romanize", "translateLang"].includes(field) &&
+        lines.length
+      )
         render();
     });
   const isEditable = (el) =>
@@ -1928,26 +2066,35 @@
   // spacing. These rules are appended last so they win over earlier passes.
   const ui = document.createElement("style");
   ui.textContent = `
-    #luma-root .bar{top:22px;inset-inline:24px}
+    #luma-root .bar{top:22px;inset-inline:24px;z-index:6}
     #luma-root .status{padding:6px 10px;border-radius:999px;background:rgba(var(--md-surface-container-rgb,.2),.5);color:var(--md-on-surface-variant,#ffffffa8);font-size:11px;line-height:1;white-space:nowrap;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
-    #luma-root .layout{grid-template-columns:minmax(220px,300px) minmax(0,1fr)!important;gap:min(5vw,56px)!important;padding:78px min(5vw,56px) 34px!important;align-items:center}
-    #luma-root .player{display:flex!important;flex-direction:column;gap:14px;padding:18px!important;border-radius:28px;max-width:320px}
-    #luma-root .player-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-    #luma-root .artwork-wrap{flex:1;min-width:0;max-width:220px}
-    #luma-root .artwork-wrap .artwork-stage,#luma-root .artwork-wrap .cover,#luma-root .player>.artwork-stage{width:100%}
-    #luma-root .player-meta{min-width:0}
-    #luma-root .player .title{margin:0!important;font-size:20px;line-height:1.15;letter-spacing:-.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    #luma-root .player .artist{margin:4px 0 0!important;font-size:14px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(var(--md-on-surface-variant-rgb,255,255,255),.72)}
-    #luma-root .player-progress .seek{margin:0}
+    #luma-root .layout{grid-template-columns:minmax(300px,430px) minmax(0,1fr)!important;gap:min(5vw,60px)!important;padding:78px min(5vw,56px) 34px!important;align-items:center}
+    #luma-root .player{display:flex!important;flex-direction:column;gap:14px;padding:18px!important;border-radius:28px;max-width:430px}
+    #luma-root .player>.artwork-stage{width:100%}
+    #luma-root .player .title{margin:0!important;font-size:26px;line-height:1.15;letter-spacing:-.6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    #luma-root .player .artist{margin:4px 0 0!important;font-size:16px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(var(--md-on-surface-variant-rgb,255,255,255),.72)}
     #luma-root .player .times,#luma-root .player .volume{display:none!important}
     #luma-root .player .controls{margin:2px 0 0!important;gap:14px}
     #luma-root .player .controls button{width:44px;height:44px}
     #luma-root .player .controls .play{width:54px;height:54px}
-    #luma-root .vinyl-toggle{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;border:1px solid rgba(var(--md-outline-variant-rgb,255,255,255),.45);border-radius:999px;background:rgba(var(--md-surface-container-high-rgb,50,50,58),.45);color:var(--md-on-surface-variant,#ffffffc0);padding:8px 10px;font-size:11px;font-weight:600;line-height:1;cursor:pointer;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
-    #luma-root .vinyl-toggle svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;opacity:.9}
-    #luma-root .vinyl-toggle:hover{border-color:rgba(var(--md-primary-rgb,180,160,255),.45);background:rgba(var(--md-primary-rgb,180,160,255),.12);color:var(--md-on-surface,#fff)}
-    #luma-root .vinyl-toggle.active{border-color:rgba(var(--md-primary-rgb,180,160,255),.55);background:rgba(var(--md-primary-rgb,180,160,255),.2);color:var(--md-primary,#d0bcff)}
-    #luma-root .lyrics{padding:38vh 10px 40vh;mask-image:linear-gradient(transparent,#000 8%,#000 92%,transparent)}
+    /* Even bigger in fullscreen */
+    #luma-root:fullscreen .layout{grid-template-columns:minmax(360px,500px) minmax(0,1fr)!important;gap:min(6vw,84px)!important}
+    #luma-root:fullscreen .player{max-width:500px;padding:22px!important}
+    #luma-root:fullscreen .player .title{font-size:31px}
+    #luma-root:fullscreen .player .artist{font-size:18px}
+    #luma-root:fullscreen .player .controls{gap:18px}
+    #luma-root:fullscreen .player .controls button{width:50px;height:50px}
+    #luma-root:fullscreen .player .controls .play{width:62px;height:62px}
+    /* Apple Music-style lyrics */
+    #luma-root .lyrics{padding:38vh 10px 42vh;overscroll-behavior:contain}
+    #luma-root .line{font-weight:800;letter-spacing:-.7px;padding:12px 0;transition:transform .8s cubic-bezier(.22,1,.36,1),opacity .8s ease,filter .8s ease}
+    #luma-root[data-lyric-mode=word] .line:not(.active),#luma-root[data-lyric-mode=block] .line:not(.active){opacity:.32;filter:blur(1px)}
+    #luma-root[data-lyric-mode=word] .line.past,#luma-root[data-lyric-mode=block] .line.past{opacity:.42;filter:blur(.6px)}
+    #luma-root[data-lyric-mode=word] .line.active,#luma-root[data-lyric-mode=block] .line.active{transform:translateX(4px) scale(1.015)}
+    #luma-root[data-lyric-mode=gentle] .line.active,#luma-root[data-lyric-mode=static] .line.active{transform:none}
+    /* Translated / romanized line */
+    #luma-root .lyric-translation{display:block;margin-top:.18em;font-size:.6em;font-weight:600;letter-spacing:-.2px;line-height:1.3;color:#ffffff9e;white-space:pre-wrap}
+    #luma-root .line.active .lyric-translation{color:#ffffffc4}
     #luma-root .message{max-width:34rem}
     #luma-root .message-actions{margin-top:14px}
     #luma-root .retry-lyrics,#luma-root .sync-adjust button{margin:0;border:1px solid rgba(var(--md-outline-rgb,255,255,255),.35);border-radius:999px;background:rgba(var(--md-secondary-container-rgb,80,80,90),.45);color:var(--md-on-secondary-container,#fff);padding:8px 12px;font-size:12px;line-height:1}
@@ -1956,8 +2103,9 @@
     #luma-root .sync-adjust{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
     #luma-root .sync-adjust input[type=range]{flex:1 1 100%;min-width:0}
     #luma-root .settings .privacy-note{margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(var(--md-surface-high-rgb,50,50,58),.45);color:var(--md-on-surface-variant,#ffffff9a)}
-    #luma-root .settings{top:74px;max-height:calc(100vh - 96px)}
-    @media(max-width:760px){#luma-root .bar{top:16px;inset-inline:14px}#luma-root .layout{grid-template-columns:minmax(0,1fr)!important;padding:70px 16px 16px!important;gap:14px!important;align-content:start}#luma-root .player{max-width:none;display:grid!important;grid-template-columns:96px minmax(0,1fr);gap:10px 14px;align-items:center}#luma-root .player-card-top{grid-column:1;grid-row:1 / span 3;flex-direction:column;gap:8px}#luma-root .artwork-wrap{max-width:none}#luma-root .vinyl-toggle span{display:none}#luma-root .player-meta,#luma-root .player-progress,#luma-root .controls{grid-column:2}#luma-root .status{font-size:10px;padding:5px 8px}}
+    #luma-root .settings{top:74px;max-height:calc(100vh - 96px);z-index:7}
+    #luma-root .settings select{margin-top:6px;width:100%;padding:8px 10px;border-radius:8px;border:1px solid #ffffff20;background:#ffffff0c;color:inherit;font:inherit}
+    @media(max-width:760px){#luma-root .bar{top:16px;inset-inline:14px}#luma-root .status{font-size:10px;padding:5px 8px}#luma-root .player .title{font-size:22px}}
     @media(max-width:520px){#luma-root .status{max-width:46vw;overflow:hidden;text-overflow:ellipsis}#luma-root .lyrics{padding:16vh 6px 22vh}}
   `;
   document.head.append(ui);

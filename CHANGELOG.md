@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.3.0
+
+- **Bigger now-playing card** in both windowed and fullscreen modes (wider column, larger artwork, larger title/artist, larger playback buttons in fullscreen).
+- **Apple Music-style lyrics**: heavier type, softly blurred and dimmed inactive lines, gentle scale-and-slide on the active line with slower spring-like motion (word/line modes; Gentle and Static keep their calm behavior).
+- **Translate lyrics** (Settings → Translation): shows a translated line under each lyric via Google Translate, with a language picker and per-line caching. Requests go directly from the client; turns off cleanly if offline.
+- **Romanize lyrics** (Settings → Translation): built-in, offline romanization for Korean (Revised), Japanese (Hepburn, kana), and Cyrillic; shown under the original line and preferred over the translation when both are on. Chinese/kanji are left as-is.
+- **Overlay fixes**: toolbar and settings now sit on explicit z-index layers above lyrics, lyrics pane gets `overscroll-behavior: contain` so scrolling never bleeds into Spotify, and dead CSS from the old card markup was removed (~40 lines trimmed).
+- Companion API bumped to `window.LumaLyrics.version = 2.3.0` (hooks unchanged).
+
 ## v2.2.2
 
 - **UI reverted to the original v2.0 look** — the v2.2.0 redesign (glass pill toolbar, copy-line chips, text stepper, up-next pill, auto-hiding bar) is fully removed. Everything looks and behaves exactly as you left it.
