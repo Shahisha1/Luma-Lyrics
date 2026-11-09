@@ -1,6 +1,6 @@
 {
   "name": "luma-lyrics",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "private": true,
   "description": "Immersive synced lyrics for Spotify, built as a Spicetify extension.",
   "license": "MIT",

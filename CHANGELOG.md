@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.2.0
+
+- **Complete UI refresh**: unified glass design system (pill toolbar, consistent radii/borders/easing), softer lyric-line hover states, refined now-playing card, and a dedicated lyrics window wrapper.
+- **Copy any lyric line**: hover a line and click the copy chip to copy it (with a Spotify toast confirmation).
+- **Text-size stepper in the toolbar**: A− / A+ adjusts lyric size (24–52 px) without opening Settings.
+- **Up-next preview**: a subtle pill at the bottom of the lyrics pane shows the upcoming line (hidden in static mode).
+- **Auto-hiding toolbar**: the top bar fades after ~2.6s of cursor stillness in the overlay and returns on movement; stays visible while Settings is open.
+- **Double-click the artwork** to toggle the spinning vinyl (in addition to the Vinyl chip and Settings).
+- Companion API bumped to `window.LumaLyrics.version = 2.2.0` (same hooks: `open/close/toggle/setSyncOffset/getState/toggleVinyl`, events `luma:ready/open/close/track/sync-offset-changed`, listens for `luma:set-sync-offset`).
+
 ## v2.1.0
 
 - **Playbar toggle compatibility**: registers the Luma button with explicit `registerOnCreate` and adds a fallback mount (extra controls / playbar right / NPV control parent) when the Spicetify wrapper can’t attach it on newer Spotify DOMs.
