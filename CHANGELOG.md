@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.1.0
+
+- **Playbar toggle compatibility**: registers the Luma button with explicit `registerOnCreate` and adds a fallback mount (extra controls / playbar right / NPV control parent) when the Spicetify wrapper can’t attach it on newer Spotify DOMs.
+- **Decluttered now-playing card**: essentials only (artwork, title, artist, slim progress, prev/play/next). Elapsed/duration and volume controls remain functional in the DOM but are visually hidden to reduce clutter; layout gives the lyrics pane more room.
+- **Quick vinyl toggle**: a Vinyl chip on the now-playing card, synced with Settings → Appearance.
+- **Companion hooks (for Luma Plus / themes)**: `window.LumaLyrics` API (`open`/`close`/`toggle`/`setSyncOffset`/`getState`/`toggleVinyl`), and events `luma:ready`, `luma:open`, `luma:close`, `luma:track`, `luma:sync-offset-changed`; listens for `luma:set-sync-offset`.
+- **Stability**: guarded launcher state in open/close, track event emission on load.
+
 ## v2.0
 
 - Added a dependency-free test suite for the pure lyric parsing, matching, and keyboard helpers, plus a GitHub Actions workflow that runs it on every push and pull request.

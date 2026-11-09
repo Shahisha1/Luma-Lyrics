@@ -80,7 +80,7 @@
   root.setAttribute("aria-modal", "true");
   root.setAttribute("aria-label", "Luma Lyrics");
   root.innerHTML = `<div class="backdrop"></div><div class="shade"></div><div class="bar"><button class="tool" data-action="close" aria-label="Close" title="Close">${stroke("close")}</button><button class="tool" data-action="full" aria-label="Toggle fullscreen" title="Fullscreen">${stroke("full")}</button><span class="status">LRCLIB · line sync</span><button class="tool" data-action="settings" aria-label="Settings" aria-expanded="false" title="Settings">${stroke("settings")}</button></div>
- <div class="layout"><div class="player"><img class="cover" alt="Album artwork"><div class="title">Nothing playing</div><div class="artist"></div><input class="seek" type="range" min="0" max="1000" value="0" aria-label="Playback position"><div class="times"><span class="elapsed">0:00</span><span class="duration">0:00</span></div><div class="controls"><button data-action="previous" aria-label="Previous">${icons.previous}</button><button class="play" data-action="play" aria-label="Play or pause">${icons.play}</button><button data-action="next" aria-label="Next">${icons.next}</button></div><label class="volume">${svg("M3 9h4l5-4v14l-5-4H3z")}<input type="range" class="vol" min="0" max="1" step=".01" aria-label="Volume"></label></div><div class="lyrics" tabindex="0" aria-label="Lyrics"></div></div>
+ <div class="layout"><div class="player" data-luma-card="now-playing"><div class="player-card-top"><div class="artwork-wrap"><img class="cover" alt="Album artwork"></div><button class="vinyl-toggle" data-action="toggle-vinyl" type="button" aria-pressed="false" title="Toggle spinning vinyl">${svg("M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 14a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-5a1 1 0 1 0 0 2 1 1 0 0 0 0-2z")}<span>Vinyl</span></button></div><div class="player-meta"><div class="title">Nothing playing</div><div class="artist"></div></div><div class="player-progress"><input class="seek" type="range" min="0" max="1000" value="0" aria-label="Playback position"><div class="times" aria-hidden="true"><span class="elapsed">0:00</span><span class="duration">0:00</span></div></div><div class="controls"><button data-action="previous" aria-label="Previous">${icons.previous}</button><button class="play" data-action="play" aria-label="Play or pause">${icons.play}</button><button data-action="next" aria-label="Next">${icons.next}</button></div><label class="volume" aria-hidden="true"><input type="range" class="vol" min="0" max="1" step=".01" aria-label="Volume" tabindex="-1"></label></div><div class="lyrics" tabindex="0" aria-label="Lyrics" data-luma-pane="lyrics"></div></div>
  <div class="settings" role="region" aria-label="Lyrics settings" hidden></div>`;
   document.body.append(root);
   const q = (s) => root.querySelector(s),
@@ -308,6 +308,19 @@
     }
     setSourceState("loading");
   }
+  function emitLuma(name, detail) {
+    try {
+      window.dispatchEvent(new CustomEvent(name, { detail }));
+    } catch {}
+  }
+  function setSyncOffset(ms, opts = {}) {
+    options.syncOffset = Number.isFinite(Number(ms))
+      ? Math.max(-5000, Math.min(5000, Number(ms)))
+      : 0;
+    if (opts.save !== false) save();
+    applySettings();
+    emitLuma("luma:sync-offset-changed", { ms: options.syncOffset });
+  }
   function applySettings() {
     root.style.setProperty("--lyric-size", Number(options.size) + "px");
     root.style.setProperty("--dim", Number(options.dim));
@@ -353,6 +366,12 @@
     for (const input of q(".settings").querySelectorAll('input[type="range"]'))
       updateRangeVisual(input);
     q(".vinyl").checked = options.vinyl;
+    const vinylToggle = q(".vinyl-toggle");
+    if (vinylToggle) {
+      vinylToggle.setAttribute("aria-pressed", String(Boolean(options.vinyl)));
+      vinylToggle.classList.toggle("active", Boolean(options.vinyl));
+      vinylToggle.title = options.vinyl ? "Disable spinning vinyl" : "Enable spinning vinyl";
+    }
     q(".estimated").checked = options.estimated;
     q(".desktop").checked = options.desktop;
   }
@@ -985,7 +1004,9 @@
         .map((k) => m[k]),
       album: m.album_title || "",
       durationMs: player().getDuration() || 0,
+      uri: item?.uri || "",
     };
+    emitLuma("luma:track", trackInfo);
     if (cache.has(key)) {
       show(cache.get(key), trackInfo);
       return;
@@ -1275,7 +1296,8 @@
     else if (restoreFocus) gear.focus();
   }
   let launcher;
-  async function close() {
+  async function close(opts = {}) {
+    if (root.hidden) return;
     root.hidden = true;
     cancelAnimationFrame(frameId);
     frameId = 0;
@@ -1285,31 +1307,144 @@
     if (launcher) launcher.active = false;
     if (document.fullscreenElement === root)
       await document.exitFullscreen().catch(() => {});
-    previousFocus?.focus();
+    emitLuma("luma:close");
+    if (opts.restoreFocus !== false) previousFocus?.focus?.();
   }
   function open() {
+    if (!root.hidden) return;
     previousFocus = document.activeElement;
     root.hidden = false;
     key = null;
     scrollUntil = 0;
-    launcher.active = true;
+    if (launcher) launcher.active = true;
     if (!frameId) frameId = requestAnimationFrame(animate);
     q('[data-action="close"]').focus();
+    emitLuma("luma:open");
+  }
+  function toggle() {
+    root.hidden ? open() : close();
   }
   const loadIcon =
     '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16m4-11h2m-2 3h2m-2 3h2"/></svg>';
-  launcher = new Spicetify.Playbar.Button("Luma Lyrics", loadIcon, () =>
-    root.hidden ? open() : close(),
-  );
+  function createLauncher() {
+    const onToggle = () => toggle();
+    try {
+      if (globalThis.Spicetify?.Playbar?.Button) {
+        launcher = new Spicetify.Playbar.Button(
+          "Luma Lyrics",
+          loadIcon,
+          onToggle,
+          false,
+          false,
+          true,
+        );
+        setTimeout(() => {
+          try {
+            if (launcher?.element?.isConnected) return;
+            const mount =
+              document.querySelector(".main-nowPlayingBar-extraControls") ||
+              document.querySelector(".main-nowPlayingBar-right > div") ||
+              document.querySelector(".main-nowPlayingBar-right") ||
+              document.querySelector('[data-testid="control-button-npv"]')
+                ?.parentElement;
+            if (!mount) return;
+            if (launcher?.element?.isConnected) return;
+            const el = launcher.element || document.createElement("button");
+            if (!el.isConnected) {
+              if (!el.classList.contains("main-genericButton-button"))
+                el.classList.add("main-genericButton-button");
+              if (!el.querySelector("svg") && !el.querySelector(".luma-launcher-icon")) {
+                const span = document.createElement("span");
+                span.className = "luma-launcher-icon";
+                span.style.display = "grid";
+                span.style.placeItems = "center";
+                span.innerHTML = loadIcon;
+                el.append(span);
+              }
+              el.type = "button";
+              el.title = "Luma Lyrics";
+              el.setAttribute("aria-label", "Luma Lyrics");
+              if (!launcher.element) el.onclick = onToggle;
+              mount.prepend(el);
+            }
+            if (!launcher || !launcher.active === undefined) {
+              // keep existing instance
+            }
+            console.info("[Luma Lyrics] Playbar toggle mounted via fallback.");
+          } catch (error) {
+            console.warn("[Luma Lyrics] Playbar fallback failed:", error);
+          }
+        }, 4500);
+        return;
+      }
+    } catch (error) {
+      console.warn("[Luma Lyrics] Playbar.Button failed:", error);
+    }
+    try {
+      const mount =
+        document.querySelector(".main-nowPlayingBar-extraControls") ||
+        document.querySelector(".main-nowPlayingBar-right > div") ||
+        document.querySelector(".main-nowPlayingBar-right");
+      if (!mount) return;
+      const el = document.createElement("button");
+      el.type = "button";
+      el.className = "main-genericButton-button";
+      el.title = "Luma Lyrics";
+      el.setAttribute("aria-label", "Luma Lyrics");
+      el.innerHTML = `<span style="display:grid;place-items:center">${loadIcon}</span>`;
+      el.onclick = onToggle;
+      mount.prepend(el);
+      launcher = {
+        element: el,
+        set active(v) {
+          el.classList.toggle("main-genericButton-buttonActive", Boolean(v));
+          el.classList.toggle("main-genericButton-buttonActiveDot", Boolean(v));
+        },
+        get active() {
+          return el.classList.contains("main-genericButton-buttonActive");
+        },
+      };
+    } catch (error) {
+      console.warn("[Luma Lyrics] Could not create playbar toggle:", error);
+    }
+  }
+  createLauncher();
+
+  window.LumaLyrics = {
+    version: "2.1.0",
+    open,
+    close: () => close(),
+    toggle,
+    setSyncOffset: (ms) => setSyncOffset(ms),
+    getState: () => ({
+      open: !root.hidden,
+      syncOffset: options.syncOffset,
+      vinyl: !!options.vinyl,
+      lyricMode: options.lyricMode,
+      trackUri: player().data?.item?.uri || "",
+      source: sourceState,
+    }),
+    toggleVinyl: () => {
+      options.vinyl = !options.vinyl;
+      save();
+      applySettings();
+    },
+  };
+  window.addEventListener("luma:set-sync-offset", (e) => {
+    if (typeof e?.detail?.ms === "number") setSyncOffset(e.detail.ms);
+  });
+  emitLuma("luma:ready", { version: "2.1.0" });
   root.addEventListener("click", async (e) => {
     const action = e.target.closest("[data-action]")?.dataset.action;
     const syncAdjust = e.target.closest("[data-sync-adjust]");
     try {
       if (syncAdjust) {
         const delta = Number(syncAdjust.dataset.syncAdjust);
-        options.syncOffset = delta
-          ? Math.max(-5000, Math.min(5000, options.syncOffset + delta))
-          : 0;
+        if (delta) setSyncOffset(options.syncOffset + delta);
+        else setSyncOffset(0);
+      }
+      if (action === "toggle-vinyl") {
+        options.vinyl = !options.vinyl;
         save();
         applySettings();
       }
@@ -1793,7 +1928,24 @@
   ui.textContent = `
     #luma-root .bar{top:22px;inset-inline:24px}
     #luma-root .status{padding:6px 10px;border-radius:999px;background:rgba(var(--md-surface-container-rgb,.2),.5);color:var(--md-on-surface-variant,#ffffffa8);font-size:11px;line-height:1;white-space:nowrap;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
-    #luma-root .layout{padding-top:80px}
+    #luma-root .layout{grid-template-columns:minmax(220px,300px) minmax(0,1fr)!important;gap:min(5vw,56px)!important;padding:78px min(5vw,56px) 34px!important;align-items:center}
+    #luma-root .player{display:flex!important;flex-direction:column;gap:14px;padding:18px!important;border-radius:28px;max-width:320px}
+    #luma-root .player-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+    #luma-root .artwork-wrap{flex:1;min-width:0;max-width:220px}
+    #luma-root .artwork-wrap .artwork-stage,#luma-root .artwork-wrap .cover,#luma-root .player>.artwork-stage{width:100%}
+    #luma-root .player-meta{min-width:0}
+    #luma-root .player .title{margin:0!important;font-size:20px;line-height:1.15;letter-spacing:-.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    #luma-root .player .artist{margin:4px 0 0!important;font-size:14px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(var(--md-on-surface-variant-rgb,255,255,255),.72)}
+    #luma-root .player-progress .seek{margin:0}
+    #luma-root .player .times,#luma-root .player .volume{display:none!important}
+    #luma-root .player .controls{margin:2px 0 0!important;gap:14px}
+    #luma-root .player .controls button{width:44px;height:44px}
+    #luma-root .player .controls .play{width:54px;height:54px}
+    #luma-root .vinyl-toggle{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;border:1px solid rgba(var(--md-outline-variant-rgb,255,255,255),.45);border-radius:999px;background:rgba(var(--md-surface-container-high-rgb,50,50,58),.45);color:var(--md-on-surface-variant,#ffffffc0);padding:8px 10px;font-size:11px;font-weight:600;line-height:1;cursor:pointer;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+    #luma-root .vinyl-toggle svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;opacity:.9}
+    #luma-root .vinyl-toggle:hover{border-color:rgba(var(--md-primary-rgb,180,160,255),.45);background:rgba(var(--md-primary-rgb,180,160,255),.12);color:var(--md-on-surface,#fff)}
+    #luma-root .vinyl-toggle.active{border-color:rgba(var(--md-primary-rgb,180,160,255),.55);background:rgba(var(--md-primary-rgb,180,160,255),.2);color:var(--md-primary,#d0bcff)}
+    #luma-root .lyrics{padding:38vh 10px 40vh;mask-image:linear-gradient(transparent,#000 8%,#000 92%,transparent)}
     #luma-root .message{max-width:34rem}
     #luma-root .message-actions{margin-top:14px}
     #luma-root .retry-lyrics,#luma-root .sync-adjust button{margin:0;border:1px solid rgba(var(--md-outline-rgb,255,255,255),.35);border-radius:999px;background:rgba(var(--md-secondary-container-rgb,80,80,90),.45);color:var(--md-on-secondary-container,#fff);padding:8px 12px;font-size:12px;line-height:1}
@@ -1803,8 +1955,8 @@
     #luma-root .sync-adjust input[type=range]{flex:1 1 100%;min-width:0}
     #luma-root .settings .privacy-note{margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(var(--md-surface-high-rgb,50,50,58),.45);color:var(--md-on-surface-variant,#ffffff9a)}
     #luma-root .settings{top:74px;max-height:calc(100vh - 96px)}
-    @media(max-width:760px){#luma-root .bar{top:16px;inset-inline:14px}#luma-root .layout{padding-top:70px}#luma-root .status{font-size:10px;padding:5px 8px}}
-    @media(max-width:520px){#luma-root .status{max-width:46vw;overflow:hidden;text-overflow:ellipsis}}
+    @media(max-width:760px){#luma-root .bar{top:16px;inset-inline:14px}#luma-root .layout{grid-template-columns:minmax(0,1fr)!important;padding:70px 16px 16px!important;gap:14px!important;align-content:start}#luma-root .player{max-width:none;display:grid!important;grid-template-columns:96px minmax(0,1fr);gap:10px 14px;align-items:center}#luma-root .player-card-top{grid-column:1;grid-row:1 / span 3;flex-direction:column;gap:8px}#luma-root .artwork-wrap{max-width:none}#luma-root .vinyl-toggle span{display:none}#luma-root .player-meta,#luma-root .player-progress,#luma-root .controls{grid-column:2}#luma-root .status{font-size:10px;padding:5px 8px}}
+    @media(max-width:520px){#luma-root .status{max-width:46vw;overflow:hidden;text-overflow:ellipsis}#luma-root .lyrics{padding:16vh 6px 22vh}}
   `;
   document.head.append(ui);
 })();

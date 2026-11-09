@@ -1,14 +1,16 @@
 [
   {
-    "name": "Luma Lyrics v2.0",
-    "description": "Immersive lyrics, blurred artwork backgrounds, optional desktop colors, and clearly labeled estimated word animation.",
+    "name": "Luma Lyrics",
+    "description": "Immersive synced lyrics for Spotify with a decluttered now-playing card, quick vinyl toggle, robust playbar integration, and companion hooks for Luma Plus/Ambient.",
     "preview": "preview.gif",
     "main": "luma-lyrics.js",
     "readme": "README.md",
+    "authors": [{ "name": "Sasha" }],
     "tags": [
       "lyrics",
       "fullscreen",
-      "music"
+      "music",
+      "synced"
     ]
   }
 ]
