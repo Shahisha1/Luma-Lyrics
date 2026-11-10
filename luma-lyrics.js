@@ -1,4 +1,4 @@
-// Luma Lyrics v2.0
+// Luma Lyrics v2.3.1
 (async () => {
   while (
     !globalThis.Spicetify?.Player ||
