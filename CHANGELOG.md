@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.3.1
+
+- **Fixed the playbar toggle stacking on Spotify's queue icon.** The toggle mounted *inside* the queue button's own container, which Spotify builds for a single button (about 49 px), so the two icons stacked vertically flush with no gap. The toggle now mounts beside that container as its own block in the same flex row (order: queue, then Luma Lyrics), verified on client 1.3.8.620.
+- Companion API bumped to `window.LumaLyrics.version = 2.3.1` (hooks unchanged).
+
 ## v2.3.0
 
 - **Bigger now-playing card** in both windowed and fullscreen modes (wider column, larger artwork, larger title/artist, larger playback buttons in fullscreen).

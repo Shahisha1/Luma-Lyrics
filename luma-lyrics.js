@@ -1469,12 +1469,17 @@
           try {
             if (launcher?.element?.isConnected) return;
             // Anchor on Spotify's own right-side buttons (stable testids); the
-            // hashed class names differ per build, so clone the sibling's.
+            // hashed class names differ per build, so clone the anchor's.
+            // The queue/npv buttons each live in a narrow container built for
+            // a single button, so mount beside that container (in the flex
+            // row that holds it) — prepending inside it stacks the icons.
             const anchor =
               document.querySelector('[data-testid="control-button-queue"]') ||
               document.querySelector('[data-testid="control-button-npv"]');
             const mount =
-              anchor?.parentElement ||
+              (anchor &&
+                (anchor.parentElement?.parentElement ||
+                  anchor.parentElement)) ||
               document.querySelector(".main-nowPlayingBar-extraControls") ||
               document.querySelector(".main-nowPlayingBar-right > div") ||
               document.querySelector(".main-nowPlayingBar-right") ||
@@ -1497,7 +1502,7 @@
             el.title = "Luma Lyrics";
             el.setAttribute("aria-label", "Luma Lyrics");
             el.onclick = onToggle;
-            mount.prepend(el);
+            mount.append(el);
             console.info("[Luma Lyrics] Playbar toggle mounted via fallback.");
           } catch (error) {
             console.warn("[Luma Lyrics] Playbar fallback failed:", error);
@@ -1510,11 +1515,12 @@
       console.warn("[Luma Lyrics] Playbar.Button failed:", error);
     }
     try {
+      // Same reasoning as above: mount beside the anchor's own container.
       const anchor =
         document.querySelector('[data-testid="control-button-queue"]') ||
         document.querySelector('[data-testid="control-button-npv"]');
       const mount =
-        anchor?.parentElement ||
+        (anchor && (anchor.parentElement?.parentElement || anchor.parentElement)) ||
         document.querySelector(".main-nowPlayingBar-extraControls") ||
         document.querySelector(".main-nowPlayingBar-right > div") ||
         document.querySelector(".main-nowPlayingBar-right") ||
@@ -1527,7 +1533,7 @@
       el.setAttribute("aria-label", "Luma Lyrics");
       el.innerHTML = `<span style="display:grid;place-items:center">${loadIcon}</span>`;
       el.onclick = onToggle;
-      mount.prepend(el);
+      mount.append(el);
       launcher = {
         element: el,
         set active(v) {
@@ -1545,7 +1551,7 @@
   createLauncher();
 
   window.LumaLyrics = {
-    version: "2.3.0",
+    version: "2.3.1",
     open,
     close: () => close(),
     toggle,
@@ -1567,7 +1573,7 @@
   window.addEventListener("luma:set-sync-offset", (e) => {
     if (typeof e?.detail?.ms === "number") setSyncOffset(e.detail.ms);
   });
-  emitLuma("luma:ready", { version: "2.3.0" });
+  emitLuma("luma:ready", { version: "2.3.1" });
   root.addEventListener("click", async (e) => {
     const action = e.target.closest("[data-action]")?.dataset.action;
     const syncAdjust = e.target.closest("[data-sync-adjust]");
