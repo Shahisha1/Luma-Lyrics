@@ -6,13 +6,13 @@
 <p>Spotify desktop, but with lyrics that actually keep up.</p>
 
 <p>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v2.0-blue" alt="Version"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v2.3.1-blue" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/Shahisha1/Luma-Lyrics" alt="License"></a>
-  <a href="https://github.com/Shahisha1/Luma-Lyrics/actions/workflows/test.yml"><img src="https://github.com/Shahisha1/Luma-Lyrics/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
+  <a href="https://github.com/Altertone/Luma-Lyrics/actions/workflows/test.yml"><img src="https://github.com/Altertone/Luma-Lyrics/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
   <a href="https://spicetify.app"><img src="https://img.shields.io/badge/Spicetify-extension-1db954" alt="Spicetify extension"></a>
 </p>
 
-<p><a href="https://github.com/Shahisha1/Luma-Lyrics/releases/latest"><strong>Download</strong></a> · <a href="https://github.com/Shahisha1/Luma-Lyrics/issues">Report a problem</a></p>
+<p><a href="https://github.com/Altertone/Luma-Lyrics/releases/latest"><strong>Download</strong></a> · <a href="https://github.com/Altertone/Luma-Lyrics/issues">Report a problem</a></p>
 
 <img src="preview.gif" alt="Luma Lyrics preview" width="640">
 
@@ -53,7 +53,7 @@
 
 ## Install
 
-1. Download `luma-lyrics.js` from the [latest release](https://github.com/Shahisha1/Luma-Lyrics/releases/latest).
+1. Download `luma-lyrics.js` from the [latest release](https://github.com/Altertone/Luma-Lyrics/releases/latest).
 2. Copy it to your Spicetify extensions folder. On Windows, that is `%APPDATA%\spicetify\Extensions`.
 3. Run:
 
@@ -82,7 +82,7 @@ If a lookup fails due to a network issue, timeout, or rate limit, reopen Luma Ly
 
 ## Troubleshooting
 
-Spotify or Spicetify updates and other themes may affect the extension. If something feels off, open an [issue](https://github.com/Shahisha1/Luma-Lyrics/issues) with your Spotify and Spicetify versions.
+Spotify or Spicetify updates and other themes may affect the extension. If something feels off, open an [issue](https://github.com/Altertone/Luma-Lyrics/issues) with your Spotify and Spicetify versions.
 
 ## Development
 
