@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Split development code into focused modules for settings, lyrics parsing, romanization, translation, and overlay styling while keeping the generated single-file Spicetify extension.
+- Split development code into focused modules for settings, lyrics parsing, romanization, translation, artwork-derived Material 3 colors, and overlay styling while keeping the generated single-file Spicetify extension.
 - Add a dependency-free build command and CI check that verifies the committed distributable matches source.
 - Expand tests for settings migration, translation caching/cancellation, romanization, and style installation.
 
