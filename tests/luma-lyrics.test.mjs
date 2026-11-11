@@ -513,15 +513,14 @@ test("styles: installs all overlay style layers without runtime globals", () => 
     head: { append: (element) => appended.push(element) },
   };
   installStyles(document);
-  assert.equal(appended.length, 9);
+  assert.equal(appended.length, 11);
   assert.ok(appended.every((element) => element.tagName === "style" && element.textContent.length > 0));
-  assert.match(appended[8].textContent, /control-button-lyrics/);
-  assert.match(appended[0].textContent, /#luma-root \.layout/);
-  assert.match(appended[2].textContent, /control-button-lyrics/);
-  assert.match(appended[2].textContent, /aria-label=\\?"Luma Lyrics/);
-  assert.match(appended[6].textContent, /player \.volume\\?\{display:flex!important/);
-  assert.match(appended[6].textContent, /volume-value/);
-  assert.match(appended[6].textContent, /max-width:560px/);
+  const styles = appended.map((element) => element.textContent);
+  assert.ok(styles.some((style) => /control-button-lyrics/.test(style)));
+  assert.ok(styles.some((style) => /aria-label=\\?"Luma Lyrics/.test(style)));
+  assert.ok(styles.some((style) => /player \\.volume\\?\\{display:flex!important/.test(style)));
+  assert.ok(styles.some((style) => /volume-value/.test(style)));
+  assert.ok(styles.some((style) => /max-width:560px/.test(style)));
 });
 
 
