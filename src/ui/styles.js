@@ -228,6 +228,100 @@ export function installStyles(document) {
     #luma-root .controls button:not(.play):hover{background:rgba(255,255,255,.08)}
     @media(max-width:600px){#luma-root .bar{inset:72px 16px auto}#luma-root .settings{top:126px;right:12px;width:calc(100vw - 24px);max-height:calc(100vh - 146px)}}
   `;
+  appearance.textContent += `
+/* Luma's listening-room direction: editorial, quiet, and artwork-led. */
+#luma-root{
+  --ink:#10120f;--paper:#f1f0e9;--muted:rgba(241,240,233,.58);
+  --rule:rgba(241,240,233,.16);--accent:var(--luma-primary,#c4d36a);
+  background:var(--ink);color:var(--paper);
+  font-family:Inter,"Helvetica Neue",Arial,sans-serif;
+}
+#luma-root .backdrop{inset:-8%;filter:blur(100px) saturate(.72);opacity:.28;transform:scale(1.08)}
+#luma-root .shade{background:linear-gradient(90deg,rgba(8,10,8,.86),rgba(8,10,8,.72) 48%,rgba(8,10,8,.84))}
+#luma-root .bar{inset:30px 4.5vw auto;gap:8px}
+#luma-root .bar:before{content:"LUMA  /  LYRICS";margin-right:auto;color:rgba(241,240,233,.72);font-size:10px;font-weight:700;letter-spacing:.22em}
+#luma-root .status{order:0;margin:0 18px 0 0;color:var(--muted);font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+#luma-root .tool{width:36px;height:36px;border:1px solid var(--rule);border-radius:2px;background:transparent;color:var(--paper);box-shadow:none;backdrop-filter:none;transition:background .18s,color .18s,border-color .18s}
+#luma-root .tool:hover{transform:none;background:var(--paper);color:var(--ink);border-color:var(--paper)}
+#luma-root .layout{grid-template-columns:minmax(240px,310px) minmax(0,1fr);gap:clamp(48px,9vw,150px);padding:112px clamp(30px,9vw,150px) 56px;align-items:center}
+#luma-root .player{position:relative;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;backdrop-filter:none;min-width:0}
+#luma-root .player:before{content:"NOW PLAYING";display:block;margin:0 0 14px;color:var(--muted);font-size:9px;font-weight:700;letter-spacing:.2em}
+#luma-root .artwork-stage{margin:0 0 26px!important;border-radius:2px!important;overflow:hidden;box-shadow:0 22px 55px rgba(0,0,0,.35)}
+#luma-root .cover{border-radius:2px!important;box-shadow:none!important}
+#luma-root.vinyl .artwork-stage{border-radius:50%!important}
+#luma-root .title{margin:0 0 6px;font-size:clamp(20px,2vw,27px);font-weight:650;line-height:1.12;letter-spacing:-.045em;color:var(--paper)}
+#luma-root .artist{margin:0 0 22px;color:var(--muted);font-size:13px;letter-spacing:.015em}
+#luma-root .player .seek{height:18px}
+#luma-root .player .seek::-webkit-slider-runnable-track{height:2px;background:linear-gradient(90deg,var(--accent) var(--range-progress,0%),rgba(241,240,233,.24) var(--range-progress,0%));box-shadow:none}
+#luma-root .player .seek::-moz-range-track{height:2px;background:linear-gradient(90deg,var(--accent) var(--range-progress,0%),rgba(241,240,233,.24) var(--range-progress,0%));box-shadow:none}
+#luma-root .player .seek::-webkit-slider-thumb{width:9px;height:9px;margin-top:-3px;border:0;background:var(--accent);box-shadow:none}
+#luma-root .player .seek::-moz-range-thumb{width:9px;height:9px;border:0;background:var(--accent);box-shadow:none}
+#luma-root .times{margin-top:0;color:var(--muted);font-size:10px;letter-spacing:.04em}
+#luma-root .controls{justify-content:flex-start;gap:18px;margin:14px 0 8px}
+#luma-root .controls button{width:34px;height:34px;color:rgba(241,240,233,.78);border-radius:2px}
+#luma-root .controls button:not(.play):hover{background:rgba(241,240,233,.1);color:var(--paper);transform:none}
+#luma-root .controls button:not(.play) svg{width:19px;height:19px}
+#luma-root .controls .play{width:36px;height:36px;color:var(--ink);background:var(--accent)!important;border-radius:2px;box-shadow:none!important}
+#luma-root .controls .play:hover{background:var(--paper)!important;color:var(--ink);transform:none}
+#luma-root .controls .play svg{width:18px;height:18px}
+#luma-root .volume{max-width:210px;margin-top:14px;color:var(--muted)}
+#luma-root .volume input[type=range]::-webkit-slider-runnable-track{height:2px;background:linear-gradient(90deg,var(--accent) var(--range-progress,0%),rgba(241,240,233,.2) var(--range-progress,0%))}
+#luma-root .volume input[type=range]::-moz-range-track{height:2px;background:linear-gradient(90deg,var(--accent) var(--range-progress,0%),rgba(241,240,233,.2) var(--range-progress,0%))}
+#luma-root .volume input[type=range]::-webkit-slider-thumb{width:8px;height:8px;margin-top:-3px;background:var(--accent);border:0;box-shadow:none}
+#luma-root .volume input[type=range]::-moz-range-thumb{width:8px;height:8px;background:var(--accent);border:0;box-shadow:none}
+#luma-root .lyrics{height:100%;padding:35vh 0;mask-image:linear-gradient(transparent,#000 13%,#000 87%,transparent);scroll-padding-block:38vh}
+#luma-root .lyrics:before{content:"LYRICS  /  LIVE";display:block;position:sticky;top:0;margin:0 0 28px;color:var(--muted);font-size:9px;font-weight:700;letter-spacing:.2em}
+#luma-root .line{padding:10px 0;font-size:clamp(29px,var(--lyric-size),58px);font-weight:620;letter-spacing:-.055em;line-height:1.16;opacity:.2;transform:none;filter:none;text-shadow:none;transition:opacity .45s ease,color .45s ease}
+#luma-root .line.past{opacity:.34}
+#luma-root .line.active{opacity:1;transform:none;color:var(--paper);text-shadow:none}
+#luma-root .lyrics .line .luma-lyric-token{color:rgba(241,240,233,.42)!important;-webkit-text-fill-color:rgba(241,240,233,.42)!important;font-weight:inherit;transition:color .18s ease,text-shadow .18s ease}
+#luma-root .lyrics .line .luma-lyric-token.active{color:var(--accent)!important;-webkit-text-fill-color:var(--accent)!important;font-weight:inherit;text-shadow:none;transform:none}
+#luma-root .lyrics .line .luma-lyric-token.upcoming{color:rgba(241,240,233,.55)!important;-webkit-text-fill-color:rgba(241,240,233,.55)!important}
+#luma-root .lyric-secondary{color:rgba(241,240,233,.54);font-size:.52em;letter-spacing:-.015em}
+#luma-root .message{max-width:34rem;color:var(--muted);font-size:clamp(18px,2vw,24px);line-height:1.5}
+#luma-root .retry-lyrics{margin-top:18px;padding:10px 14px;border:1px solid var(--rule);border-radius:2px;background:transparent;color:var(--paper)}
+#luma-root .settings{top:82px;right:4.5vw;width:min(410px,calc(100vw - 32px));max-height:calc(100vh - 110px);padding:12px;border:1px solid var(--rule);border-radius:2px;background:rgba(16,18,15,.97);backdrop-filter:blur(22px);box-shadow:0 24px 80px rgba(0,0,0,.48)}
+#luma-root .settings-header{padding:16px 16px 14px;background:transparent;border-bottom:1px solid var(--rule);backdrop-filter:none}
+#luma-root .settings-eyebrow{color:var(--accent);font-size:9px;letter-spacing:.2em}
+#luma-root .settings-header h2{font-size:25px;font-weight:620;letter-spacing:-.05em}
+#luma-root .settings-section{margin:8px 0;padding:16px 8px;border:0;border-bottom:1px solid var(--rule);border-radius:0;background:transparent}
+#luma-root .settings-section h3{color:var(--accent);font-size:9px;letter-spacing:.18em}
+#luma-root .settings .setting-control,#luma-root .settings .setting-toggle{color:var(--paper)}
+#luma-root .settings small,#luma-root .setting-toggle small{color:var(--muted)}
+#luma-root .settings select{border:1px solid var(--rule);border-radius:2px;background:#20231d}
+#luma-root .settings .settings-footer button{border:1px solid var(--rule);border-radius:2px;background:transparent;color:var(--paper);backdrop-filter:none}
+#luma-root .settings .settings-footer button:last-child{border-color:var(--accent);background:var(--accent);color:var(--ink)}
+#luma-root .settings .settings-footer button:hover{transform:none;background:var(--paper);color:var(--ink)}
+#luma-root button:focus-visible,#luma-root input:focus-visible,#luma-root select:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+@media(max-width:900px){
+  #luma-root .layout{grid-template-columns:minmax(210px,260px) minmax(0,1fr);gap:clamp(24px,5vw,54px);padding:100px 5vw 32px}
+  #luma-root .player{padding:0}
+}
+@media(max-width:600px){
+  #luma-root .bar{inset:16px 16px auto}
+  #luma-root .bar:before{font-size:9px;letter-spacing:.16em}
+  #luma-root .status{display:none}
+  #luma-root .layout{display:flex;flex-direction:column;align-items:stretch;gap:22px;overflow:auto;padding:78px 22px 26px}
+  #luma-root .player{display:grid;grid-template-columns:76px minmax(0,1fr);column-gap:14px;align-items:center}
+  #luma-root .player:before{grid-column:1/-1;margin-bottom:10px}
+  #luma-root .artwork-stage,#luma-root.vinyl .artwork-stage{grid-column:1;grid-row:2/ span 3;width:76px;height:76px;margin:0!important}
+  #luma-root .player .title,#luma-root .player .artist{grid-column:2}
+  #luma-root .player .title{align-self:end;font-size:17px}
+  #luma-root .player .artist{align-self:start;margin:2px 0 0;font-size:12px}
+  #luma-root .player .seek,#luma-root .times,#luma-root .controls,#luma-root .volume{grid-column:1/-1}
+  #luma-root .player .seek{margin-top:14px}
+  #luma-root .controls{justify-content:center;margin:5px 0}
+  #luma-root .volume{max-width:none}
+  #luma-root .lyrics{min-height:44vh;height:auto;padding:14vh 0 24vh;mask-image:linear-gradient(transparent,#000 8%,#000 92%,transparent)}
+  #luma-root .lyrics:before{margin-bottom:18px}
+  #luma-root .line{font-size:clamp(27px,8vw,38px);padding:8px 0}
+  #luma-root .settings{top:64px;right:12px;width:calc(100vw - 24px);max-height:calc(100vh - 76px)}
+}
+@media(prefers-reduced-motion:reduce){
+  #luma-root .line,#luma-root .lyrics .line .luma-lyric-token,#luma-root .tool,#luma-root .controls button{transition:none!important}
+  #luma-root .vinyl.playing .artwork-stage{animation:none!important}
+}
+`;
   document.head.append(appearance);
   const material = document.createElement("style");
   const track = (sel, decl) =>
