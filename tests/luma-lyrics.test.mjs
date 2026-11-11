@@ -572,6 +572,10 @@ test("settings and vinyl styling stay restrained and playback-aware", () => {
   installStyles(document);
   const styles = appended.join("\\n");
   assert.match(styles, /luma-vinyl-rotation/);
+  assert.match(styles, /luma-vinyl-rotation 7[.]2s linear infinite/);
+  assert.match(styles, /width:72%;height:72%;object-fit:cover/);
+  assert.match(styles, /radial-gradient\(ellipse at 8% 0%,rgba\(var\(--accent-rgb\),[.]18\),transparent 58%\)/);
+  assert.match(styles, /backdrop-filter:blur\(28px\) saturate\(1[.]55\)/);
   assert.match(styles, /repeating-radial-gradient/);
   assert.match(styles, /animation-play-state:paused/);
   assert.match(styles, /#luma-root[.]vinyl[.]playing [.]artwork-stage[{]animation-play-state:running[}]/);

@@ -379,6 +379,18 @@ export function installStyles(document) {
     #luma-root .sync-adjust{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
     #luma-root .sync-adjust input[type=range]{flex:1 1 100%;min-width:0}
     #luma-root .settings .privacy-note{margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(var(--md-surface-high-rgb,50,50,58),.45);color:var(--md-on-surface-variant,#ffffff9a)}
+    #luma-root .player{
+      background:
+        radial-gradient(ellipse at 8% 0%,rgba(var(--accent-rgb),.18),transparent 58%),
+        linear-gradient(145deg,rgba(255,255,255,.075),rgba(var(--accent-rgb),.055) 54%,rgba(255,255,255,.018)),
+        rgba(18,19,24,.52)!important;
+      border-color:rgba(var(--accent-rgb),.24)!important;
+      backdrop-filter:blur(28px) saturate(1.55);
+      -webkit-backdrop-filter:blur(28px) saturate(1.55);
+      box-shadow:0 18px 48px rgba(0,0,0,.22),0 1px 0 rgba(255,255,255,.12) inset;
+      transition:background 900ms ease,border-color 900ms ease,box-shadow 900ms ease;
+    }
+    #luma-root .player .cover{transition:filter 700ms ease}
     #luma-root .settings{top:74px;max-height:calc(100vh - 96px);z-index:7}
     #luma-root .settings-section{margin:8px 4px;padding:18px}
     #luma-root .settings .setting-control,#luma-root .settings .setting-toggle{margin:12px 0}
@@ -396,9 +408,9 @@ export function installStyles(document) {
   vinylRefinement.textContent = `
     #luma-root.vinyl .artwork-stage{isolation:isolate;overflow:hidden;border-radius:50%;background:radial-gradient(circle at 50% 50%,#303034 0 1.2%,#111113 1.5% 4.2%,#29292d 4.5% 5.1%,#101012 5.4% 100%);box-shadow:0 20px 44px rgba(0,0,0,.48),0 1px 0 rgba(255,255,255,.12) inset}
     #luma-root.vinyl .artwork-stage:before{z-index:1;inset:0;border-radius:50%;background:repeating-radial-gradient(circle at 50% 50%,transparent 0 2.4px,rgba(255,255,255,.095) 2.7px,rgba(0,0,0,.62) 3.1px,transparent 3.5px 5.1px),conic-gradient(from 18deg,transparent 0deg,rgba(255,255,255,.16) 34deg,transparent 78deg 180deg,rgba(255,255,255,.07) 226deg,transparent 270deg 360deg),radial-gradient(circle,rgba(var(--accent-rgb),.13),transparent 57%);box-shadow:inset 0 0 12px rgba(0,0,0,.72),inset 0 0 2px rgba(255,255,255,.18);pointer-events:none}
-    #luma-root.vinyl .cover{z-index:2;left:20%;top:20%;width:60%;height:60%;border:2px solid rgba(8,8,10,.9);border-radius:50%;box-shadow:0 0 0 1px rgba(255,255,255,.13),0 2px 12px rgba(0,0,0,.65)}
+    #luma-root.vinyl .cover{z-index:2;left:14%;top:14%;width:72%;height:72%;object-fit:cover;image-rendering:auto;border:2px solid rgba(8,8,10,.9);border-radius:50%;box-shadow:0 0 0 1px rgba(255,255,255,.16),0 3px 16px rgba(0,0,0,.68);backface-visibility:hidden}
     #luma-root.vinyl .artwork-stage:after{z-index:3;width:7px;height:7px;border:1px solid rgba(255,255,255,.65);background:#111;box-shadow:0 0 0 2px rgba(0,0,0,.75),0 0 0 3px rgba(255,255,255,.12);pointer-events:none}
-    #luma-root.vinyl .artwork-stage{animation:luma-vinyl-rotation 1.8s linear infinite;animation-play-state:paused}
+    #luma-root.vinyl .artwork-stage{animation:luma-vinyl-rotation 7.2s linear infinite;animation-play-state:paused;will-change:transform}
     #luma-root.vinyl.playing .artwork-stage{animation-play-state:running}
     @keyframes luma-vinyl-rotation{to{transform:rotate(360deg)}}
     @media(prefers-reduced-motion:reduce){#luma-root.vinyl .artwork-stage{animation:none!important}}
