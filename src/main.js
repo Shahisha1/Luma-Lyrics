@@ -96,7 +96,7 @@ import { createArtworkPalette } from "./theme/artwork.js";
       <small class="privacy-note">Lyrics come from LRCLIB, which receives the track title, artist, album, and duration. Word timing is used automatically when LRCLIB has it; otherwise line timing or estimated animation is used.</small>
     </section>
     <section class="settings-section"><h3>Appearance</h3>
-      <label class="setting-control"><span>Text size <output class="size-value"></output></span><input class="size" type="range" min="24" max="52" step="1"></label>
+      <label class="setting-control"><span>Text size <output class="size-value"></output></span><input class="size" type="range" min="24" max="72" step="1"></label>
       <label class="setting-control"><span>Background darkness <output class="darkness-value"></output></span><input class="darkness" type="range" min=".15" max=".8" step=".05"></label>
       <label class="setting-toggle"><span><strong>Spinning vinyl artwork</strong><small>Show the album art as a record while music plays.</small></span><input type="checkbox" class="vinyl"></label>
       <label class="setting-toggle"><span><strong>Desktop colors</strong><small>Apply Luma colors to Spotify; may conflict with other themes.</small></span><input type="checkbox" class="desktop"></label>
