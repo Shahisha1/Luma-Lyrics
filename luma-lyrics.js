@@ -971,7 +971,80 @@ function installStyles(document) {
   `;
   document.head.append(ui);
 
+  // Refined settings layout: clearer hierarchy, calmer Material surfaces,
+  // and more comfortable controls without changing settings behaviour.
+  const settingsPolish = document.createElement("style");
+  settingsPolish.textContent = `
+    #luma-root .settings{width:min(380px,calc(100vw - 32px));padding:0;overflow-x:hidden;overflow-y:auto;border:1px solid rgba(var(--md-outline-variant-rgb),.72);border-radius:24px;background:var(--md-surface-container);box-shadow:0 18px 48px rgba(0,0,0,.32);backdrop-filter:none;-webkit-backdrop-filter:none;scrollbar-width:thin;scrollbar-color:rgba(var(--md-on-surface-rgb),.24) transparent}
+    #luma-root .settings-header{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 20px 16px;border:0;border-bottom:1px solid rgba(var(--md-outline-variant-rgb),.5);background:var(--md-surface-container)}
+    #luma-root .settings-header h2{margin:0;font-size:22px;line-height:1.25;font-weight:650;letter-spacing:-.45px}
+    #luma-root .settings-description{margin:5px 0 0;color:var(--md-on-surface-variant);font-size:12px;line-height:1.4}
+    #luma-root .settings .settings-close{flex:none;display:grid;place-items:center;width:38px;height:38px;margin:0;padding:0;border-radius:50%;background:var(--md-surface-high)}
+    #luma-root .settings-section{margin:0!important;padding:18px 20px 16px!important;border:0!important;border-bottom:1px solid rgba(var(--md-outline-variant-rgb),.45)!important;border-radius:0!important;background:transparent!important}
+    #luma-root .settings-section h3{margin:0 0 16px;color:var(--md-on-surface);font-size:14px;line-height:1.3;font-weight:650;letter-spacing:0}
+    #luma-root .settings .setting-control,#luma-root .settings .setting-toggle{margin:0;padding:12px 0;font-size:13px;line-height:1.45}
+    #luma-root .settings .setting-control+.setting-control,#luma-root .settings .setting-control+.setting-toggle,#luma-root .settings .setting-toggle+.setting-control,#luma-root .settings .setting-toggle+.setting-toggle{border-top:1px solid rgba(var(--md-outline-variant-rgb),.28)}
+    #luma-root .settings .setting-control>span,#luma-root .settings .setting-toggle>span{display:block;min-width:0}
+    #luma-root .settings .setting-toggle{display:flex;align-items:center;justify-content:space-between;gap:18px}
+    #luma-root .settings .setting-toggle strong{display:block;color:var(--md-on-surface);font-size:13px;font-weight:560}
+    #luma-root .settings .setting-toggle small,#luma-root .settings .setting-control small{max-width:29em;margin-top:4px;color:var(--md-on-surface-variant);font-size:11px;line-height:1.45}
+    #luma-root .settings .setting-control output{float:right;color:var(--md-on-surface-variant);font-size:11px;font-variant-numeric:tabular-nums}
+    #luma-root .settings input[type=range]{display:block;width:100%;margin:9px 0 0}
+    #luma-root .settings .mode-control{display:grid;grid-template-columns:minmax(0,1fr) minmax(128px,.9fr);align-items:center;gap:12px}
+    #luma-root .settings .mode-trigger{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:42px;margin:0;padding:8px 12px;border-radius:12px;font-size:12px}
+    #luma-root .settings .mode-options{top:calc(100% + 6px);border-radius:14px;box-shadow:0 10px 28px rgba(0,0,0,.28)}
+    #luma-root .settings .sync-adjust{margin-top:9px}
+    #luma-root .settings .sync-adjust button{min-height:32px;padding:7px 10px;font-size:11px}
+    #luma-root .settings select{min-height:42px;margin-top:8px;padding:9px 12px;border-radius:12px;font-size:12px}
+    #luma-root .settings .privacy-note{margin:12px 0 0;padding:10px 12px;border-radius:12px;font-size:10px;line-height:1.5}
+    #luma-root .settings-footer{position:sticky;bottom:0;display:flex;justify-content:space-between;gap:10px;margin:0;padding:14px 20px;border-top:1px solid rgba(var(--md-outline-variant-rgb),.5);background:var(--md-surface-container)}
+    #luma-root .settings .settings-footer button{min-height:38px;margin:0;padding:8px 14px;border-radius:999px;font-size:12px}
+    #luma-root .settings .settings-footer button:last-child{border-color:var(--md-primary);background:var(--md-primary);color:var(--md-on-primary);font-weight:600}
+    #luma-root .settings .settings-footer button:last-child:hover{background:var(--md-primary);filter:brightness(1.08)}
+    @media(max-width:560px){#luma-root .settings{right:12px;width:calc(100vw - 24px);max-height:calc(100vh - 92px);border-radius:20px}#luma-root .settings-header{padding:16px}#luma-root .settings-section{padding:15px 16px!important}#luma-root .settings-footer{padding:12px 16px}}
+    @media(prefers-reduced-motion:reduce){#luma-root .settings *{scroll-behavior:auto!important;transition:none!important}}
+  `;
+  document.head.append(settingsPolish);
 
+
+
+  // Keep settings interaction quiet and purposeful; avoid decorative motion.
+  const settingsRefinement = document.createElement("style");
+  settingsRefinement.textContent = `
+    #luma-root .settings{background:var(--md-surface-container);border-color:rgba(var(--md-outline-variant-rgb),.72);box-shadow:0 18px 48px rgba(0,0,0,.32)}
+    #luma-root .settings-header,#luma-root .settings-footer{background:var(--md-surface-container);backdrop-filter:none;-webkit-backdrop-filter:none}
+    #luma-root .settings-header:before,#luma-root .settings-header h2:after,#luma-root .settings-section h3:before{content:none!important;display:none!important}
+    #luma-root .settings-section h3{font-size:13px;font-weight:650;letter-spacing:0;text-transform:none;color:var(--md-on-surface)}
+    #luma-root .settings .setting-control,#luma-root .settings .setting-toggle{border-radius:0;transition:background-color .14s ease}
+    #luma-root .settings .setting-control:hover,#luma-root .settings .setting-toggle:hover{padding-inline:0;background:rgba(var(--md-on-surface-rgb),.035)}
+    #luma-root .settings .setting-toggle strong{transition:none}
+    #luma-root .settings .setting-toggle:hover strong{color:var(--md-on-surface)}
+    #luma-root .settings input[type=range]::-webkit-slider-thumb{transition:background-color .12s ease}
+    #luma-root .settings input[type=range]:hover::-webkit-slider-thumb{transform:none;box-shadow:none}
+    #luma-root .settings .setting-toggle input[type=checkbox]:hover{box-shadow:none}
+    #luma-root .settings .mode-trigger{transition:border-color .14s ease,background-color .14s ease}
+    #luma-root .settings .mode-trigger:hover{transform:none}
+    #luma-root .settings .mode-trigger svg{transition:transform .14s ease}
+    #luma-root .settings .mode-options:not([hidden]){animation:none}
+    #luma-root .settings .mode-options{background:var(--md-surface-container-high);backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:0 8px 24px rgba(0,0,0,.24)}
+    #luma-root .settings .mode-options button{transition:background-color .12s ease,color .12s ease}
+    #luma-root .settings .mode-options button:hover{transform:none}
+    #luma-root .settings .settings-close{transition:background-color .14s ease}
+    #luma-root .settings .settings-close:hover{transform:none}
+    #luma-root .settings .settings-footer button{transition:background-color .14s ease,border-color .14s ease}
+    #luma-root .settings .settings-footer button:hover{transform:none;filter:none}
+    #luma-root .settings .settings-footer button:active{transform:none}
+    #luma-root .settings button:focus-visible,#luma-root .settings select:focus-visible,#luma-root .settings input:focus-visible{outline:2px solid var(--md-primary);outline-offset:2px}
+    #luma-root.vinyl .artwork-stage{isolation:isolate;overflow:hidden;border-radius:50%;background:radial-gradient(circle at 50% 50%,#303034 0 1.2%,#111113 1.5% 4.2%,#29292d 4.5% 5.1%,#101012 5.4% 100%);box-shadow:0 20px 44px rgba(0,0,0,.48),0 1px 0 rgba(255,255,255,.12) inset}
+    #luma-root.vinyl .artwork-stage:before{z-index:1;inset:0;border-radius:50%;background:repeating-radial-gradient(circle at 50% 50%,transparent 0 2.4px,rgba(255,255,255,.095) 2.7px,rgba(0,0,0,.62) 3.1px,transparent 3.5px 5.1px),conic-gradient(from 18deg,transparent 0deg,rgba(255,255,255,.16) 34deg,transparent 78deg 180deg,rgba(255,255,255,.07) 226deg,transparent 270deg 360deg),radial-gradient(circle,rgba(var(--accent-rgb),.13),transparent 57%);box-shadow:inset 0 0 12px rgba(0,0,0,.72),inset 0 0 2px rgba(255,255,255,.18);pointer-events:none}
+    #luma-root.vinyl .cover{z-index:2;left:20%;top:20%;width:60%;height:60%;border:2px solid rgba(8,8,10,.9);border-radius:50%;box-shadow:0 0 0 1px rgba(255,255,255,.13),0 2px 12px rgba(0,0,0,.65)}
+    #luma-root.vinyl .artwork-stage:after{z-index:3;width:7px;height:7px;border:1px solid rgba(255,255,255,.65);background:#111;box-shadow:0 0 0 2px rgba(0,0,0,.75),0 0 0 3px rgba(255,255,255,.12);pointer-events:none}
+    #luma-root.vinyl .artwork-stage{animation:luma-vinyl-rotation 1.8s linear infinite;animation-play-state:paused}
+    #luma-root.vinyl.playing .artwork-stage{animation-play-state:running}
+    @keyframes luma-vinyl-rotation{to{transform:rotate(360deg)}}
+    @media(prefers-reduced-motion:reduce){#luma-root.vinyl .artwork-stage{animation:none!important}}
+  `;
+  document.head.append(settingsRefinement);
 
   const spotifyControls = document.createElement("style");
   spotifyControls.textContent = `
@@ -1226,7 +1299,7 @@ function setArtworkAccent(image) {
   cover.before(artworkStage);
   artworkStage.append(cover);
   q(".settings").innerHTML =
-    `<header class="settings-header"><div><span class="settings-eyebrow">PERSONALIZE</span><h2>Settings</h2></div><button class="settings-close" data-action="settings-close" aria-label="Close settings and return to lyrics" title="Close settings (Esc)">${stroke("close")}</button></header>
+    `<header class="settings-header"><div><h2>Settings</h2><p class="settings-description">Make lyrics look and feel right.</p></div><button class="settings-close" data-action="settings-close" aria-label="Close settings and return to lyrics" title="Close settings (Esc)">${stroke("close")}</button></header>
     <section class="settings-section"><h3>Lyrics</h3>
       <div class="setting-control mode-control"><span>Display style</span><button class="mode-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="lyric-mode-options"><span class="mode-label">Word by word</span>${stroke("down")}</button><div class="mode-options" id="lyric-mode-options" role="listbox" aria-label="Lyrics display style" hidden><button type="button" role="option" data-mode-value="word">Word by word</button><button type="button" role="option" data-mode-value="block">Line by line</button><button type="button" role="option" data-mode-value="gentle">Gentle</button><button type="button" role="option" data-mode-value="static">Static</button></div></div>
       <label class="setting-toggle"><span><strong>Estimated word animation</strong><small>Approximate timing when word timestamps are unavailable.</small></span><input type="checkbox" class="estimated"></label>
