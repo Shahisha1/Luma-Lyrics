@@ -513,8 +513,11 @@ test("styles: installs all overlay style layers without runtime globals", () => 
     head: { append: (element) => appended.push(element) },
   };
   installStyles(document);
-  assert.equal(appended.length, 7);
+  assert.equal(appended.length, 3);
   assert.ok(appended.every((element) => element.tagName === "style" && element.textContent.length > 0));
+  assert.match(appended[0].textContent, /#luma-root \.layout/);
+  assert.match(appended[2].textContent, /control-button-lyrics/);
+  assert.match(appended[2].textContent, /aria-label=\\?"Luma Lyrics/);
 });
 
 
