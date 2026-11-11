@@ -1,4 +1,3 @@
-(no DOM or Spicetify access; exercised by tests/luma-lyrics.test.mjs)
 export function parse(text) {
   const offset = Number(text.match(/\[offset:([+-]?\d+)\]/i)?.[1] || 0),
     result = [];
