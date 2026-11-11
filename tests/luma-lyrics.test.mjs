@@ -576,5 +576,4 @@ test("settings and vinyl styling stay restrained and playback-aware", () => {
   assert.doesNotMatch(styles, /luma-settings-pulse/);
   assert.match(styles, /#luma-root \.settings \*\{animation:none!important;transition:none!important\}/);
   assert.doesNotMatch(styles, /luma-settings-open|luma-settings-menu/);
-  assert.match((await import("node:fs/promises")).readFile ? "text-size-range" : "", /text-size-range/);
 });
