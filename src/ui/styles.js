@@ -498,8 +498,7 @@ export function installStyles(document) {
     #luma-root .settings .settings-footer button:last-child{border-color:var(--md-primary);background:var(--md-primary);color:var(--md-on-primary);font-weight:600}
     #luma-root .settings .settings-footer button:last-child:hover{background:var(--md-primary);filter:brightness(1.05)}
     #luma-root .settings button:focus-visible,#luma-root .settings select:focus-visible,#luma-root .settings input:focus-visible{outline:2px solid var(--md-primary);outline-offset:2px}
-    #luma-root .settings *{animation:none!important;transition:none!important}
-    #luma-root .settings *::before,#luma-root .settings *::after{animation:none!important;transition:none!important}
+    #luma-root .settings *{animation:none!important}
     #luma-root .settings button,#luma-root .settings input,#luma-root .settings select{box-shadow:none;text-shadow:none}
     #luma-root .settings button:hover,#luma-root .settings input:hover,#luma-root .settings select:hover{filter:none}
     #luma-root .settings .setting-control:hover,#luma-root .settings .setting-toggle:hover{background:transparent}
@@ -513,6 +512,175 @@ export function installStyles(document) {
     @media(prefers-reduced-motion:reduce){#luma-root .settings *{animation:none!important;transition:none!important}}
   `;
   document.head.append(settingsStyles);
+
+
+  // Consolidated player refinement: artwork-led Material surfaces, measured
+  // translucency, consistent controls, and predictable responsive layouts.
+  const refinement = document.createElement("style");
+  refinement.textContent = `
+    #luma-root .backdrop{
+      filter:blur(78px) saturate(1.12);
+      opacity:.42;
+      transform:scale(1.06);
+    }
+    #luma-root .bar{gap:8px}
+    #luma-root .bar .tool{
+      width:40px;height:40px;
+      border:1px solid rgba(var(--md-outline-variant-rgb),.42);
+      background:rgba(var(--md-surface-container-rgb),.78);
+      color:var(--md-on-surface);
+      box-shadow:none;
+      backdrop-filter:blur(14px);
+      -webkit-backdrop-filter:blur(14px);
+      transition:background-color .16s ease,border-color .16s ease,transform .16s ease;
+    }
+    #luma-root .bar .tool:hover{
+      background:var(--md-surface-high);
+      border-color:rgba(var(--md-outline-rgb),.72);
+      transform:translateY(-1px);
+    }
+    #luma-root .status{
+      border:1px solid rgba(var(--md-outline-variant-rgb),.38);
+      background:rgba(var(--md-surface-container-rgb),.72);
+      backdrop-filter:blur(14px);
+      -webkit-backdrop-filter:blur(14px);
+    }
+    #luma-root .player{
+      background:rgba(var(--md-surface-container-rgb),.78);
+      border-color:rgba(var(--md-outline-variant-rgb),.68);
+      box-shadow:0 12px 34px rgba(0,0,0,.2),inset 0 1px 0 rgba(var(--md-on-surface-rgb),.09);
+      backdrop-filter:blur(18px) saturate(1.18);
+      -webkit-backdrop-filter:blur(18px) saturate(1.18);
+    }
+    #luma-root .player>.artwork-stage{margin-bottom:2px}
+    #luma-root .player .cover{border-radius:16px;box-shadow:0 10px 28px rgba(0,0,0,.2)}
+    #luma-root .player .title{font-size:clamp(20px,2vw,25px);letter-spacing:-.55px}
+    #luma-root .player .artist{font-size:14px}
+    #luma-root .player .controls{gap:14px;margin:2px 0}
+    #luma-root .player .controls button:not(.play){
+      width:48px;height:46px;border-radius:15px;
+      background:rgba(var(--md-secondary-container-rgb),.58);
+      color:var(--md-on-secondary-container);
+      transition:background-color .16s ease,transform .16s ease;
+    }
+    #luma-root .player .controls button:not(.play):hover{
+      background:rgba(var(--md-secondary-container-rgb),.88);
+      transform:translateY(-1px);
+    }
+    #luma-root .player .controls .play{
+      width:58px;height:58px;
+    }
+    #luma-root .player .controls .play:before{
+      box-shadow:0 2px 10px rgba(var(--md-primary-rgb),.2);
+    }
+    #luma-root .player .volume{gap:11px;margin-top:2px}
+    #luma-root .player .volume input[type=range]{
+      min-width:64px;height:24px;touch-action:pan-y;
+    }
+    #luma-root .player .volume input[type=range]::-webkit-slider-runnable-track{
+      height:4px;border-radius:99px;
+      background:linear-gradient(90deg,var(--md-primary) var(--range-progress,0%),rgba(var(--md-on-surface-rgb),.18) var(--range-progress,0%));
+    }
+    #luma-root .player .volume input[type=range]::-moz-range-track{
+      height:4px;border-radius:99px;
+      background:linear-gradient(90deg,var(--md-primary) var(--range-progress,0%),rgba(var(--md-on-surface-rgb),.18) var(--range-progress,0%));
+    }
+    #luma-root .player .volume input[type=range]::-webkit-slider-thumb{
+      width:12px;height:12px;margin-top:-4px;border:0;background:var(--md-primary);box-shadow:0 0 0 3px rgba(var(--md-primary-rgb),.14);
+    }
+    #luma-root .player .volume input[type=range]::-moz-range-thumb{
+      width:12px;height:12px;border:0;background:var(--md-primary);box-shadow:0 0 0 3px rgba(var(--md-primary-rgb),.14);
+    }
+    #luma-root .lyrics{scrollbar-width:none}
+    #luma-root .line{
+      letter-spacing:-.55px;
+      text-shadow:none!important;
+      filter:none!important;
+    }
+    #luma-root .line.active{transform:translateX(2px)!important}
+    #luma-root .lyrics .line .luma-lyric-token.active{
+      text-shadow:0 0 9px rgba(var(--md-primary-rgb),.2)!important;
+      transform:none!important;
+    }
+    #luma-root .settings{
+      background:rgba(var(--md-surface-container-rgb),.94);
+      border-color:rgba(var(--md-outline-variant-rgb),.72);
+      box-shadow:0 14px 38px rgba(0,0,0,.3);
+      backdrop-filter:blur(18px) saturate(1.12);
+      -webkit-backdrop-filter:blur(18px) saturate(1.12);
+    }
+    #luma-root .settings-header{background:rgba(var(--md-surface-container-rgb),.96)}
+    #luma-root .settings-eyebrow{display:none!important}
+    #luma-root .settings button,#luma-root .settings select{
+      transition:background-color .14s ease,border-color .14s ease,color .14s ease;
+    }
+    #luma-root .settings .setting-control input[type=range]{height:24px}
+    #luma-root .settings .setting-toggle input[type=checkbox]{flex:none}
+    #luma-root button:focus-visible,#luma-root input:focus-visible,
+    #luma-root select:focus-visible,#luma-root .lyrics:focus-visible{
+      outline:2px solid var(--md-primary);
+      outline-offset:3px;
+    }
+    @media(max-width:1100px) and (min-width:561px){
+      #luma-root .layout{
+        grid-template-columns:minmax(230px,34vw) minmax(0,1fr)!important;
+        gap:clamp(22px,3.2vw,38px)!important;
+        padding-inline:clamp(22px,4vw,44px)!important;
+      }
+      #luma-root .player{padding:17px!important}
+      #luma-root .player .title{font-size:21px}
+      #luma-root .lyrics{padding-inline:4px}
+    }
+    @media(max-width:760px) and (min-width:561px){
+      #luma-root .layout{grid-template-columns:minmax(190px,.82fr) minmax(0,1.18fr)!important;gap:20px!important;padding-inline:18px!important}
+      #luma-root .player .controls{gap:8px}
+      #luma-root .player .controls button:not(.play){width:42px;height:42px}
+      #luma-root .player .controls .play{width:52px;height:52px}
+      #luma-root .player .volume{gap:7px}
+      #luma-root .player .volume-value{min-width:30px}
+      #luma-root .line{font-size:clamp(23px,3.4vw,29px)}
+    }
+    @media(max-width:560px){
+      #luma-root .bar{top:12px;inset-inline:12px}
+      #luma-root .bar .tool{width:36px;height:36px}
+      #luma-root .layout{padding:64px 14px 18px!important;gap:13px!important}
+      #luma-root .player{padding:12px!important;border-radius:18px}
+      #luma-root .player>.artwork-stage{width:68px;height:68px}
+      #luma-root .player .title{font-size:17px;line-height:1.2}
+      #luma-root .player .artist{font-size:12px}
+      #luma-root .player .controls{gap:10px}
+      #luma-root .player .controls button:not(.play){width:42px;height:40px}
+      #luma-root .player .controls .play{width:48px;height:48px}
+      #luma-root .player .volume{gap:9px}
+      #luma-root .player .volume-value{min-width:32px}
+      #luma-root .lyrics{min-height:38vh;padding:16vh 7px 20vh}
+      #luma-root .line{padding:9px 0;font-size:clamp(24px,7vw,var(--lyric-size))}
+      #luma-root .lyric-main{font-size:clamp(24px,7vw,32px)}
+      #luma-root .settings{top:58px;right:10px;width:calc(100vw - 20px);max-height:calc(100dvh - 70px)}
+    }
+    @media(max-height:540px) and (min-width:561px){
+      #luma-root .layout{
+        grid-template-columns:minmax(170px,24vw) minmax(0,1fr)!important;
+        gap:24px!important;padding:62px 28px 14px!important;
+      }
+      #luma-root .player{gap:7px;padding:12px!important}
+      #luma-root .player>.artwork-stage{width:min(30vh,170px);margin-inline:auto}
+      #luma-root .player .title{font-size:18px}
+      #luma-root .player .artist{font-size:12px;margin:0!important}
+      #luma-root .player .controls{margin:0!important}
+      #luma-root .player .controls button:not(.play){width:38px;height:38px}
+      #luma-root .player .controls .play{width:44px;height:44px}
+      #luma-root .player .volume{margin:0}
+      #luma-root .lyrics{padding:18vh 6px 20vh}
+      #luma-root .line{padding:7px 0;font-size:clamp(20px,3.4vh,27px)}
+    }
+    @media(prefers-reduced-motion:reduce){
+      #luma-root .bar .tool,#luma-root .controls button,
+      #luma-root .settings button,#luma-root .settings select{transition:none!important}
+      #luma-root .line,#luma-root .lyrics .line .luma-lyric-token{transition:none!important;transform:none!important}
+    }
+  `;
+  document.head.append(refinement);
 
   return desktop;
 }
