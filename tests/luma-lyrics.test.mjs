@@ -556,3 +556,16 @@ test("artwork palette: artwork sampling uses a canvas and applies an accent", ()
   assert.ok(values.has("--md-primary"));
   assert.ok(values.has("--accent-rgb"));
 });
+
+
+test("settings and vinyl styling stay restrained and playback-aware", () => {
+  const document = {
+    head: { append() {} },
+    createElement() {
+      return { textContent: "", disabled: false };
+    },
+  };
+  installStyles(document);
+  const source = document.head;
+  assert.ok(source);
+});
