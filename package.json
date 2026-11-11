@@ -1,13 +1,16 @@
 {
   "name": "luma-lyrics",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "private": true,
   "description": "Immersive synced lyrics for Spotify, built as a Spicetify extension.",
   "license": "MIT",
   "scripts": {
-    "test": "node --test tests/*.test.mjs"
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check": "npm run build && npm test && git diff --exit-code -- luma-lyrics.js"
   },
   "engines": {
     "node": ">=18"
-  }
+  },
+  "type": "module"
 }

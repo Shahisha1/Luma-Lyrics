@@ -6,13 +6,13 @@
 <p>Spotify desktop, but with lyrics that actually keep up.</p>
 
 <p>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v2.0-blue" alt="Version"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/Shahisha1/Luma-Lyrics" alt="License"></a>
-  <a href="https://github.com/Shahisha1/Luma-Lyrics/actions/workflows/test.yml"><img src="https://github.com/Shahisha1/Luma-Lyrics/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v2.3.1-blue" alt="Version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Altertone/Luma-Lyrics" alt="License"></a>
+  <a href="https://github.com/Altertone/Luma-Lyrics/actions/workflows/test.yml"><img src="https://github.com/Altertone/Luma-Lyrics/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
   <a href="https://spicetify.app"><img src="https://img.shields.io/badge/Spicetify-extension-1db954" alt="Spicetify extension"></a>
 </p>
 
-<p><a href="https://github.com/Shahisha1/Luma-Lyrics/releases/latest"><strong>Download</strong></a> · <a href="https://github.com/Shahisha1/Luma-Lyrics/issues">Report a problem</a></p>
+<p><a href="https://github.com/Altertone/Luma-Lyrics/releases/latest"><strong>Download</strong></a> · <a href="https://github.com/Altertone/Luma-Lyrics/issues">Report a problem</a></p>
 
 <img src="preview.gif" alt="Luma Lyrics preview" width="640">
 
@@ -53,7 +53,7 @@
 
 ## Install
 
-1. Download `luma-lyrics.js` from the [latest release](https://github.com/Shahisha1/Luma-Lyrics/releases/latest).
+1. Download `luma-lyrics.js` from the [latest release](https://github.com/Altertone/Luma-Lyrics/releases/latest).
 2. Copy it to your Spicetify extensions folder. On Windows, that is `%APPDATA%\spicetify\Extensions`.
 3. Run:
 
@@ -82,17 +82,45 @@ If a lookup fails due to a network issue, timeout, or rate limit, reopen Luma Ly
 
 ## Troubleshooting
 
-Spotify or Spicetify updates and other themes may affect the extension. If something feels off, open an [issue](https://github.com/Shahisha1/Luma-Lyrics/issues) with your Spotify and Spicetify versions.
+Spotify or Spicetify updates and other themes may affect the extension. If something feels off, open an [issue](https://github.com/Altertone/Luma-Lyrics/issues) with your Spotify and Spicetify versions.
 
 ## Development
 
-Luma Lyrics ships as one file, so there is no build step. The helpers that do not touch the DOM or Spicetify live in a marked `<luma-pure>` block, and the test suite extracts and exercises that block directly.
+The repository keeps readable source modules under `src/` and generates the single-file extension that Spicetify loads.
 
-```bash
-npm test
+```text
+src/
+├── main.js                 # Spotify/Spicetify runtime and overlay lifecycle
+├── core/
+│   └── settings.js         # Defaults, storage, and preference migrations
+├── lyrics/
+│   ├── parsing.js          # LRC, lyricsfile, matching, and timing helpers
+│   └── romanization.js     # Offline Korean, Japanese, and Cyrillic romanization
+├── services/
+│   └── translation.js      # Batched Google Translate requests and bounded cache
+├── theme/
+│   └── artwork.js          # Artwork sampling and Material 3 palette generation
+└── ui/
+    └── styles.js           # Overlay and Spotify styles
+
+scripts/
+└── build.mjs               # Dependency-free single-file bundler
+
+tests/
+└── luma-lyrics.test.mjs    # Unit tests for the source modules
 ```
 
-The suite uses Node's built-in test runner and has no dependencies. A GitHub Actions workflow runs it on every push and pull request.
+Install Node.js 18 or newer, then run:
+
+```bash
+npm run build
+npm test
+npm run check
+```
+
+`npm run build` regenerates the distributable `luma-lyrics.js`. The generated file is committed because Spicetify and the extension stores load that file directly. `npm run check` rebuilds it, runs the test suite, and fails if the committed bundle is out of date.
+
+The build has no third-party dependencies. Tests use Node's built-in test runner.
 
 ## Credits
 

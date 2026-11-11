@@ -1,37 +1,11 @@
-// Tests for the pure helpers inside luma-lyrics.js.
-//
-// The extension ships as a single file, so the helpers that do not touch the
-// DOM or Spicetify are wrapped in <luma-pure> ... </luma-pure>. This suite
-// extracts that block and evaluates it, which keeps the tests dependency-free
-// and guarantees they exercise the exact code that ships.
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+// Tests for the standalone lyric, romanization, and translation modules.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-
-const here = dirname(fileURLToPath(import.meta.url));
-const source = readFileSync(join(here, "..", "luma-lyrics.js"), "utf8");
-
-const start = source.indexOf("// <luma-pure>");
-const end = source.indexOf("// </luma-pure>");
-assert.ok(start !== -1 && end > start, "luma-pure markers are present");
-
-const pureSource = source.slice(start, end);
-const names = [
-  "parse",
-  "parseYamlSubset",
-  "lyricsfileToLines",
-  "normalizeName",
-  "sameName",
-  "splitArtists",
-  "trackMatches",
-  "pickLyrics",
-  "escapeStep",
-  "endOfWord",
-  "wordFlowOpacity",
-];
-const pure = new Function(`${pureSource}\nreturn { ${names.join(", ")} };`)();
+import * as pure from "../src/lyrics/parsing.js";
+import { romanizeText } from "../src/lyrics/romanization.js";
+import { createTranslationService } from "../src/services/translation.js";
+import { installStyles } from "../src/ui/styles.js";
+import { createArtworkPalette } from "../src/theme/artwork.js";
 
 test("parse: line-timed LRC", () => {
   const lines = pure.parse("[00:12.34]Hello world\n[00:15.00]Second line");
@@ -422,4 +396,156 @@ test("wordFlowOpacity: long words settle within half a second", () => {
 test("wordFlowOpacity: clamps progress outside the word", () => {
   assert.equal(pure.wordFlowOpacity(1000, 1400, -500), 0.5);
   assert.equal(pure.wordFlowOpacity(1000, 1400, 999999), 1);
+});
+
+
+test("romanizeText: Korean Hangul", () => {
+  assert.equal(romanizeText("안녕하세요"), "annyeonghaseyo");
+});
+
+test("romanizeText: Japanese kana and small kana", () => {
+  assert.equal(romanizeText("こんにちは"), "konnichiha");
+  assert.equal(romanizeText("きゃ"), "kya");
+});
+
+test("romanizeText: Cyrillic preserves case", () => {
+  assert.equal(romanizeText("Привет"), "Privet");
+});
+
+test("romanizeText: Latin and Chinese text need no romanization", () => {
+  assert.equal(romanizeText("Hello"), "");
+  assert.equal(romanizeText("你好"), "");
+});
+
+test("translation service: batches, caches, and preserves empty lines", async () => {
+  const requests = [];
+  const service = createTranslationService({
+    fetchImpl: async (url, options) => {
+      requests.push({ url, options });
+      return {
+        ok: true,
+        json: async () => [[["Hola\nMundo", ""]]],
+      };
+    },
+  });
+  const result = await service.translateLines(["Hello", "", "World"], "es");
+  assert.deepEqual(result, ["Hola", "", "Mundo"]);
+  assert.equal(requests.length, 1);
+  assert.deepEqual(await service.translateLines(["Hello", "", "World"], "es"), result);
+  assert.equal(requests.length, 1);
+  assert.equal(service.cacheSize, 3);
+});
+
+test("translation service: propagates HTTP failures", async () => {
+  const service = createTranslationService({
+    fetchImpl: async () => ({ ok: false, status: 429 }),
+  });
+  await assert.rejects(service.translateLines(["Hello"], "fr"), /HTTP 429/);
+});
+
+test("translation service: forwards abort signals", async () => {
+  const controller = new AbortController();
+  let receivedSignal;
+  const service = createTranslationService({
+    fetchImpl: async (_url, options) => {
+      receivedSignal = options.signal;
+      return { ok: true, json: async () => [[["Bonjour", ""]]] };
+    },
+  });
+  await service.translateLines(["Hello"], "fr", controller.signal);
+  assert.equal(receivedSignal, controller.signal);
+});
+
+test("translation service: evicts old entries when the cache reaches its limit", async () => {
+  const service = createTranslationService({
+    maxCacheEntries: 2,
+    fetchImpl: async (url) => {
+      const query = new URL(url).searchParams.get("q");
+      return { ok: true, json: async () => [[[`translated:${query}`, ""]]] };
+    },
+  });
+  await service.translateLines(["one"], "en");
+  await service.translateLines(["two"], "en");
+  await service.translateLines(["three"], "en");
+  assert.equal(service.cacheSize, 2);
+});
+
+
+test("settings: loads defaults when storage is empty", async () => {
+  const { defaultOptions, loadSettings } = await import("../src/core/settings.js");
+  const storage = { getItem: () => null, setItem: () => {} };
+  const loaded = loadSettings(storage);
+  assert.deepEqual(loaded.options, defaultOptions);
+  assert.equal(loaded.migratedDefaultDim, false);
+});
+
+test("settings: migrates the old dim default and retired slider preference", async () => {
+  const { defaultOptions, loadSettings } = await import("../src/core/settings.js");
+  let stored;
+  const storage = {
+    getItem: () => JSON.stringify({ dim: 0.4, sliderStyle: "glow", lyricMode: "gentle" }),
+    setItem: (_key, value) => { stored = JSON.parse(value); },
+  };
+  const loaded = loadSettings(storage);
+  assert.equal(loaded.options.dim, defaultOptions.dim);
+  assert.equal(loaded.options.lyricMode, "gentle");
+  assert.equal("sliderStyle" in loaded.options, false);
+  assert.equal(loaded.migratedDefaultDim, true);
+  assert.equal("sliderStyle" in stored, false);
+});
+
+test("settings: malformed or blocked storage falls back without throwing", async () => {
+  const { loadSettings, saveSettings } = await import("../src/core/settings.js");
+  const broken = {
+    getItem: () => "{not json",
+    setItem: () => { throw new Error("storage blocked"); },
+  };
+  const loaded = loadSettings(broken);
+  assert.equal(loaded.options.lyricMode, "word");
+  assert.doesNotThrow(() => saveSettings(loaded.options, broken));
+});
+
+
+test("styles: installs all overlay style layers without runtime globals", () => {
+  const appended = [];
+  const document = {
+    createElement: (tagName) => ({ tagName, textContent: "" }),
+    head: { append: (element) => appended.push(element) },
+  };
+  installStyles(document);
+  assert.equal(appended.length, 7);
+  assert.ok(appended.every((element) => element.tagName === "style" && element.textContent.length > 0));
+});
+
+
+test("artwork palette: default accent populates Material and Spotify variables", () => {
+  const values = new Map();
+  const style = { setProperty: (key, value) => values.set(key, value) };
+  const palette = createArtworkPalette({ style }, { documentElement: { style } });
+  palette.setDefaultAccent();
+  assert.ok(values.has("--md-primary"));
+  assert.ok(values.has("--accent"));
+  assert.ok(values.has("--luma-primary"));
+  assert.ok(values.has("--luma-surface-container"));
+});
+
+test("artwork palette: artwork sampling uses a canvas and applies an accent", () => {
+  const values = new Map();
+  const style = { setProperty: (key, value) => values.set(key, value) };
+  const pixels = new Uint8ClampedArray(32 * 32 * 4);
+  for (let i = 0; i < pixels.length; i += 4) {
+    pixels[i] = 190;
+    pixels[i + 1] = 70;
+    pixels[i + 2] = 90;
+    pixels[i + 3] = 255;
+  }
+  const context = { drawImage: () => {}, getImageData: () => ({ data: pixels }) };
+  const document = {
+    documentElement: { style },
+    createElement: () => ({ width: 0, height: 0, getContext: () => context }),
+  };
+  const palette = createArtworkPalette({ style }, document);
+  palette.setArtworkAccent({});
+  assert.ok(values.has("--md-primary"));
+  assert.ok(values.has("--accent-rgb"));
 });
