@@ -1,4 +1,6 @@
 // Luma Lyrics v2.3.1
+
+(async () => {
 function parse(text) {
   const offset = Number(text.match(/\[offset:([+-]?\d+)\]/i)?.[1] || 0),
     result = [];
@@ -963,7 +965,6 @@ function installStyles(document) {
 
 }
 
-(async () => {
   while (
     !globalThis.Spicetify?.Player ||
     !globalThis.Spicetify?.Playbar?.Button ||
