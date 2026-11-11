@@ -23,9 +23,14 @@ if (main.split(imports).length !== 2) {
 }
 
 const inline = [parsing, romanization, translation]
-  .map((moduleSource) => moduleSource.replace(/^export\s+/gm, ""))
-  .join("\n");
-const bundle = main.replace(imports, inline);
+  .map((moduleSource) => moduleSource.replace(/^export\\s+/gm, ""))
+  .join("\\n");
+const runtime = main.replace(imports, "");
+const wrapper = "(async () => {";
+if (runtime.split(wrapper).length !== 2) {
+  throw new Error("Expected exactly one extension runtime wrapper.");
+}
+const bundle = runtime.replace(wrapper, `${wrapper}\\n${inline}`);
 
 await writeFile(outputPath, bundle);
 process.stdout.write(`Built ${outputPath.replace(root + "/", "")}\n`);
