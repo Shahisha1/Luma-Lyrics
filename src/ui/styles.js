@@ -446,7 +446,7 @@ export function installStyles(document) {
       scrollbar-width:thin;
       scrollbar-color:rgba(var(--md-on-surface-rgb),.24) transparent;
       transform-origin:top right;
-      animation:luma-settings-open .18s ease-out both;
+      animation:none;
     }
     #luma-root .settings-header{
       position:sticky;top:0;z-index:2;display:flex;align-items:center;
@@ -472,7 +472,6 @@ export function installStyles(document) {
     #luma-root .settings .mode-trigger{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:40px;margin:0;padding:8px 11px;border:1px solid rgba(var(--md-outline-rgb),.6);border-radius:10px;background:var(--md-surface-container-high);font-size:12px;transition:background-color .12s ease,border-color .12s ease}
     #luma-root .settings .mode-trigger:hover{background:var(--md-surface-high);border-color:rgba(var(--md-outline-rgb),.9)}
     #luma-root .settings .mode-options{top:calc(100% + 6px);border:1px solid rgba(var(--md-outline-variant-rgb),.8);border-radius:12px;background:var(--md-surface-container-high);box-shadow:0 8px 20px rgba(0,0,0,.2)}
-    #luma-root .settings .mode-options:not([hidden]){animation:luma-settings-menu .12s ease-out both}
     #luma-root .settings .mode-options button{border-radius:8px;transition:background-color .12s ease,color .12s ease}
     #luma-root .settings .mode-options button:hover{background:rgba(var(--md-on-surface-rgb),.07)}
     #luma-root .settings .sync-adjust{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:8px}
@@ -487,19 +486,18 @@ export function installStyles(document) {
     #luma-root .settings .settings-footer button:last-child{border-color:var(--md-primary);background:var(--md-primary);color:var(--md-on-primary);font-weight:600}
     #luma-root .settings .settings-footer button:last-child:hover{background:var(--md-primary);filter:brightness(1.05)}
     #luma-root .settings button:focus-visible,#luma-root .settings select:focus-visible,#luma-root .settings input:focus-visible{outline:2px solid var(--md-primary);outline-offset:2px}
+    #luma-root .settings *{animation:none!important;transition:none!important}
     #luma-root .settings button,#luma-root .settings input,#luma-root .settings select{box-shadow:none;text-shadow:none}
     #luma-root .settings button:hover,#luma-root .settings input:hover,#luma-root .settings select:hover{filter:none}
     #luma-root .settings .setting-control:hover,#luma-root .settings .setting-toggle:hover{background:transparent}
-    #luma-root .settings-header:before,#luma-root .settings-header h2:after,#luma-root .settings-section h3:before{content:none!important;display:none!important}
-    @keyframes luma-settings-open{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
-    @keyframes luma-settings-menu{from{opacity:0;transform:translateY(-2px)}to{opacity:1;transform:translateY(0)}}
+    #luma-root .settings-header:before,#luma-root .settings-header h2:after,#luma-root .settings-section h3:before,#luma-root .settings-section h3:after{content:none!important;display:none!important}
     @media(max-width:560px){
       #luma-root .settings{top:68px;right:12px;width:calc(100vw - 24px);max-height:calc(100vh - 84px);border-radius:18px}
       #luma-root .settings-header{padding:15px 16px 13px}
       #luma-root .settings-section{padding:13px 16px!important}
       #luma-root .settings-footer{padding:10px 16px}
     }
-    @media(prefers-reduced-motion:reduce){#luma-root .settings,#luma-root .settings .mode-options:not([hidden]){animation:none!important}#luma-root .settings *{transition:none!important}}
+    @media(prefers-reduced-motion:reduce){#luma-root .settings *{animation:none!important;transition:none!important}}
   `;
   document.head.append(settingsStyles);
 
