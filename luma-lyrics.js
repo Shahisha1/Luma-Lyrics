@@ -1,5 +1,4 @@
 // Luma Lyrics v2.3.1
-(no DOM or Spicetify access; exercised by tests/luma-lyrics.test.mjs)
 function parse(text) {
   const offset = Number(text.match(/\[offset:([+-]?\d+)\]/i)?.[1] || 0),
     result = [];
