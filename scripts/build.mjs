@@ -11,22 +11,24 @@ const imports = [
   'import { createTranslationService } from "./services/translation.js";',
   'import { defaultOptions, loadSettings, saveSettings } from "./core/settings.js";',
   'import { installStyles } from "./ui/styles.js";',
+  'import { createArtworkPalette } from "./theme/artwork.js";',
 ].join("\n");
 
-const [main, parsing, romanization, translation, settings, styles] = await Promise.all([
+const [main, parsing, romanization, translation, settings, styles, artwork] = await Promise.all([
   readFile(mainPath, "utf8"),
   readFile(resolve(root, "src/lyrics/parsing.js"), "utf8"),
   readFile(resolve(root, "src/lyrics/romanization.js"), "utf8"),
   readFile(resolve(root, "src/services/translation.js"), "utf8"),
   readFile(resolve(root, "src/core/settings.js"), "utf8"),
   readFile(resolve(root, "src/ui/styles.js"), "utf8"),
+  readFile(resolve(root, "src/theme/artwork.js"), "utf8"),
 ]);
 
 if (main.split(imports).length !== 2) {
   throw new Error("Expected the source entry to contain the module import block exactly once.");
 }
 
-const inline = [parsing, romanization, translation, settings, styles]
+const inline = [parsing, romanization, translation, settings, styles, artwork]
   .map((moduleSource) => moduleSource.replace(/^export\s+/gm, ""))
   .join("\n");
 const runtime = main.replace(imports, "");

@@ -98,6 +98,8 @@ src/
 │   └── romanization.js     # Offline Korean, Japanese, and Cyrillic romanization
 ├── services/
 │   └── translation.js      # Batched Google Translate requests and bounded cache
+├── theme/
+│   └── artwork.js          # Artwork sampling and Material 3 palette generation
 └── ui/
     └── styles.js           # Overlay and Spotify styles
 

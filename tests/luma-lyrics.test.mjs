@@ -5,6 +5,7 @@ import * as pure from "../src/lyrics/parsing.js";
 import { romanizeText } from "../src/lyrics/romanization.js";
 import { createTranslationService } from "../src/services/translation.js";
 import { installStyles } from "../src/ui/styles.js";
+import { createArtworkPalette } from "../src/theme/artwork.js";
 
 test("parse: line-timed LRC", () => {
   const lines = pure.parse("[00:12.34]Hello world\n[00:15.00]Second line");
@@ -514,4 +515,37 @@ test("styles: installs all overlay style layers without runtime globals", () => 
   installStyles(document);
   assert.equal(appended.length, 7);
   assert.ok(appended.every((element) => element.tagName === "style" && element.textContent.length > 0));
+});
+
+
+test("artwork palette: default accent populates Material and Spotify variables", () => {
+  const values = new Map();
+  const style = { setProperty: (key, value) => values.set(key, value) };
+  const palette = createArtworkPalette({ style }, { documentElement: { style } });
+  palette.setDefaultAccent();
+  assert.ok(values.has("--md-primary"));
+  assert.ok(values.has("--accent"));
+  assert.ok(values.has("--luma-primary"));
+  assert.ok(values.has("--luma-surface-container"));
+});
+
+test("artwork palette: artwork sampling uses a canvas and applies an accent", () => {
+  const values = new Map();
+  const style = { setProperty: (key, value) => values.set(key, value) };
+  const pixels = new Uint8ClampedArray(32 * 32 * 4);
+  for (let i = 0; i < pixels.length; i += 4) {
+    pixels[i] = 190;
+    pixels[i + 1] = 70;
+    pixels[i + 2] = 90;
+    pixels[i + 3] = 255;
+  }
+  const context = { drawImage: () => {}, getImageData: () => ({ data: pixels }) };
+  const document = {
+    documentElement: { style },
+    createElement: () => ({ width: 0, height: 0, getContext: () => context }),
+  };
+  const palette = createArtworkPalette({ style }, document);
+  palette.setArtworkAccent({});
+  assert.ok(values.has("--md-primary"));
+  assert.ok(values.has("--accent-rgb"));
 });
