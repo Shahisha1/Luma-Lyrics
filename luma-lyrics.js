@@ -1056,7 +1056,7 @@ function installStyles(document) {
     @media(max-width:520px){#luma-root .status{max-width:46vw;overflow:hidden;text-overflow:ellipsis}#luma-root .lyrics{padding:16vh 6px 22vh}}
   `;
   document.head.append(ui);
-
+  return desktop;
 }
 
 // Artwork sampling and Material 3 tonal palette generation.
@@ -1221,7 +1221,7 @@ function setArtworkAccent(image) {
   const player = () => globalThis.Spicetify.Player;
   let { options, migratedDefaultDim } = loadSettings();
   const save = () => saveSettings(options);
-  installStyles(document);
+  const desktop = installStyles(document);
   const paths = {
     close: "M6 6l12 12M18 6 6 18",
     full: "M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5",

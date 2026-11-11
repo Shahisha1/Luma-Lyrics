@@ -16,7 +16,7 @@ import { createArtworkPalette } from "./theme/artwork.js";
   const player = () => globalThis.Spicetify.Player;
   let { options, migratedDefaultDim } = loadSettings();
   const save = () => saveSettings(options);
-  installStyles(document);
+  const desktop = installStyles(document);
   const paths = {
     close: "M6 6l12 12M18 6 6 18",
     full: "M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5",

@@ -476,5 +476,5 @@ export function installStyles(document) {
     @media(max-width:520px){#luma-root .status{max-width:46vw;overflow:hidden;text-overflow:ellipsis}#luma-root .lyrics{padding:16vh 6px 22vh}}
   `;
   document.head.append(ui);
-
+  return desktop;
 }
