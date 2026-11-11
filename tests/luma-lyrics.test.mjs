@@ -422,15 +422,15 @@ test("translation service: batches, caches, and preserves empty lines", async ()
       requests.push({ url, options });
       return {
         ok: true,
-        json: async () => [[["Hola", ""]], [["Mundo", ""]]],
+        json: async () => [[[ "Hola", "" ], [ "Mundo", "" ]]],
       };
     },
   });
   const result = await service.translateLines(["Hello", "", "World"], "es");
   assert.deepEqual(result, ["Hola", "", "Mundo"]);
-  assert.equal(requests.length, 2);
+  assert.equal(requests.length, 1);
   assert.deepEqual(await service.translateLines(["Hello", "", "World"], "es"), result);
-  assert.equal(requests.length, 2);
+  assert.equal(requests.length, 1);
   assert.equal(service.cacheSize, 3);
 });
 
