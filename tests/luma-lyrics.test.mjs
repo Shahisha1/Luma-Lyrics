@@ -422,7 +422,7 @@ test("translation service: batches, caches, and preserves empty lines", async ()
       requests.push({ url, options });
       return {
         ok: true,
-        json: async () => [[["Hola\\nMundo", ""]]],
+        json: async () => [[["Hola\nMundo", ""]]],
       };
     },
   });
