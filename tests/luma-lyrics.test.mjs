@@ -559,13 +559,16 @@ test("artwork palette: artwork sampling uses a canvas and applies an accent", ()
 
 
 test("settings and vinyl styling stay restrained and playback-aware", () => {
+  const appended = [];
   const document = {
-    head: { append() {} },
-    createElement() {
-      return { textContent: "", disabled: false };
-    },
+    head: { append(style) { appended.push(style.textContent); } },
+    createElement() { return { textContent: "", disabled: false }; },
   };
   installStyles(document);
-  const source = document.head;
-  assert.ok(source);
+  const styles = appended.join("\\n");
+  assert.match(styles, /luma-vinyl-rotation/);
+  assert.match(styles, /repeating-radial-gradient/);
+  assert.match(styles, /animation-play-state:running/);
+  assert.match(styles, /settingsRefinement/);
+  assert.doesNotMatch(styles, /luma-settings-pulse/);
 });
