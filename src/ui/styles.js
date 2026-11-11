@@ -391,70 +391,9 @@ export function installStyles(document) {
   `;
   document.head.append(ui);
 
-  // Refined settings layout: clearer hierarchy, calmer Material surfaces,
-  // and more comfortable controls without changing settings behaviour.
-  const settingsPolish = document.createElement("style");
-  settingsPolish.textContent = `
-    #luma-root .settings{width:min(380px,calc(100vw - 32px));padding:0;overflow-x:hidden;overflow-y:auto;border:1px solid rgba(var(--md-outline-variant-rgb),.72);border-radius:24px;background:var(--md-surface-container);box-shadow:0 18px 48px rgba(0,0,0,.32);backdrop-filter:none;-webkit-backdrop-filter:none;scrollbar-width:thin;scrollbar-color:rgba(var(--md-on-surface-rgb),.24) transparent}
-    #luma-root .settings-header{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 20px 16px;border:0;border-bottom:1px solid rgba(var(--md-outline-variant-rgb),.5);background:var(--md-surface-container)}
-    #luma-root .settings-header h2{margin:0;font-size:22px;line-height:1.25;font-weight:650;letter-spacing:-.45px}
-    #luma-root .settings-description{margin:5px 0 0;color:var(--md-on-surface-variant);font-size:12px;line-height:1.4}
-    #luma-root .settings .settings-close{flex:none;display:grid;place-items:center;width:38px;height:38px;margin:0;padding:0;border-radius:50%;background:var(--md-surface-high)}
-    #luma-root .settings-section{margin:0!important;padding:18px 20px 16px!important;border:0!important;border-bottom:1px solid rgba(var(--md-outline-variant-rgb),.45)!important;border-radius:0!important;background:transparent!important}
-    #luma-root .settings-section h3{margin:0 0 16px;color:var(--md-on-surface);font-size:14px;line-height:1.3;font-weight:650;letter-spacing:0}
-    #luma-root .settings .setting-control,#luma-root .settings .setting-toggle{margin:0;padding:12px 0;font-size:13px;line-height:1.45}
-    #luma-root .settings .setting-control+.setting-control,#luma-root .settings .setting-control+.setting-toggle,#luma-root .settings .setting-toggle+.setting-control,#luma-root .settings .setting-toggle+.setting-toggle{border-top:1px solid rgba(var(--md-outline-variant-rgb),.28)}
-    #luma-root .settings .setting-control>span,#luma-root .settings .setting-toggle>span{display:block;min-width:0}
-    #luma-root .settings .setting-toggle{display:flex;align-items:center;justify-content:space-between;gap:18px}
-    #luma-root .settings .setting-toggle strong{display:block;color:var(--md-on-surface);font-size:13px;font-weight:560}
-    #luma-root .settings .setting-toggle small,#luma-root .settings .setting-control small{max-width:29em;margin-top:4px;color:var(--md-on-surface-variant);font-size:11px;line-height:1.45}
-    #luma-root .settings .setting-control output{float:right;color:var(--md-on-surface-variant);font-size:11px;font-variant-numeric:tabular-nums}
-    #luma-root .settings input[type=range]{display:block;width:100%;margin:9px 0 0}
-    #luma-root .settings .mode-control{display:grid;grid-template-columns:minmax(0,1fr) minmax(128px,.9fr);align-items:center;gap:12px}
-    #luma-root .settings .mode-trigger{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:42px;margin:0;padding:8px 12px;border-radius:12px;font-size:12px}
-    #luma-root .settings .mode-options{top:calc(100% + 6px);border-radius:14px;box-shadow:0 10px 28px rgba(0,0,0,.28)}
-    #luma-root .settings .sync-adjust{margin-top:9px}
-    #luma-root .settings .sync-adjust button{min-height:32px;padding:7px 10px;font-size:11px}
-    #luma-root .settings select{min-height:42px;margin-top:8px;padding:9px 12px;border-radius:12px;font-size:12px}
-    #luma-root .settings .privacy-note{margin:12px 0 0;padding:10px 12px;border-radius:12px;font-size:10px;line-height:1.5}
-    #luma-root .settings-footer{position:sticky;bottom:0;display:flex;justify-content:space-between;gap:10px;margin:0;padding:14px 20px;border-top:1px solid rgba(var(--md-outline-variant-rgb),.5);background:var(--md-surface-container)}
-    #luma-root .settings .settings-footer button{min-height:38px;margin:0;padding:8px 14px;border-radius:999px;font-size:12px}
-    #luma-root .settings .settings-footer button:last-child{border-color:var(--md-primary);background:var(--md-primary);color:var(--md-on-primary);font-weight:600}
-    #luma-root .settings .settings-footer button:last-child:hover{background:var(--md-primary);filter:brightness(1.08)}
-    @media(max-width:560px){#luma-root .settings{right:12px;width:calc(100vw - 24px);max-height:calc(100vh - 92px);border-radius:20px}#luma-root .settings-header{padding:16px}#luma-root .settings-section{padding:15px 16px!important}#luma-root .settings-footer{padding:12px 16px}}
-    @media(prefers-reduced-motion:reduce){#luma-root .settings *{scroll-behavior:auto!important;transition:none!important}}
-  `;
-  document.head.append(settingsPolish);
-
-
-
-  // Keep settings interaction quiet and purposeful; avoid decorative motion.
-  const settingsRefinement = document.createElement("style");
-  settingsRefinement.textContent = `
-    #luma-root .settings{background:var(--md-surface-container);border-color:rgba(var(--md-outline-variant-rgb),.72);box-shadow:0 18px 48px rgba(0,0,0,.32)}
-    #luma-root .settings-header,#luma-root .settings-footer{background:var(--md-surface-container);backdrop-filter:none;-webkit-backdrop-filter:none}
-    #luma-root .settings-header:before,#luma-root .settings-header h2:after,#luma-root .settings-section h3:before{content:none!important;display:none!important}
-    #luma-root .settings-section h3{font-size:13px;font-weight:650;letter-spacing:0;text-transform:none;color:var(--md-on-surface)}
-    #luma-root .settings .setting-control,#luma-root .settings .setting-toggle{border-radius:0;transition:background-color .14s ease}
-    #luma-root .settings .setting-control:hover,#luma-root .settings .setting-toggle:hover{padding-inline:0;background:rgba(var(--md-on-surface-rgb),.035)}
-    #luma-root .settings .setting-toggle strong{transition:none}
-    #luma-root .settings .setting-toggle:hover strong{color:var(--md-on-surface)}
-    #luma-root .settings input[type=range]::-webkit-slider-thumb{transition:background-color .12s ease}
-    #luma-root .settings input[type=range]:hover::-webkit-slider-thumb{transform:none;box-shadow:none}
-    #luma-root .settings .setting-toggle input[type=checkbox]:hover{box-shadow:none}
-    #luma-root .settings .mode-trigger{transition:border-color .14s ease,background-color .14s ease}
-    #luma-root .settings .mode-trigger:hover{transform:none}
-    #luma-root .settings .mode-trigger svg{transition:transform .14s ease}
-    #luma-root .settings .mode-options:not([hidden]){animation:none}
-    #luma-root .settings .mode-options{background:var(--md-surface-container-high);backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:0 8px 24px rgba(0,0,0,.24)}
-    #luma-root .settings .mode-options button{transition:background-color .12s ease,color .12s ease}
-    #luma-root .settings .mode-options button:hover{transform:none}
-    #luma-root .settings .settings-close{transition:background-color .14s ease}
-    #luma-root .settings .settings-close:hover{transform:none}
-    #luma-root .settings .settings-footer button{transition:background-color .14s ease,border-color .14s ease}
-    #luma-root .settings .settings-footer button:hover{transform:none;filter:none}
-    #luma-root .settings .settings-footer button:active{transform:none}
-    #luma-root .settings button:focus-visible,#luma-root .settings select:focus-visible,#luma-root .settings input:focus-visible{outline:2px solid var(--md-primary);outline-offset:2px}
+  // Preserve the existing vinyl artwork treatment independently of settings.
+  const vinylRefinement = document.createElement("style");
+  vinylRefinement.textContent = `
     #luma-root.vinyl .artwork-stage{isolation:isolate;overflow:hidden;border-radius:50%;background:radial-gradient(circle at 50% 50%,#303034 0 1.2%,#111113 1.5% 4.2%,#29292d 4.5% 5.1%,#101012 5.4% 100%);box-shadow:0 20px 44px rgba(0,0,0,.48),0 1px 0 rgba(255,255,255,.12) inset}
     #luma-root.vinyl .artwork-stage:before{z-index:1;inset:0;border-radius:50%;background:repeating-radial-gradient(circle at 50% 50%,transparent 0 2.4px,rgba(255,255,255,.095) 2.7px,rgba(0,0,0,.62) 3.1px,transparent 3.5px 5.1px),conic-gradient(from 18deg,transparent 0deg,rgba(255,255,255,.16) 34deg,transparent 78deg 180deg,rgba(255,255,255,.07) 226deg,transparent 270deg 360deg),radial-gradient(circle,rgba(var(--accent-rgb),.13),transparent 57%);box-shadow:inset 0 0 12px rgba(0,0,0,.72),inset 0 0 2px rgba(255,255,255,.18);pointer-events:none}
     #luma-root.vinyl .cover{z-index:2;left:20%;top:20%;width:60%;height:60%;border:2px solid rgba(8,8,10,.9);border-radius:50%;box-shadow:0 0 0 1px rgba(255,255,255,.13),0 2px 12px rgba(0,0,0,.65)}
@@ -464,39 +403,7 @@ export function installStyles(document) {
     @keyframes luma-vinyl-rotation{to{transform:rotate(360deg)}}
     @media(prefers-reduced-motion:reduce){#luma-root.vinyl .artwork-stage{animation:none!important}}
   `;
-  document.head.append(settingsRefinement);
-  const restrainedSettings = document.createElement("style");
-  restrainedSettings.textContent = `
-    /* Keep settings controls quiet: no glow, lift, scale, or decorative motion. */
-    #luma-root .settings,
-    #luma-root .settings *{text-shadow:none!important;filter:none}
-    #luma-root .settings button,
-    #luma-root .settings input,
-    #luma-root .settings select{box-shadow:none!important}
-    #luma-root .settings button,
-    #luma-root .settings .setting-control,
-    #luma-root .settings .setting-toggle,
-    #luma-root .settings input,
-    #luma-root .settings select{animation:none!important;transform:none!important}
-    #luma-root .settings button,
-    #luma-root .settings .setting-control,
-    #luma-root .settings .setting-toggle,
-    #luma-root .settings input,
-    #luma-root .settings select{transition:background-color .12s ease,color .12s ease,border-color .12s ease,opacity .12s ease}
-    #luma-root .settings button:hover,
-    #luma-root .settings input:hover,
-    #luma-root .settings select:hover{box-shadow:none!important;filter:none!important;transform:none!important}
-    #luma-root .settings input[type=range]::-webkit-slider-thumb,
-    #luma-root .settings input[type=range]::-moz-range-thumb{box-shadow:none!important}
-    #luma-root .settings input[type=range]:hover::-webkit-slider-thumb,
-    #luma-root .settings input[type=range]:hover::-moz-range-thumb{box-shadow:none!important;transform:none!important}
-    #luma-root .settings input[type=checkbox]{box-shadow:none!important}
-    #luma-root.vinyl .artwork-stage{animation:luma-vinyl-rotation 1.8s linear infinite;animation-play-state:paused}
-    #luma-root.vinyl.playing .artwork-stage{animation-play-state:running}
-    @media(prefers-reduced-motion:reduce){#luma-root.vinyl .artwork-stage{animation:none!important}}
-`;
-  document.head.append(restrainedSettings);
-
+  document.head.append(vinylRefinement);
 
   const spotifyControls = document.createElement("style");
   spotifyControls.textContent = `
@@ -516,272 +423,85 @@ export function installStyles(document) {
   `;
   document.head.append(spotifyControls);
 
-  // Settings panel: a quieter, more deliberate Material surface.
-  // Motion is limited to opening the panel and revealing its menu; controls
-  // respond through colour and focus states rather than decorative movement.
-  const settingsFinish = document.createElement("style");
-  settingsFinish.textContent = `
+  // One authoritative settings panel stylesheet. Keep this consolidated so
+  // earlier experimental glass/glow treatments cannot compete in the cascade.
+  const settingsStyles = document.createElement("style");
+  settingsStyles.textContent = `
     #luma-root .settings{
-      width:min(392px,calc(100vw - 32px));
+      position:absolute;
+      top:74px;
+      right:24px;
+      z-index:7;
+      width:min(380px,calc(100vw - 32px));
       max-height:calc(100vh - 96px);
-      border:1px solid rgba(var(--md-outline-variant-rgb),.8);
+      overflow-x:hidden;
+      overflow-y:auto;
+      padding:0;
+      border:1px solid rgba(var(--md-outline-variant-rgb),.72);
       border-radius:20px;
       background:var(--md-surface-container);
-      box-shadow:0 12px 34px rgba(0,0,0,.28);
+      box-shadow:0 8px 24px rgba(0,0,0,.24);
+      backdrop-filter:none;
+      -webkit-backdrop-filter:none;
+      scrollbar-width:thin;
+      scrollbar-color:rgba(var(--md-on-surface-rgb),.24) transparent;
       transform-origin:top right;
-      animation:luma-settings-open .16s ease-out both;
+      animation:luma-settings-open .18s ease-out both;
     }
     #luma-root .settings-header{
-      padding:19px 21px 16px;
-      border-bottom:1px solid rgba(var(--md-outline-variant-rgb),.48);
+      position:sticky;top:0;z-index:2;display:flex;align-items:center;
+      justify-content:space-between;gap:16px;padding:18px 20px 15px;
+      border:0;border-bottom:1px solid rgba(var(--md-outline-variant-rgb),.48);
       background:var(--md-surface-container);
     }
-    #luma-root .settings-header h2{
-      font-size:20px;
-      line-height:1.3;
-      font-weight:650;
-      letter-spacing:-.35px;
-    }
-    #luma-root .settings-description{
-      margin-top:4px;
-      font-size:12px;
-      line-height:1.45;
-    }
-    #luma-root .settings .settings-close{
-      width:36px;
-      height:36px;
-      border:1px solid transparent;
-      background:transparent;
-      color:var(--md-on-surface-variant);
-    }
-    #luma-root .settings .settings-close:hover{
-      background:var(--md-surface-container-high);
-      color:var(--md-on-surface);
-    }
-    #luma-root .settings-section{
-      padding:16px 21px 15px!important;
-      border-bottom:1px solid rgba(var(--md-outline-variant-rgb),.42)!important;
-    }
-    #luma-root .settings-section h3{
-      margin:0 0 10px;
-      font-size:13px;
-      font-weight:650;
-      letter-spacing:0;
-    }
-    #luma-root .settings .setting-control,
-    #luma-root .settings .setting-toggle{
-      padding:11px 0;
-      background:transparent;
-      border-radius:0;
-      transition:color .14s ease;
-    }
-    #luma-root .settings .setting-control:hover,
-    #luma-root .settings .setting-toggle:hover{
-      padding-inline:0;
-      background:transparent;
-    }
-    #luma-root .settings .setting-toggle strong{
-      font-size:12px;
-      font-weight:600;
-      line-height:1.4;
-    }
-    #luma-root .settings .setting-toggle small,
-    #luma-root .settings .setting-control small{
-      font-size:11px;
-      line-height:1.45;
-    }
-    #luma-root .settings .setting-control output{
-      font-size:11px;
-      font-variant-numeric:tabular-nums;
-    }
-    #luma-root .settings input[type=range]{
-      margin-top:8px;
-      accent-color:var(--md-primary);
-      cursor:pointer;
-    }
-    #luma-root .settings .mode-trigger{
-      min-height:40px;
-      border:1px solid rgba(var(--md-outline-rgb),.65);
-      border-radius:10px;
-      background:var(--md-surface-container-high);
-      transition:background-color .14s ease,border-color .14s ease;
-    }
-    #luma-root .settings .mode-trigger:hover{
-      background:var(--md-surface-high);
-      border-color:rgba(var(--md-outline-rgb),.95);
-    }
-    #luma-root .settings .mode-options{
-      border:1px solid rgba(var(--md-outline-variant-rgb),.8);
-      border-radius:12px;
-      background:var(--md-surface-container-high);
-      box-shadow:0 8px 22px rgba(0,0,0,.24);
-    }
-    #luma-root .settings .mode-options:not([hidden]){
-      animation:luma-settings-menu .12s ease-out both;
-    }
-    #luma-root .settings .mode-options button{
-      border-radius:8px;
-      transition:background-color .12s ease,color .12s ease;
-    }
-    #luma-root .settings .mode-options button:hover{
-      background:rgba(var(--md-on-surface-rgb),.07);
-    }
-    #luma-root .settings .sync-adjust{
-      gap:7px;
-    }
-    #luma-root .settings .sync-adjust button{
-      min-height:31px;
-      border:1px solid rgba(var(--md-outline-rgb),.55);
-      border-radius:8px;
-      background:var(--md-surface-container-high);
-      color:var(--md-on-surface);
-      transition:background-color .12s ease,border-color .12s ease;
-    }
-    #luma-root .settings .sync-adjust button:hover{
-      background:var(--md-surface-high);
-      border-color:rgba(var(--md-outline-rgb),.9);
-    }
-    #luma-root .settings select{
-      min-height:40px;
-      border:1px solid rgba(var(--md-outline-rgb),.65);
-      border-radius:10px;
-      background:var(--md-surface-container-high);
-      color:var(--md-on-surface);
-    }
-    #luma-root .settings select:hover{
-      border-color:rgba(var(--md-outline-rgb),.95);
-      background:var(--md-surface-high);
-    }
-    #luma-root .settings .privacy-note{
-      padding:10px 11px;
-      border:1px solid rgba(var(--md-outline-variant-rgb),.38);
-      border-radius:10px;
-      background:var(--md-surface-container-high);
-      font-size:10px;
-      line-height:1.5;
-    }
-    #luma-root .settings-footer{
-      padding:13px 21px;
-      border-top:1px solid rgba(var(--md-outline-variant-rgb),.48);
-      background:var(--md-surface-container);
-    }
-    #luma-root .settings .settings-footer button{
-      min-height:37px;
-      border:1px solid rgba(var(--md-outline-rgb),.55);
-      border-radius:10px;
-      background:transparent;
-      transition:background-color .14s ease,border-color .14s ease;
-    }
-    #luma-root .settings .settings-footer button:hover{
-      background:var(--md-surface-container-high);
-      border-color:rgba(var(--md-outline-rgb),.9);
-    }
-    #luma-root .settings .settings-footer button:last-child{
-      border-color:var(--md-primary);
-      background:var(--md-primary);
-      color:var(--md-on-primary);
-    }
-    #luma-root .settings .settings-footer button:last-child:hover{
-      background:var(--md-primary);
-      filter:brightness(1.06);
-    }
-    #luma-root .settings button:focus-visible,
-    #luma-root .settings select:focus-visible,
-    #luma-root .settings input:focus-visible{
-      outline:2px solid var(--md-primary);
-      outline-offset:2px;
-    }
-    @keyframes luma-settings-open{
-      from{opacity:0;transform:translateY(-5px)}
-      to{opacity:1;transform:translateY(0)}
-    }
-    @keyframes luma-settings-menu{
-      from{opacity:0;transform:translateY(-3px)}
-      to{opacity:1;transform:translateY(0)}
-    }
+    #luma-root .settings-header h2{margin:0;font-size:20px;line-height:1.3;font-weight:650;letter-spacing:-.3px}
+    #luma-root .settings-description{margin:4px 0 0;color:var(--md-on-surface-variant);font-size:12px;line-height:1.45}
+    #luma-root .settings .settings-close{flex:none;display:grid;place-items:center;width:36px;height:36px;margin:0;padding:0;border:1px solid transparent;border-radius:50%;background:transparent;color:var(--md-on-surface-variant)}
+    #luma-root .settings .settings-close:hover{background:var(--md-surface-container-high);color:var(--md-on-surface)}
+    #luma-root .settings-section{margin:0!important;padding:16px 20px 14px!important;border:0!important;border-bottom:1px solid rgba(var(--md-outline-variant-rgb),.42)!important;border-radius:0!important;background:transparent!important}
+    #luma-root .settings-section h3{margin:0 0 10px;color:var(--md-on-surface);font-size:13px;line-height:1.35;font-weight:650;letter-spacing:0;text-transform:none}
+    #luma-root .settings .setting-control,#luma-root .settings .setting-toggle{margin:0;padding:10px 0;border-radius:0;background:transparent;font-size:12px;line-height:1.45}
+    #luma-root .settings .setting-control+.setting-control,#luma-root .settings .setting-control+.setting-toggle,#luma-root .settings .setting-toggle+.setting-control,#luma-root .settings .setting-toggle+.setting-toggle{border-top:1px solid rgba(var(--md-outline-variant-rgb),.28)}
+    #luma-root .settings .setting-control>span,#luma-root .settings .setting-toggle>span{display:block;min-width:0}
+    #luma-root .settings .setting-toggle{display:flex;align-items:center;justify-content:space-between;gap:16px}
+    #luma-root .settings .setting-toggle strong{display:block;color:var(--md-on-surface);font-size:12px;font-weight:600;line-height:1.4}
+    #luma-root .settings .setting-toggle small,#luma-root .settings .setting-control small{max-width:29em;margin-top:4px;color:var(--md-on-surface-variant);font-size:11px;line-height:1.45}
+    #luma-root .settings .setting-control output{float:right;color:var(--md-on-surface-variant);font-size:11px;font-variant-numeric:tabular-nums}
+    #luma-root .settings input[type=range]{display:block;width:100%;margin:8px 0 0;accent-color:var(--md-primary);cursor:pointer}
+    #luma-root .settings .mode-control{display:grid;grid-template-columns:minmax(0,1fr) minmax(128px,.9fr);align-items:center;gap:12px}
+    #luma-root .settings .mode-trigger{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:40px;margin:0;padding:8px 11px;border:1px solid rgba(var(--md-outline-rgb),.6);border-radius:10px;background:var(--md-surface-container-high);font-size:12px;transition:background-color .12s ease,border-color .12s ease}
+    #luma-root .settings .mode-trigger:hover{background:var(--md-surface-high);border-color:rgba(var(--md-outline-rgb),.9)}
+    #luma-root .settings .mode-options{top:calc(100% + 6px);border:1px solid rgba(var(--md-outline-variant-rgb),.8);border-radius:12px;background:var(--md-surface-container-high);box-shadow:0 8px 20px rgba(0,0,0,.2)}
+    #luma-root .settings .mode-options:not([hidden]){animation:luma-settings-menu .12s ease-out both}
+    #luma-root .settings .mode-options button{border-radius:8px;transition:background-color .12s ease,color .12s ease}
+    #luma-root .settings .mode-options button:hover{background:rgba(var(--md-on-surface-rgb),.07)}
+    #luma-root .settings .sync-adjust{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:8px}
+    #luma-root .settings .sync-adjust button{min-height:31px;margin:0;padding:6px 9px;border:1px solid rgba(var(--md-outline-rgb),.55);border-radius:8px;background:var(--md-surface-container-high);color:var(--md-on-surface);font-size:11px}
+    #luma-root .settings .sync-adjust button:hover{background:var(--md-surface-high);border-color:rgba(var(--md-outline-rgb),.9)}
+    #luma-root .settings select{display:block;width:100%;min-height:40px;margin-top:8px;padding:9px 11px;border:1px solid rgba(var(--md-outline-rgb),.6);border-radius:10px;background:var(--md-surface-container-high);color:var(--md-on-surface);font:inherit;font-size:12px}
+    #luma-root .settings select option{background:var(--md-surface-container);color:var(--md-on-surface)}
+    #luma-root .settings .privacy-note{display:block;margin:11px 0 0;padding:9px 11px;border:1px solid rgba(var(--md-outline-variant-rgb),.36);border-radius:10px;background:var(--md-surface-container-high);color:var(--md-on-surface-variant);font-size:10px;line-height:1.5}
+    #luma-root .settings-footer{position:sticky;bottom:0;display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0;padding:12px 20px;border-top:1px solid rgba(var(--md-outline-variant-rgb),.48);background:var(--md-surface-container)}
+    #luma-root .settings .settings-footer button{min-height:36px;margin:0;padding:7px 12px;border:1px solid rgba(var(--md-outline-rgb),.55);border-radius:10px;background:transparent;color:var(--md-on-surface);font-size:12px;transition:background-color .12s ease,border-color .12s ease}
+    #luma-root .settings .settings-footer button:hover{background:var(--md-surface-container-high);border-color:rgba(var(--md-outline-rgb),.9)}
+    #luma-root .settings .settings-footer button:last-child{border-color:var(--md-primary);background:var(--md-primary);color:var(--md-on-primary);font-weight:600}
+    #luma-root .settings .settings-footer button:last-child:hover{background:var(--md-primary);filter:brightness(1.05)}
+    #luma-root .settings button:focus-visible,#luma-root .settings select:focus-visible,#luma-root .settings input:focus-visible{outline:2px solid var(--md-primary);outline-offset:2px}
+    #luma-root .settings button,#luma-root .settings input,#luma-root .settings select{box-shadow:none;text-shadow:none}
+    #luma-root .settings button:hover,#luma-root .settings input:hover,#luma-root .settings select:hover{filter:none}
+    #luma-root .settings .setting-control:hover,#luma-root .settings .setting-toggle:hover{background:transparent}
+    #luma-root .settings-header:before,#luma-root .settings-header h2:after,#luma-root .settings-section h3:before{content:none!important;display:none!important}
+    @keyframes luma-settings-open{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes luma-settings-menu{from{opacity:0;transform:translateY(-2px)}to{opacity:1;transform:translateY(0)}}
     @media(max-width:560px){
-      #luma-root .settings{
-        right:12px;
-        width:calc(100vw - 24px);
-        max-height:calc(100vh - 88px);
-        border-radius:18px;
-      }
-      #luma-root .settings-header{padding:16px 17px 14px}
-      #luma-root .settings-section{padding:14px 17px!important}
-      #luma-root .settings-footer{padding:11px 17px}
+      #luma-root .settings{top:68px;right:12px;width:calc(100vw - 24px);max-height:calc(100vh - 84px);border-radius:18px}
+      #luma-root .settings-header{padding:15px 16px 13px}
+      #luma-root .settings-section{padding:13px 16px!important}
+      #luma-root .settings-footer{padding:10px 16px}
     }
-    @media(prefers-reduced-motion:reduce){
-      #luma-root .settings,
-      #luma-root .settings .mode-options:not([hidden]){
-        animation:none!important;
-      }
-      #luma-root .settings *{transition:none!important}
-    }
+    @media(prefers-reduced-motion:reduce){#luma-root .settings,#luma-root .settings .mode-options:not([hidden]){animation:none!important}#luma-root .settings *{transition:none!important}}
   `;
-  document.head.append(settingsFinish);
-
-
-  // Final settings cleanup: remove decorative glow layers from every
-  // descendant, including pseudo-elements and custom control indicators.
-  const settingsNoGlow = document.createElement("style");
-  settingsNoGlow.textContent = `
-    #luma-root .settings,
-    #luma-root .settings *,
-    #luma-root .settings *::before,
-    #luma-root .settings *::after{
-      text-shadow:none!important;
-      filter:none!important;
-      box-shadow:none!important;
-    }
-    #luma-root .settings::before,
-    #luma-root .settings::after,
-    #luma-root .settings *::before,
-    #luma-root .settings *::after{
-      content:none!important;
-      display:none!important;
-      background-image:none!important;
-      animation:none!important;
-    }
-    #luma-root .settings button,
-    #luma-root .settings button:hover,
-    #luma-root .settings button:active,
-    #luma-root .settings .setting-control,
-    #luma-root .settings .setting-toggle,
-    #luma-root .settings input,
-    #luma-root .settings select{
-      box-shadow:none!important;
-      text-shadow:none!important;
-      filter:none!important;
-      transform:none!important;
-    }
-    #luma-root .settings input[type=range]::-webkit-slider-thumb,
-    #luma-root .settings input[type=range]:hover::-webkit-slider-thumb,
-    #luma-root .settings input[type=range]::-moz-range-thumb,
-    #luma-root .settings input[type=range]:hover::-moz-range-thumb{
-      box-shadow:none!important;
-      filter:none!important;
-    }
-    #luma-root .settings input[type=checkbox],
-    #luma-root .settings input[type=checkbox]:checked,
-    #luma-root .settings input[type=checkbox]:hover{
-      box-shadow:none!important;
-      filter:none!important;
-    }
-    #luma-root .settings .settings-header,
-    #luma-root .settings .settings-footer,
-    #luma-root .settings .settings-section,
-    #luma-root .settings .privacy-note,
-    #luma-root .settings .mode-trigger,
-    #luma-root .settings .mode-options{
-      backdrop-filter:none!important;
-      -webkit-backdrop-filter:none!important;
-    }
-    #luma-root .settings .settings-footer button:last-child:hover{
-      filter:none!important;
-      box-shadow:none!important;
-    }
-  `;
-  document.head.append(settingsNoGlow);
+  document.head.append(settingsStyles);
 
   return desktop;
 }
