@@ -720,5 +720,68 @@ export function installStyles(document) {
   `;
   document.head.append(settingsFinish);
 
+
+  // Final settings cleanup: remove decorative glow layers from every
+  // descendant, including pseudo-elements and custom control indicators.
+  const settingsNoGlow = document.createElement("style");
+  settingsNoGlow.textContent = `
+    #luma-root .settings,
+    #luma-root .settings *,
+    #luma-root .settings *::before,
+    #luma-root .settings *::after{
+      text-shadow:none!important;
+      filter:none!important;
+      box-shadow:none!important;
+    }
+    #luma-root .settings::before,
+    #luma-root .settings::after,
+    #luma-root .settings *::before,
+    #luma-root .settings *::after{
+      content:none!important;
+      display:none!important;
+      background-image:none!important;
+      animation:none!important;
+    }
+    #luma-root .settings button,
+    #luma-root .settings button:hover,
+    #luma-root .settings button:active,
+    #luma-root .settings .setting-control,
+    #luma-root .settings .setting-toggle,
+    #luma-root .settings input,
+    #luma-root .settings select{
+      box-shadow:none!important;
+      text-shadow:none!important;
+      filter:none!important;
+      transform:none!important;
+    }
+    #luma-root .settings input[type=range]::-webkit-slider-thumb,
+    #luma-root .settings input[type=range]:hover::-webkit-slider-thumb,
+    #luma-root .settings input[type=range]::-moz-range-thumb,
+    #luma-root .settings input[type=range]:hover::-moz-range-thumb{
+      box-shadow:none!important;
+      filter:none!important;
+    }
+    #luma-root .settings input[type=checkbox],
+    #luma-root .settings input[type=checkbox]:checked,
+    #luma-root .settings input[type=checkbox]:hover{
+      box-shadow:none!important;
+      filter:none!important;
+    }
+    #luma-root .settings .settings-header,
+    #luma-root .settings .settings-footer,
+    #luma-root .settings .settings-section,
+    #luma-root .settings .privacy-note,
+    #luma-root .settings .mode-trigger,
+    #luma-root .settings .mode-options{
+      backdrop-filter:none!important;
+      -webkit-backdrop-filter:none!important;
+    }
+    #luma-root .settings .settings-footer button:last-child:hover{
+      filter:none!important;
+      box-shadow:none!important;
+    }
+  `;
+  document.head.append(settingsNoGlow);
+
   return desktop;
 }
