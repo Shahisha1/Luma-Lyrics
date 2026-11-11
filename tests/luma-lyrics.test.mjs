@@ -412,6 +412,12 @@ test("romanizeText: Cyrillic preserves case", () => {
   assert.equal(romanizeText("Привет"), "Privet");
 });
 
+test("romanizeText: Hindi Devanagari", () => {
+  assert.equal(romanizeText("नमस्ते"), "namaste");
+  assert.equal(romanizeText("दिल"), "dil");
+  assert.equal(romanizeText("प्यार"), "pyaar");
+});
+
 test("romanizeText: Latin and Chinese text need no romanization", () => {
   assert.equal(romanizeText("Hello"), "");
   assert.equal(romanizeText("你好"), "");
