@@ -513,9 +513,9 @@ test("styles: installs all overlay style layers without runtime globals", () => 
     head: { append: (element) => appended.push(element) },
   };
   installStyles(document);
-  assert.equal(appended.length, 8);
+  assert.equal(appended.length, 9);
   assert.ok(appended.every((element) => element.tagName === "style" && element.textContent.length > 0));
-  assert.match(appended[7].textContent, /control-button-lyrics/);
+  assert.match(appended[8].textContent, /control-button-lyrics/);
   assert.match(appended[0].textContent, /#luma-root \.layout/);
   assert.match(appended[2].textContent, /control-button-lyrics/);
   assert.match(appended[2].textContent, /aria-label=\\?"Luma Lyrics/);
@@ -568,7 +568,11 @@ test("settings and vinyl styling stay restrained and playback-aware", () => {
   const styles = appended.join("\\n");
   assert.match(styles, /luma-vinyl-rotation/);
   assert.match(styles, /repeating-radial-gradient/);
-  assert.match(styles, /animation-play-state:running/);
+  assert.match(styles, /animation-play-state:paused/);
+  assert.match(styles, /#luma-root\\.vinyl\\.playing \\.artwork-stage\\{animation-play-state:running\\}/);
+  assert.doesNotMatch(styles, /luma-vinyl-spin/);
   assert.match(styles, /content:none!important/);
+  assert.match(styles, /transform:none!important/);
+  assert.match(styles, /box-shadow:none!important/);
   assert.doesNotMatch(styles, /luma-settings-pulse/);
 });
