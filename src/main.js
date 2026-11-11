@@ -40,7 +40,7 @@ import { createArtworkPalette } from "./theme/artwork.js";
   root.setAttribute("aria-modal", "true");
   root.setAttribute("aria-label", "Luma Lyrics");
   root.innerHTML = `<div class="backdrop"></div><div class="shade"></div><div class="bar"><button class="tool" data-action="close" aria-label="Close" title="Close">${stroke("close")}</button><button class="tool" data-action="full" aria-label="Toggle fullscreen" title="Fullscreen">${stroke("full")}</button><span class="status">LRCLIB · line sync</span><button class="tool" data-action="settings" aria-label="Settings" aria-expanded="false" title="Settings">${stroke("settings")}</button></div>
- <div class="layout"><div class="player"><img class="cover" alt="Album artwork"><div class="title">Nothing playing</div><div class="artist"></div><input class="seek" type="range" min="0" max="1000" value="0" aria-label="Playback position"><div class="times"><span class="elapsed">0:00</span><span class="duration">0:00</span></div><div class="controls"><button data-action="previous" aria-label="Previous">${icons.previous}</button><button class="play" data-action="play" aria-label="Play or pause">${icons.play}</button><button data-action="next" aria-label="Next">${icons.next}</button></div><label class="volume">${svg("M3 9h4l5-4v14l-5-4H3z")}<input type="range" class="vol" min="0" max="1" step=".01" aria-label="Volume"></label></div><div class="lyrics" tabindex="0" aria-label="Lyrics"></div></div>
+ <div class="layout"><div class="player"><img class="cover" alt="Album artwork"><div class="title">Nothing playing</div><div class="artist"></div><input class="seek" type="range" min="0" max="1000" value="0" aria-label="Playback position"><div class="times"><span class="elapsed">0:00</span><span class="duration">0:00</span></div><div class="controls"><button data-action="previous" aria-label="Previous">${icons.previous}</button><button class="play" data-action="play" aria-label="Play or pause">${icons.play}</button><button data-action="next" aria-label="Next">${icons.next}</button></div><label class="volume"><span class="volume-icon" aria-hidden="true">${svg("M3 9h4l5-4v14l-5-4H3z")}</span><input id="luma-volume" type="range" class="vol" min="0" max="1" step=".01" aria-label="Volume" aria-valuetext="100%"><output class="volume-value" for="luma-volume">100%</output></label></div><div class="lyrics" tabindex="0" aria-label="Lyrics"></div></div>
  <div class="settings" role="region" aria-label="Lyrics settings" hidden></div>`;
   document.body.append(root);
   const q = (s) => root.querySelector(s),
@@ -57,6 +57,27 @@ import { createArtworkPalette } from "./theme/artwork.js";
     input.style.setProperty("--range-progress", progress.toFixed(1) + "%");
   }
   const updateSeekVisual = () => updateRangeVisual(seek);
+  function updateVolumeVisual(value) {
+    const input = q(".vol");
+    const volume = Math.max(0, Math.min(1, Number(value) || 0));
+    if (document.activeElement !== input) input.value = String(volume);
+    updateRangeVisual(input);
+    const percent = Math.round(volume * 100);
+    const output = q(".volume-value");
+    if (output.textContent !== percent + "%") output.textContent = percent + "%";
+    input.setAttribute("aria-valuetext", percent + "%");
+    const level = volume === 0 ? "muted" : volume < 0.5 ? "low" : "high";
+    const paths = {
+      muted: "M3 9h4l5-4v14l-5-4H3zM16 9l5 6m0-6-5 6",
+      low: "M3 9h4l5-4v14l-5-4H3zM16 9a5 5 0 0 1 0 6",
+      high: "M3 9h4l5-4v14l-5-4H3zM16 9a5 5 0 0 1 0 6M19 5a10 10 0 0 1 0 14",
+    };
+    const icon = q(".volume-icon");
+    if (icon.dataset.level !== level) {
+      icon.innerHTML = svg(paths[level]);
+      icon.dataset.level = level;
+    }
+  }
   const cover = q(".cover"),
     artworkStage = document.createElement("div");
   // Material You style dynamic color: one hue from the artwork -> tonal palette.
@@ -620,9 +641,8 @@ import { createArtworkPalette } from "./theme/artwork.js";
     q(".duration").textContent = fmt(duration);
     if (document.activeElement !== seek)
       q(".seek").value = duration ? (progress / duration) * 1000 : 0;
-    if (document.activeElement !== q(".vol")) q(".vol").value = p.getVolume();
-    updateSeekVisual(seek.value);
-    updateRangeVisual(q(".vol"));
+    updateVolumeVisual(p.getVolume());
+    updateSeekVisual();
     const playing = p.isPlaying();
     root.classList.toggle("playing", playing);
     const state = playing ? "pause" : "play";
@@ -968,8 +988,9 @@ import { createArtworkPalette } from "./theme/artwork.js";
   seek.oninput = updateSeekVisual;
   seek.onchange = () => player().seek(Number(seek.value) / 1000);
   q(".vol").oninput = (e) => {
-    updateRangeVisual(e.currentTarget);
-    player().setVolume(Number(e.currentTarget.value));
+    const value = Number(e.currentTarget.value);
+    updateVolumeVisual(value);
+    player().setVolume(value);
   };
   for (const [selector, field] of [
     [".size", "size"],

@@ -915,39 +915,42 @@ function installStyles(document) {
     }
   `;
   document.head.append(flow);
-  // UI polish: clearer states, usable sync controls, and better small-screen
-  // spacing. These rules are appended last so they win over earlier passes.
+  // Final layout pass: restore the player's progress metadata and volume
+  // control, then apply one consistent spacing rhythm across the overlay.
   const ui = document.createElement("style");
   ui.textContent = `
     #luma-root .bar{top:22px;inset-inline:24px;z-index:6}
-    #luma-root .status{padding:6px 10px;border-radius:999px;background:rgba(var(--md-surface-container-rgb,.2),.5);color:var(--md-on-surface-variant,#ffffffa8);font-size:11px;line-height:1;white-space:nowrap;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
-    #luma-root .layout{grid-template-columns:minmax(300px,430px) minmax(0,1fr)!important;gap:min(5vw,60px)!important;padding:78px min(5vw,56px) 34px!important;align-items:center}
-    #luma-root .player{display:flex!important;flex-direction:column;gap:14px;padding:18px!important;border-radius:28px;max-width:430px}
-    #luma-root .player>.artwork-stage{width:100%}
-    #luma-root .player .title{margin:0!important;font-size:26px;line-height:1.15;letter-spacing:-.6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    #luma-root .player .artist{margin:4px 0 0!important;font-size:16px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(var(--md-on-surface-variant-rgb,255,255,255),.72)}
-    #luma-root .player .times,#luma-root .player .volume{display:none!important}
-    #luma-root .player .controls{margin:2px 0 0!important;gap:14px}
-    #luma-root .player .controls button{width:44px;height:44px}
-    #luma-root .player .controls .play{width:54px;height:54px}
-    /* Even bigger in fullscreen */
-    #luma-root:fullscreen .layout{grid-template-columns:minmax(360px,500px) minmax(0,1fr)!important;gap:min(6vw,84px)!important}
-    #luma-root:fullscreen .player{max-width:500px;padding:22px!important}
-    #luma-root:fullscreen .player .title{font-size:31px}
-    #luma-root:fullscreen .player .artist{font-size:18px}
-    #luma-root:fullscreen .player .controls{gap:18px}
+    #luma-root .status{padding:6px 10px;border-radius:999px;background:rgba(var(--md-surface-container-rgb,.2),.5);color:var(--md-on-surface-variant,#ffffffa8);font-size:11px;line-height:1;white-space:nowrap;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+    #luma-root .layout{grid-template-columns:minmax(280px,390px) minmax(0,1fr)!important;gap:clamp(32px,4.5vw,64px)!important;padding:82px clamp(28px,5vw,72px) 32px!important;align-items:center}
+    #luma-root .player{display:flex!important;flex-direction:column;gap:12px;padding:22px!important;border:1px solid rgba(var(--md-outline-variant-rgb),.72);border-radius:24px;max-width:390px;background:var(--md-surface-container);backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:0 14px 36px rgba(0,0,0,.22);transition:background-color .24s ease,border-color .24s ease}
+    #luma-root .player>.artwork-stage{width:100%;margin-bottom:4px}
+    #luma-root .player .title{margin:0!important;font-size:25px;line-height:1.18;letter-spacing:-.55px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    #luma-root .player .artist{margin:3px 0 2px!important;font-size:15px;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--md-on-surface-variant)}
+    #luma-root .player .seek{margin:2px 0 0;height:20px}
+    #luma-root .player .times{display:flex!important;justify-content:space-between;margin-top:-5px;color:var(--md-on-surface-variant);font-size:11px;font-variant-numeric:tabular-nums}
+    #luma-root .player .controls{margin:3px 0 1px!important;gap:16px}
+    #luma-root .player .controls button{width:46px;height:46px}
+    #luma-root .player .controls .play{width:56px;height:56px}
+    #luma-root .player .volume{display:flex!important;align-items:center;gap:10px;width:100%;margin:0;padding:2px 1px;color:var(--md-on-surface-variant)}
+    #luma-root .player .volume-icon{display:grid;place-items:center;flex:none;width:20px;height:20px}
+    #luma-root .player .volume-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+    #luma-root .player .volume input[type=range]{flex:1 1 auto;min-width:0;width:100%;height:20px}
+    #luma-root .player .volume-value{flex:none;min-width:36px;text-align:right;color:var(--md-on-surface-variant);font-size:11px;font-variant-numeric:tabular-nums}
+    #luma-root:fullscreen .layout{grid-template-columns:minmax(340px,460px) minmax(0,1fr)!important;gap:clamp(40px,6vw,76px)!important}
+    #luma-root:fullscreen .player{max-width:460px;padding:24px!important}
+    #luma-root:fullscreen .player .title{font-size:29px}
+    #luma-root:fullscreen .player .artist{font-size:17px}
+    #luma-root:fullscreen .player .controls{gap:20px}
     #luma-root:fullscreen .player .controls button{width:50px;height:50px}
     #luma-root:fullscreen .player .controls .play{width:62px;height:62px}
-    /* Apple Music-style lyrics */
-    #luma-root .lyrics{padding:38vh 10px 42vh;overscroll-behavior:contain}
-    #luma-root .line{font-weight:800;letter-spacing:-.7px;padding:12px 0;transition:transform .8s cubic-bezier(.22,1,.36,1),opacity .8s ease,filter .8s ease}
-    #luma-root[data-lyric-mode=word] .line:not(.active),#luma-root[data-lyric-mode=block] .line:not(.active){opacity:.32;filter:blur(1px)}
-    #luma-root[data-lyric-mode=word] .line.past,#luma-root[data-lyric-mode=block] .line.past{opacity:.42;filter:blur(.6px)}
-    #luma-root[data-lyric-mode=word] .line.active,#luma-root[data-lyric-mode=block] .line.active{transform:translateX(4px) scale(1.015)}
+    #luma-root .lyrics{padding:36vh 10px 40vh;overscroll-behavior:contain}
+    #luma-root .line{font-weight:780;letter-spacing:-.65px;padding:11px 0;transition:transform .65s cubic-bezier(.22,1,.36,1),opacity .65s ease}
+    #luma-root[data-lyric-mode=word] .line:not(.active),#luma-root[data-lyric-mode=block] .line:not(.active){opacity:.36}
+    #luma-root[data-lyric-mode=word] .line.past,#luma-root[data-lyric-mode=block] .line.past{opacity:.46}
+    #luma-root[data-lyric-mode=word] .line.active,#luma-root[data-lyric-mode=block] .line.active{transform:translateX(3px)}
     #luma-root[data-lyric-mode=gentle] .line.active,#luma-root[data-lyric-mode=static] .line.active{transform:none}
-    /* Translated / romanized line */
-    #luma-root .lyric-translation{display:block;margin-top:.18em;font-size:.6em;font-weight:600;letter-spacing:-.2px;line-height:1.3;color:#ffffff9e;white-space:pre-wrap}
-    #luma-root .line.active .lyric-translation{color:#ffffffc4}
+    #luma-root .lyric-translation{display:block;margin-top:.18em;font-size:.6em;font-weight:600;letter-spacing:-.2px;line-height:1.3;color:var(--md-on-surface-variant);white-space:pre-wrap}
+    #luma-root .line.active .lyric-translation{color:var(--md-on-surface)}
     #luma-root .message{max-width:34rem}
     #luma-root .message-actions{margin-top:14px}
     #luma-root .retry-lyrics,#luma-root .sync-adjust button{margin:0;border:1px solid rgba(var(--md-outline-rgb,255,255,255),.35);border-radius:999px;background:rgba(var(--md-secondary-container-rgb,80,80,90),.45);color:var(--md-on-secondary-container,#fff);padding:8px 12px;font-size:12px;line-height:1}
@@ -957,9 +960,14 @@ function installStyles(document) {
     #luma-root .sync-adjust input[type=range]{flex:1 1 100%;min-width:0}
     #luma-root .settings .privacy-note{margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(var(--md-surface-high-rgb,50,50,58),.45);color:var(--md-on-surface-variant,#ffffff9a)}
     #luma-root .settings{top:74px;max-height:calc(100vh - 96px);z-index:7}
-    #luma-root .settings select{margin-top:6px;width:100%;padding:8px 10px;border-radius:8px;border:1px solid #ffffff20;background:#ffffff0c;color:inherit;font:inherit}
-    @media(max-width:760px){#luma-root .bar{top:16px;inset-inline:14px}#luma-root .status{font-size:10px;padding:5px 8px}#luma-root .player .title{font-size:22px}}
-    @media(max-width:520px){#luma-root .status{max-width:46vw;overflow:hidden;text-overflow:ellipsis}#luma-root .lyrics{padding:16vh 6px 22vh}}
+    #luma-root .settings-section{margin:8px 4px;padding:18px}
+    #luma-root .settings .setting-control,#luma-root .settings .setting-toggle{margin:12px 0}
+    #luma-root .settings select{margin-top:6px;width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(var(--md-outline-rgb),.7);background:transparent;color:inherit;font:inherit}
+    @media(max-width:900px){#luma-root .layout{grid-template-columns:minmax(230px,.88fr) minmax(0,1.12fr)!important;gap:28px!important;padding:78px 28px 24px!important}#luma-root .player{padding:18px!important}}
+    @media(max-width:760px){#luma-root .bar{top:16px;inset-inline:14px}#luma-root .status{font-size:10px;padding:5px 8px}#luma-root .layout{gap:22px!important;padding:76px 20px 22px!important}#luma-root .player .title{font-size:21px}#luma-root .player .controls{gap:12px}}
+    @media(max-width:560px){#luma-root .status{max-width:46vw;overflow:hidden;text-overflow:ellipsis}#luma-root .layout{grid-template-columns:minmax(0,1fr)!important;align-content:start;overflow:auto;gap:14px!important;padding:76px 16px 20px!important}#luma-root .player{display:grid!important;grid-template-columns:72px minmax(0,1fr);column-gap:14px;row-gap:7px;max-width:none;padding:12px!important;border-radius:20px}#luma-root .player>.artwork-stage{grid-row:1/span 2;width:72px;height:72px;margin:0}#luma-root .player .title,#luma-root .player .artist{grid-column:2}#luma-root .player .title{align-self:end;font-size:18px}#luma-root .player .artist{align-self:start;margin:0!important;font-size:12px}#luma-root .player .seek,#luma-root .player .times,#luma-root .player .controls,#luma-root .player .volume{grid-column:1/-1}#luma-root .player .seek{margin-top:6px}#luma-root .player .times{margin-top:-7px}#luma-root .player .controls{margin:0!important}#luma-root .player .volume{margin-top:-2px}#luma-root .lyrics{min-height:38vh;padding:18vh 8px 22vh}}
+    @media(max-height:700px) and (min-width:561px){#luma-root .layout{padding-top:68px!important;padding-bottom:20px!important}#luma-root .lyrics{padding-top:28vh;padding-bottom:32vh}#luma-root .player{gap:9px}}
+    @media(prefers-reduced-motion:reduce){#luma-root .player{transition:none}#luma-root .line{transition:none!important;transform:none!important}}
   `;
   document.head.append(ui);
 
@@ -1171,7 +1179,7 @@ function setArtworkAccent(image) {
   root.setAttribute("aria-modal", "true");
   root.setAttribute("aria-label", "Luma Lyrics");
   root.innerHTML = `<div class="backdrop"></div><div class="shade"></div><div class="bar"><button class="tool" data-action="close" aria-label="Close" title="Close">${stroke("close")}</button><button class="tool" data-action="full" aria-label="Toggle fullscreen" title="Fullscreen">${stroke("full")}</button><span class="status">LRCLIB · line sync</span><button class="tool" data-action="settings" aria-label="Settings" aria-expanded="false" title="Settings">${stroke("settings")}</button></div>
- <div class="layout"><div class="player"><img class="cover" alt="Album artwork"><div class="title">Nothing playing</div><div class="artist"></div><input class="seek" type="range" min="0" max="1000" value="0" aria-label="Playback position"><div class="times"><span class="elapsed">0:00</span><span class="duration">0:00</span></div><div class="controls"><button data-action="previous" aria-label="Previous">${icons.previous}</button><button class="play" data-action="play" aria-label="Play or pause">${icons.play}</button><button data-action="next" aria-label="Next">${icons.next}</button></div><label class="volume">${svg("M3 9h4l5-4v14l-5-4H3z")}<input type="range" class="vol" min="0" max="1" step=".01" aria-label="Volume"></label></div><div class="lyrics" tabindex="0" aria-label="Lyrics"></div></div>
+ <div class="layout"><div class="player"><img class="cover" alt="Album artwork"><div class="title">Nothing playing</div><div class="artist"></div><input class="seek" type="range" min="0" max="1000" value="0" aria-label="Playback position"><div class="times"><span class="elapsed">0:00</span><span class="duration">0:00</span></div><div class="controls"><button data-action="previous" aria-label="Previous">${icons.previous}</button><button class="play" data-action="play" aria-label="Play or pause">${icons.play}</button><button data-action="next" aria-label="Next">${icons.next}</button></div><label class="volume"><span class="volume-icon" aria-hidden="true">${svg("M3 9h4l5-4v14l-5-4H3z")}</span><input id="luma-volume" type="range" class="vol" min="0" max="1" step=".01" aria-label="Volume" aria-valuetext="100%"><output class="volume-value" for="luma-volume">100%</output></label></div><div class="lyrics" tabindex="0" aria-label="Lyrics"></div></div>
  <div class="settings" role="region" aria-label="Lyrics settings" hidden></div>`;
   document.body.append(root);
   const q = (s) => root.querySelector(s),
@@ -1188,6 +1196,27 @@ function setArtworkAccent(image) {
     input.style.setProperty("--range-progress", progress.toFixed(1) + "%");
   }
   const updateSeekVisual = () => updateRangeVisual(seek);
+  function updateVolumeVisual(value) {
+    const input = q(".vol");
+    const volume = Math.max(0, Math.min(1, Number(value) || 0));
+    if (document.activeElement !== input) input.value = String(volume);
+    updateRangeVisual(input);
+    const percent = Math.round(volume * 100);
+    const output = q(".volume-value");
+    if (output.textContent !== percent + "%") output.textContent = percent + "%";
+    input.setAttribute("aria-valuetext", percent + "%");
+    const level = volume === 0 ? "muted" : volume < 0.5 ? "low" : "high";
+    const paths = {
+      muted: "M3 9h4l5-4v14l-5-4H3zM16 9l5 6m0-6-5 6",
+      low: "M3 9h4l5-4v14l-5-4H3zM16 9a5 5 0 0 1 0 6",
+      high: "M3 9h4l5-4v14l-5-4H3zM16 9a5 5 0 0 1 0 6M19 5a10 10 0 0 1 0 14",
+    };
+    const icon = q(".volume-icon");
+    if (icon.dataset.level !== level) {
+      icon.innerHTML = svg(paths[level]);
+      icon.dataset.level = level;
+    }
+  }
   const cover = q(".cover"),
     artworkStage = document.createElement("div");
   // Material You style dynamic color: one hue from the artwork -> tonal palette.
@@ -1751,9 +1780,8 @@ function setArtworkAccent(image) {
     q(".duration").textContent = fmt(duration);
     if (document.activeElement !== seek)
       q(".seek").value = duration ? (progress / duration) * 1000 : 0;
-    if (document.activeElement !== q(".vol")) q(".vol").value = p.getVolume();
-    updateSeekVisual(seek.value);
-    updateRangeVisual(q(".vol"));
+    updateVolumeVisual(p.getVolume());
+    updateSeekVisual();
     const playing = p.isPlaying();
     root.classList.toggle("playing", playing);
     const state = playing ? "pause" : "play";
@@ -2099,8 +2127,9 @@ function setArtworkAccent(image) {
   seek.oninput = updateSeekVisual;
   seek.onchange = () => player().seek(Number(seek.value) / 1000);
   q(".vol").oninput = (e) => {
-    updateRangeVisual(e.currentTarget);
-    player().setVolume(Number(e.currentTarget.value));
+    const value = Number(e.currentTarget.value);
+    updateVolumeVisual(value);
+    player().setVolume(value);
   };
   for (const [selector, field] of [
     [".size", "size"],

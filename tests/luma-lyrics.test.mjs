@@ -519,6 +519,9 @@ test("styles: installs all overlay style layers without runtime globals", () => 
   assert.match(appended[0].textContent, /#luma-root \.layout/);
   assert.match(appended[2].textContent, /control-button-lyrics/);
   assert.match(appended[2].textContent, /aria-label=\\?"Luma Lyrics/);
+  assert.match(appended[6].textContent, /player \.volume\\?\{display:flex!important/);
+  assert.match(appended[6].textContent, /volume-value/);
+  assert.match(appended[6].textContent, /max-width:560px/);
 });
 
 
