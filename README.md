@@ -1,58 +1,87 @@
-<div align="center>
+<div align="center">
 
 # Luma Lyrics
 
-A synced lyrics experience for Spotify desktop.
+**A synced lyrics experience for Spotify desktop.**
 
-[Download](https://github.com/Altertone/Luma-Lyrics/releases/latest) · [Settings](#settings) · [Issues](https://github.com/Altertone/Luma-Lyrics/issues)
-
-<img src="preview.gif" alt="Luma Lyrics in Spotify" width="100%">
+[Get the latest release](https://github.com/Altertone/Luma-Lyrics/releases/latest) · [Settings](#settings) · [Report an issue](https://github.com/Altertone/Luma-Lyrics/issues)
 
 </div>
 
-## Lyrics, your way
-
-<table>
-  <tr>
-    <td width="50%" align="center">
-      <strong>Word by word</strong><br>
-      <img src="screenshots/word%20by%20word.gif" alt="Word-by-word lyrics" width="100%">
-    </td>
-    <td width="50%" align="center">
-      <strong>Line by line</strong><br>
-      <img src="screenshots/line%20by%20line.gif" alt="Line-by-line lyrics" width="100%">
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" align="center">
-      <strong>Gentle</strong><br>
-      <img src="screenshots/gentle.gif" alt="Gentle lyrics mode" width="100%">
-    </td>
-    <td width="50%" align="center">
-      <strong>Static</strong><br>
-      <img src="screenshots/static.gif" alt="Static lyrics mode" width="100%">
-    </td>
-  </tr>
-</table>
-
-## Install
-
-1. Download [luma-lyrics.js](https://github.com/Altertone/Luma-Lyrics/releases/latest).
-2. Move it into your Spicetify Extensions folder.
-3. Run:
-
-   ```bash
-   spicetify config extensions luma-lyrics.js
-   spicetify apply
-   ```
-
-## Settings
-
 <p align="center">
-  <img src="screenshots/setting.png" alt="Luma Lyrics settings" width="85%">
+  <img src="preview.gif" alt="Luma Lyrics running in Spotify" width="100%">
 </p>
 
 ---
 
-Lyrics are matched through [LRCLIB](https://lrclib.net). Settings are stored locally.  
+## The way lyrics should feel
+
+Choose a reading style that fits the song. Switch between modes whenever you like.
+
+<table>
+  <tr>
+    <td width="50%" bgcolor="#f1eafa" align="center">
+      <br>
+      **Word by word**
+      <br><br>
+      <img src="screenshots/word%20by%20word.gif" alt="Word-by-word lyrics" width="100%">
+      <br><br>
+    </td>
+    <td width="50%" bgcolor="#f4eff8" align="center">
+      <br>
+      **Line by line**
+      <br><br>
+      <img src="screenshots/line%20by%20line.gif" alt="Line-by-line lyrics" width="100%">
+      <br><br>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" bgcolor="#f4eff8" align="center">
+      <br>
+      **Gentle**
+      <br><br>
+      <img src="screenshots/gentle.gif" alt="Gentle lyrics mode" width="100%">
+      <br><br>
+    </td>
+    <td width="50%" bgcolor="#f1eafa" align="center">
+      <br>
+      **Static**
+      <br><br>
+      <img src="screenshots/static.gif" alt="Static lyrics mode" width="100%">
+      <br><br>
+    </td>
+  </tr>
+</table>
+
+---
+
+## Get started
+
+Download the latest extension and add it to Spicetify.
+
+1. Download **[luma-lyrics.js](https://github.com/Altertone/Luma-Lyrics/releases/latest)**.
+2. Place the file in your Spicetify Extensions folder.
+3. Enable it and apply the changes:
+
+```bash
+spicetify config extensions luma-lyrics.js
+spicetify apply
+```
+
+---
+
+## Settings
+
+<p align="center">
+  <img src="screenshots/setting.png" alt="Luma Lyrics settings" width="88%">
+</p>
+
+---
+
+<div align="center">
+
+Lyrics are matched through [LRCLIB](https://lrclib.net). Preferences stay on your device.
+
 [MIT License](LICENSE) · [Spicetify](https://spicetify.app)
+
+</div>
