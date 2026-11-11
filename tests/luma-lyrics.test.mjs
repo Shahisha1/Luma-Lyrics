@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import * as pure from "../src/lyrics/parsing.js";
 import { romanizeText } from "../src/lyrics/romanization.js";
 import { createTranslationService } from "../src/services/translation.js";
+import { installStyles } from "../src/ui/styles.js";
 
 test("parse: line-timed LRC", () => {
   const lines = pure.parse("[00:12.34]Hello world\n[00:15.00]Second line");
@@ -501,4 +502,16 @@ test("settings: malformed or blocked storage falls back without throwing", async
   const loaded = loadSettings(broken);
   assert.equal(loaded.options.lyricMode, "word");
   assert.doesNotThrow(() => saveSettings(loaded.options, broken));
+});
+
+
+test("styles: installs all overlay style layers without runtime globals", () => {
+  const appended = [];
+  const document = {
+    createElement: (tagName) => ({ tagName, textContent: "" }),
+    head: { append: (element) => appended.push(element) },
+  };
+  installStyles(document);
+  assert.equal(appended.length, 7);
+  assert.ok(appended.every((element) => element.tagName === "style" && element.textContent.length > 0));
 });
