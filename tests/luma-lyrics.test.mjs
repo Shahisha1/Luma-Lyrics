@@ -467,3 +467,38 @@ test("translation service: evicts old entries when the cache reaches its limit",
   await service.translateLines(["three"], "en");
   assert.equal(service.cacheSize, 2);
 });
+
+
+test("settings: loads defaults when storage is empty", async () => {
+  const { defaultOptions, loadSettings } = await import("../src/core/settings.js");
+  const storage = { getItem: () => null, setItem: () => {} };
+  const loaded = loadSettings(storage);
+  assert.deepEqual(loaded.options, defaultOptions);
+  assert.equal(loaded.migratedDefaultDim, false);
+});
+
+test("settings: migrates the old dim default and retired slider preference", async () => {
+  const { defaultOptions, loadSettings } = await import("../src/core/settings.js");
+  let stored;
+  const storage = {
+    getItem: () => JSON.stringify({ dim: 0.4, sliderStyle: "glow", lyricMode: "gentle" }),
+    setItem: (_key, value) => { stored = JSON.parse(value); },
+  };
+  const loaded = loadSettings(storage);
+  assert.equal(loaded.options.dim, defaultOptions.dim);
+  assert.equal(loaded.options.lyricMode, "gentle");
+  assert.equal("sliderStyle" in loaded.options, false);
+  assert.equal(loaded.migratedDefaultDim, true);
+  assert.equal("sliderStyle" in stored, false);
+});
+
+test("settings: malformed or blocked storage falls back without throwing", async () => {
+  const { loadSettings, saveSettings } = await import("../src/core/settings.js");
+  const broken = {
+    getItem: () => "{not json",
+    setItem: () => { throw new Error("storage blocked"); },
+  };
+  const loaded = loadSettings(broken);
+  assert.equal(loaded.options.lyricMode, "word");
+  assert.doesNotThrow(() => saveSettings(loaded.options, broken));
+});

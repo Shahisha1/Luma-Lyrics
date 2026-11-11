@@ -91,11 +91,15 @@ The repository keeps readable source modules under `src/` and generates the sing
 ```text
 src/
 ├── main.js                 # Spotify/Spicetify runtime and overlay lifecycle
+├── core/
+│   └── settings.js         # Defaults, storage, and preference migrations
 ├── lyrics/
 │   ├── parsing.js          # LRC, lyricsfile, matching, and timing helpers
 │   └── romanization.js     # Offline Korean, Japanese, and Cyrillic romanization
-└── services/
-    └── translation.js      # Batched Google Translate requests and bounded cache
+├── services/
+│   └── translation.js      # Batched Google Translate requests and bounded cache
+└── ui/
+    └── styles.js           # Overlay and Spotify styles
 
 scripts/
 └── build.mjs               # Dependency-free single-file bundler
