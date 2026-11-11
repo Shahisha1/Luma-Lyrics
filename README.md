@@ -87,6 +87,7 @@ spicetify apply
 
 - [Liquid Lyrics](https://github.com/NMWplays/Liquid-Lyrics) — inspiration for the lyric experience and smooth word-by-word flow.
 - [LRCLIB](https://lrclib.net) — lyric lookup service used by the extension.
+- [Spotify Spice](https://github.com/grasonchan/spotify-spice) by [Grason Chan](https://github.com/grasonchan) — reference for the vinyl record treatment, playback-synchronised rotation, and artwork-adaptive colour.
 - [Spicetify](https://spicetify.app) — the platform Luma Lyrics runs on.
 
 ---
