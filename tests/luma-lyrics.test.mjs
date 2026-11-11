@@ -568,7 +568,7 @@ test("settings and vinyl styling stay restrained and playback-aware", () => {
   assert.match(styles, /luma-vinyl-rotation/);
   assert.match(styles, /repeating-radial-gradient/);
   assert.match(styles, /animation-play-state:paused/);
-  assert.match(styles, /#luma-root\\.vinyl\\.playing \\.artwork-stage\\{animation-play-state:running\\}/);
+  assert.match(styles, /#luma-root[.]vinyl[.]playing [.]artwork-stage[{]animation-play-state:running[}]/);
   assert.doesNotMatch(styles, /luma-vinyl-spin/);
   assert.match(styles, /content:none!important/);
   assert.match(styles, /transform:none!important/);
