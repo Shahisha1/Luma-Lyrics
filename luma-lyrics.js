@@ -1040,7 +1040,7 @@ function installStyles(document) {
     #luma-root.vinyl .cover{z-index:2;left:20%;top:20%;width:60%;height:60%;border:2px solid rgba(8,8,10,.9);border-radius:50%;box-shadow:0 0 0 1px rgba(255,255,255,.13),0 2px 12px rgba(0,0,0,.65)}
     #luma-root.vinyl .artwork-stage:after{z-index:3;width:7px;height:7px;border:1px solid rgba(255,255,255,.65);background:#111;box-shadow:0 0 0 2px rgba(0,0,0,.75),0 0 0 3px rgba(255,255,255,.12);pointer-events:none}
     #luma-root.vinyl .artwork-stage{animation:luma-vinyl-rotation 1.8s linear infinite;animation-play-state:paused}
-    #luma-root.vinyl.playing .artwork-stage{animation-play-state:running}
+    #luma-root.vinyl.playing .artwork-stage{animation:luma-vinyl-rotation 1.8s linear infinite;animation-play-state:running}
     @keyframes luma-vinyl-rotation{to{transform:rotate(360deg)}}
     @media(prefers-reduced-motion:reduce){#luma-root.vinyl .artwork-stage{animation:none!important}}
   `;
