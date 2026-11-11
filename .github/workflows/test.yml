@@ -2,7 +2,7 @@ name: Tests
 
 on:
   push:
-    branches: [main, "maintenance/**"]
+    branches: [main]
   pull_request:
 
 jobs:
@@ -13,4 +13,4 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm test
+      - run: npm run check

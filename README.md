@@ -7,7 +7,7 @@
 
 <p>
   <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v2.3.1-blue" alt="Version"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/Shahisha1/Luma-Lyrics" alt="License"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Altertone/Luma-Lyrics" alt="License"></a>
   <a href="https://github.com/Altertone/Luma-Lyrics/actions/workflows/test.yml"><img src="https://github.com/Altertone/Luma-Lyrics/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
   <a href="https://spicetify.app"><img src="https://img.shields.io/badge/Spicetify-extension-1db954" alt="Spicetify extension"></a>
 </p>
@@ -86,13 +86,35 @@ Spotify or Spicetify updates and other themes may affect the extension. If somet
 
 ## Development
 
-Luma Lyrics ships as one file, so there is no build step. The helpers that do not touch the DOM or Spicetify live in a marked `<luma-pure>` block, and the test suite extracts and exercises that block directly.
+The repository keeps readable source modules under `src/` and generates the single-file extension that Spicetify loads.
 
-```bash
-npm test
+```text
+src/
+├── main.js                 # Spotify/Spicetify runtime and overlay lifecycle
+├── lyrics/
+│   ├── parsing.js          # LRC, lyricsfile, matching, and timing helpers
+│   └── romanization.js     # Offline Korean, Japanese, and Cyrillic romanization
+└── services/
+    └── translation.js      # Batched Google Translate requests and bounded cache
+
+scripts/
+└── build.mjs               # Dependency-free single-file bundler
+
+tests/
+└── luma-lyrics.test.mjs    # Unit tests for the source modules
 ```
 
-The suite uses Node's built-in test runner and has no dependencies. A GitHub Actions workflow runs it on every push and pull request.
+Install Node.js 18 or newer, then run:
+
+```bash
+npm run build
+npm test
+npm run check
+```
+
+`npm run build` regenerates the distributable `luma-lyrics.js`. The generated file is committed because Spicetify and the extension stores load that file directly. `npm run check` rebuilds it, runs the test suite, and fails if the committed bundle is out of date.
+
+The build has no third-party dependencies. Tests use Node's built-in test runner.
 
 ## Credits
 
