@@ -487,6 +487,7 @@ export function installStyles(document) {
     #luma-root .settings .settings-footer button:last-child:hover{background:var(--md-primary);filter:brightness(1.05)}
     #luma-root .settings button:focus-visible,#luma-root .settings select:focus-visible,#luma-root .settings input:focus-visible{outline:2px solid var(--md-primary);outline-offset:2px}
     #luma-root .settings *{animation:none!important;transition:none!important}
+    #luma-root .settings *::before,#luma-root .settings *::after{animation:none!important;transition:none!important}
     #luma-root .settings button,#luma-root .settings input,#luma-root .settings select{box-shadow:none;text-shadow:none}
     #luma-root .settings button:hover,#luma-root .settings input:hover,#luma-root .settings select:hover{filter:none}
     #luma-root .settings .setting-control:hover,#luma-root .settings .setting-toggle:hover{background:transparent}
