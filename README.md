@@ -22,14 +22,14 @@ Choose a reading style that fits the song. Switch between modes whenever you lik
   <tr>
     <td width="50%" bgcolor="#f1eafa" align="center">
       <br>
-      **Word by word**
+      <strong>Word by word</strong>
       <br><br>
       <img src="screenshots/word%20by%20word.gif" alt="Word-by-word lyrics" width="100%">
       <br><br>
     </td>
     <td width="50%" bgcolor="#f4eff8" align="center">
       <br>
-      **Line by line**
+      <strong>Line by line</strong>
       <br><br>
       <img src="screenshots/line%20by%20line.gif" alt="Line-by-line lyrics" width="100%">
       <br><br>
@@ -38,14 +38,14 @@ Choose a reading style that fits the song. Switch between modes whenever you lik
   <tr>
     <td width="50%" bgcolor="#f4eff8" align="center">
       <br>
-      **Gentle**
+      <strong>Gentle</strong>
       <br><br>
       <img src="screenshots/gentle.gif" alt="Gentle lyrics mode" width="100%">
       <br><br>
     </td>
     <td width="50%" bgcolor="#f1eafa" align="center">
       <br>
-      **Static**
+      <strong>Static</strong>
       <br><br>
       <img src="screenshots/static.gif" alt="Static lyrics mode" width="100%">
       <br><br>
