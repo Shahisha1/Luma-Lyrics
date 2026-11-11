@@ -391,6 +391,41 @@ export function installStyles(document) {
   `;
   document.head.append(ui);
 
+  // Refined settings layout: clearer hierarchy, calmer Material surfaces,
+  // and more comfortable controls without changing settings behaviour.
+  const settingsPolish = document.createElement("style");
+  settingsPolish.textContent = `
+    #luma-root .settings{width:min(380px,calc(100vw - 32px));padding:0;overflow-x:hidden;overflow-y:auto;border:1px solid rgba(var(--md-outline-variant-rgb),.72);border-radius:24px;background:var(--md-surface-container);box-shadow:0 18px 48px rgba(0,0,0,.32);backdrop-filter:none;-webkit-backdrop-filter:none;scrollbar-width:thin;scrollbar-color:rgba(var(--md-on-surface-rgb),.24) transparent}
+    #luma-root .settings-header{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 20px 16px;border:0;border-bottom:1px solid rgba(var(--md-outline-variant-rgb),.5);background:var(--md-surface-container)}
+    #luma-root .settings-header h2{margin:0;font-size:22px;line-height:1.25;font-weight:650;letter-spacing:-.45px}
+    #luma-root .settings-description{margin:5px 0 0;color:var(--md-on-surface-variant);font-size:12px;line-height:1.4}
+    #luma-root .settings .settings-close{flex:none;display:grid;place-items:center;width:38px;height:38px;margin:0;padding:0;border-radius:50%;background:var(--md-surface-high)}
+    #luma-root .settings-section{margin:0!important;padding:18px 20px 16px!important;border:0!important;border-bottom:1px solid rgba(var(--md-outline-variant-rgb),.45)!important;border-radius:0!important;background:transparent!important}
+    #luma-root .settings-section h3{margin:0 0 16px;color:var(--md-on-surface);font-size:14px;line-height:1.3;font-weight:650;letter-spacing:0}
+    #luma-root .settings .setting-control,#luma-root .settings .setting-toggle{margin:0;padding:12px 0;font-size:13px;line-height:1.45}
+    #luma-root .settings .setting-control+.setting-control,#luma-root .settings .setting-control+.setting-toggle,#luma-root .settings .setting-toggle+.setting-control,#luma-root .settings .setting-toggle+.setting-toggle{border-top:1px solid rgba(var(--md-outline-variant-rgb),.28)}
+    #luma-root .settings .setting-control>span,#luma-root .settings .setting-toggle>span{display:block;min-width:0}
+    #luma-root .settings .setting-toggle{display:flex;align-items:center;justify-content:space-between;gap:18px}
+    #luma-root .settings .setting-toggle strong{display:block;color:var(--md-on-surface);font-size:13px;font-weight:560}
+    #luma-root .settings .setting-toggle small,#luma-root .settings .setting-control small{max-width:29em;margin-top:4px;color:var(--md-on-surface-variant);font-size:11px;line-height:1.45}
+    #luma-root .settings .setting-control output{float:right;color:var(--md-on-surface-variant);font-size:11px;font-variant-numeric:tabular-nums}
+    #luma-root .settings input[type=range]{display:block;width:100%;margin:9px 0 0}
+    #luma-root .settings .mode-control{display:grid;grid-template-columns:minmax(0,1fr) minmax(128px,.9fr);align-items:center;gap:12px}
+    #luma-root .settings .mode-trigger{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:42px;margin:0;padding:8px 12px;border-radius:12px;font-size:12px}
+    #luma-root .settings .mode-options{top:calc(100% + 6px);border-radius:14px;box-shadow:0 10px 28px rgba(0,0,0,.28)}
+    #luma-root .settings .sync-adjust{margin-top:9px}
+    #luma-root .settings .sync-adjust button{min-height:32px;padding:7px 10px;font-size:11px}
+    #luma-root .settings select{min-height:42px;margin-top:8px;padding:9px 12px;border-radius:12px;font-size:12px}
+    #luma-root .settings .privacy-note{margin:12px 0 0;padding:10px 12px;border-radius:12px;font-size:10px;line-height:1.5}
+    #luma-root .settings-footer{position:sticky;bottom:0;display:flex;justify-content:space-between;gap:10px;margin:0;padding:14px 20px;border-top:1px solid rgba(var(--md-outline-variant-rgb),.5);background:var(--md-surface-container)}
+    #luma-root .settings .settings-footer button{min-height:38px;margin:0;padding:8px 14px;border-radius:999px;font-size:12px}
+    #luma-root .settings .settings-footer button:last-child{border-color:var(--md-primary);background:var(--md-primary);color:var(--md-on-primary);font-weight:600}
+    #luma-root .settings .settings-footer button:last-child:hover{background:var(--md-primary);filter:brightness(1.08)}
+    @media(max-width:560px){#luma-root .settings{right:12px;width:calc(100vw - 24px);max-height:calc(100vh - 92px);border-radius:20px}#luma-root .settings-header{padding:16px}#luma-root .settings-section{padding:15px 16px!important}#luma-root .settings-footer{padding:12px 16px}}
+    @media(prefers-reduced-motion:reduce){#luma-root .settings *{scroll-behavior:auto!important;transition:none!important}}
+  `;
+  document.head.append(settingsPolish);
+
 
 
   const spotifyControls = document.createElement("style");
