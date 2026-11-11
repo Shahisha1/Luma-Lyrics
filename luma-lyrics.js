@@ -1,7 +1,7 @@
 // Luma Lyrics v2.3.1
 
 (async () => {
-export function parse(text) {
+function parse(text) {
   const offset = Number(text.match(/\[offset:([+-]?\d+)\]/i)?.[1] || 0),
     result = [];
   for (const row of text.split(/\r?\n/)) {
@@ -65,7 +65,7 @@ export function parse(text) {
 // alongside the legacy `syncedLyrics`. Spec: https://github.com/tranxuanthang/lyricsfile
 // The spec only allows mappings, sequences, strings, integers, booleans and null, so a small
 // parser for that subset is enough (no dependency). Anything else throws and we fall back.
-export function parseYamlSubset(source) {
+function parseYamlSubset(source) {
   if (typeof source !== "string" || !source.trim() || source.length > 1500000)
     throw new Error("Unusable lyricsfile");
   const rows = source.replace(/^\uFEFF/, "").split(/\r?\n/);
@@ -212,7 +212,7 @@ export function parseYamlSubset(source) {
 }
 // Converts a lyricsfile into Luma's internal lines ({ ms, text, words, exact }).
 // `wordTimed` is true only when real word timestamps cover most of the lyrics.
-export function lyricsfileToLines(source) {
+function lyricsfileToLines(source) {
   const doc = parseYamlSubset(source),
     isMap = (v) => v && typeof v === "object" && !Array.isArray(v);
   if (!isMap(doc) || doc.version !== "1.0" || !isMap(doc.metadata))
@@ -287,7 +287,7 @@ export function lyricsfileToLines(source) {
       out.some((l) => l.words.some((w) => w.ms > 0)),
   };
 }
-export function normalizeName(value) {
+function normalizeName(value) {
   const base = String(value ?? "")
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -305,7 +305,7 @@ export function normalizeName(value) {
     ) || clean(base)
   );
 }
-export function sameName(a, b) {
+function sameName(a, b) {
   const x = normalizeName(a),
     y = normalizeName(b);
   if (!x || !y) return false;
@@ -315,7 +315,7 @@ export function sameName(a, b) {
     shared = [...tx].filter((t) => ty.has(t)).length;
   return shared / new Set([...tx, ...ty]).size >= 0.6;
 }
-export function splitArtists(value) {
+function splitArtists(value) {
   return String(value ?? "")
     .split(/,|;|\/|&|\band\b|\bfeat\.?|\bft\.?|\bx\b|\bwith\b/i)
     .map((s) => s.trim())
@@ -323,7 +323,7 @@ export function splitArtists(value) {
 }
 // Decides whether a lyrics record plausibly belongs to the playing track.
 // Only fields that are actually present are compared; any disagreement rejects the record.
-export function trackMatches(record, metadata, track) {
+function trackMatches(record, metadata, track) {
   let compared = 0;
   const present = (v) => typeof v === "string" && v.trim();
   for (const title of [record?.trackName, record?.name, metadata?.title])
@@ -353,7 +353,7 @@ export function trackMatches(record, metadata, track) {
 }
 // Fallback order: verified word-timed lyricsfile -> existing LRCLIB synced lyrics.
 // (Estimated word timing for line-only lyrics is applied later, in render().)
-export function pickLyrics(record, track) {
+function pickLyrics(record, track) {
   if (typeof record?.lyricsfile === "string" && record.lyricsfile.trim()) {
     try {
       const result = lyricsfileToLines(record.lyricsfile);
@@ -372,7 +372,7 @@ export function pickLyrics(record, track) {
 }
 // What Escape should do. Settings/menu close from anywhere while Luma is open; closing the
 // whole overlay still requires focus inside it; text fields are never interrupted.
-export function escapeStep({ overlayOpen, menuOpen, settingsOpen, inRoot, editable }) {
+function escapeStep({ overlayOpen, menuOpen, settingsOpen, inRoot, editable }) {
   if (!overlayOpen || editable) return null;
   if (menuOpen) return "menu";
   if (settingsOpen) return "settings";
@@ -380,7 +380,7 @@ export function escapeStep({ overlayOpen, menuOpen, settingsOpen, inRoot, editab
 }
 // A word stays current until its real end time when the source has one, or
 // until the next word starts when the timing is estimated.
-export function endOfWord(line, j) {
+function endOfWord(line, j) {
   const word = line.display[j];
   return line.exact
     ? Math.max(word.ms + 1, word.endTime ?? line.end)
@@ -389,7 +389,7 @@ export function endOfWord(line, j) {
 // Opacity for a single word: upcoming words sit dim, the current word ramps
 // up across its duration, and sung words settle at full strength. The small
 // pre-roll lets the highlight ease into the next word.
-export function wordFlowOpacity(start, end, progress) {
+function wordFlowOpacity(start, end, progress) {
   if (progress < start) {
     const lead = 180,
       approach = Math.max(0, Math.min(1, 1 - (start - progress) / lead));
@@ -427,7 +427,7 @@ const KO_I = ["g","kk","n","d","tt","r","m","b","p","s","ss","","j","jj","ch","k
     (ch >= "ァ" && ch <= "ヶ"
       ? KANA[String.fromCharCode(ch.charCodeAt(0) - 0x60)]
       : null);
-export function romanizeText(text) {
+function romanizeText(text) {
   if (!text || !/[가-힣ㄱ-ㅎ\u3040-\u30FF\u0400-\u04FF]/.test(text)) return "";
   let out = "";
   const chars = [...text];
@@ -464,7 +464,7 @@ export function romanizeText(text) {
 // Translation requests are isolated from the overlay so batching, caching, and
 // cancellation can be tested without a Spotify runtime.
 
-export function createTranslationService({
+function createTranslationService({
   fetchImpl = (...args) => globalThis.fetch(...args),
   maxCacheEntries = 500,
 } = {}) {
@@ -532,7 +532,7 @@ export function createTranslationService({
   };
 }
 
-export const defaultOptions = {
+const defaultOptions = {
   size: 40,
   dim: 0.25,
   estimated: true,
@@ -546,7 +546,7 @@ export const defaultOptions = {
   romanize: false,
 };
 
-export function loadSettings(storage) {
+function loadSettings(storage) {
   let options = { ...defaultOptions };
   let migratedDefaultDim = false;
 
@@ -572,7 +572,7 @@ export function loadSettings(storage) {
   return { options, migratedDefaultDim };
 }
 
-export function saveSettings(options, storage) {
+function saveSettings(options, storage) {
   try {
     (storage ?? globalThis.localStorage).setItem("luma-settings", JSON.stringify(options));
   } catch {}
@@ -582,7 +582,7 @@ export function saveSettings(options, storage) {
 // Keep the visual layer deliberately restrained; playback and lyric timing
 // remain in main.js and the lyric modules.
 
-export function installStyles(document) {
+function installStyles(document) {
   const style = document.createElement("style");
   style.textContent = `
     #luma-root{position:fixed;inset:0;z-index:999999;background:#151517;color:#fff;font-family:'Segoe UI',sans-serif;overflow:hidden;--lyric-size:36px;--dim:.25}
@@ -667,7 +667,7 @@ export function installStyles(document) {
 }
 
 // Artwork sampling and Material 3 tonal palette generation.
-export function createArtworkPalette(root, document) {
+function createArtworkPalette(root, document) {
 const toneToL = (t) =>
   Math.cbrt(t > 8 ? Math.pow((t + 16) / 116, 3) : t / 903.3);
 const oklchToRgb = (L, C, hue) => {
