@@ -1,135 +1,138 @@
 <div align="center">
 
-<h1>Luma Lyrics</h1>
+# Luma Lyrics
 
-<p><strong>Know every word. Feel every beat.</strong></p>
-<p>Spotify desktop, but with lyrics that actually keep up.</p>
+**Lyrics that stay out of the way and keep up with the music.**
+
+A lightweight lyrics overlay for Spotify desktop, built for Spicetify.
 
 <p>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v2.3.1-blue" alt="Version"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/Altertone/Luma-Lyrics" alt="License"></a>
-  <a href="https://github.com/Altertone/Luma-Lyrics/actions/workflows/test.yml"><img src="https://github.com/Altertone/Luma-Lyrics/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
-  <a href="https://spicetify.app"><img src="https://img.shields.io/badge/Spicetify-extension-1db954" alt="Spicetify extension"></a>
+  <a href="https://github.com/Altertone/Luma-Lyrics/releases/latest"><strong>Latest release</strong></a>
+  ·
+  <a href="https://github.com/Altertone/Luma-Lyrics/issues">Report a problem</a>
 </p>
 
-<p><a href="https://github.com/Altertone/Luma-Lyrics/releases/latest"><strong>Download</strong></a> · <a href="https://github.com/Altertone/Luma-Lyrics/issues">Report a problem</a></p>
+<a href="https://github.com/Altertone/Luma-Lyrics/actions/workflows/test.yml"><img src="https://github.com/Altertone/Luma-Lyrics/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
+<a href="https://img.shields.io/github/license/Altertone/Luma-Lyrics"><img src="https://img.shields.io/github/license/Altertone/Luma-Lyrics" alt="MIT License"></a>
 
 <img src="preview.gif" alt="Luma Lyrics preview" width="640">
 
 </div>
 
-## Why people like it
+## Features
 
-- Catch the right word at the right time with synced lyrics.
-- Follow a highlight that eases from word to word instead of snapping.
-- Switch between word-by-word, line-by-line, gentle, and static modes.
-- Let the album art set the color mood with Material You-inspired styling.
-- Use the built-in player controls without leaving the lyric view.
-- No manual lyric hunting — Luma Lyrics looks up tracks automatically.
+- Synced lyrics in a dedicated overlay with album artwork and playback controls.
+- Word-by-word timing when the lyric source provides real word timestamps.
+- Line-by-line, gentle, and static display modes.
+- A manual sync offset for correcting lyrics that run early or late.
+- Optional estimated word timing when only line timestamps are available.
+- Optional lyric translation and offline romanization.
+- Adjustable text size, background darkness, and scrolling.
+- Optional desktop colour styling and spinning album artwork.
+- Settings are stored locally in Spotify.
 
-## Modes
-
-### Word by word
-
-![Word-by-word lyrics highlighting](screenshots/word%20by%20word.gif)
-
-### Line by line
-
-![Line-by-line lyrics display](screenshots/line%20by%20line.gif)
-
-### Gentle
-
-![Gentle lyrics display](screenshots/gentle.gif)
-
-### Static
-
-![Static lyrics display](screenshots/static.gif)
-
-### Settings
-
-<p align="center">
-  <img src="screenshots/setting.png" alt="Lyrics display settings" width="320">
-</p>
+Luma Lyrics uses a restrained, classic player-and-lyrics layout. It does not replace Spotify's player or require a separate lyrics account.
 
 ## Install
 
-1. Download `luma-lyrics.js` from the [latest release](https://github.com/Altertone/Luma-Lyrics/releases/latest).
-2. Copy it to your Spicetify extensions folder. On Windows, that is `%APPDATA%\spicetify\Extensions`.
-3. Run:
+1. Download **luma-lyrics.js** from the [latest release](https://github.com/Altertone/Luma-Lyrics/releases/latest).
+2. Copy it into your Spicetify extensions directory.
+   - Linux: `~/.config/spicetify/Extensions/`
+   - Windows: `%appdata%\spicetify\Extensions\`
+   - macOS: `~/.config/spicetify/Extensions/`
+3. Enable the extension and apply Spicetify:
 
    ```bash
    spicetify config extensions luma-lyrics.js
    spicetify apply
    ```
 
-4. Open Spotify and click the Luma Lyrics button beside the playback controls.
+4. Restart Spotify. Use the **Luma Lyrics** button in the playback bar to open the overlay.
 
-## How lyric sync works
+### Update an existing installation
 
-Luma Lyrics pulls lyrics from [LRCLIB](https://lrclib.net) and tries the best match available for the current track:
+Replace the old `luma-lyrics.js` in the extensions directory with the new release, then run:
 
-1. Real word timing when the source provides valid synced word data.
-2. Line-timed lyrics when word timing is not available.
-3. Estimated word animation for line-timed songs if enabled in settings.
+```bash
+spicetify apply
+```
 
-If a lookup fails due to a network issue, timeout, or rate limit, reopen Luma Lyrics or change tracks and try again.
+If the extension is already listed in Spicetify's extensions setting, you do not need to add it again.
+
+## Lyrics and timing
+
+Lyrics are retrieved from [LRCLIB](https://lrclib.net). Luma Lyrics checks the available formats and uses the best supported timing:
+
+1. Real word timestamps, when supplied.
+2. Line timestamps, when word timing is unavailable.
+3. Estimated word animation, when enabled in settings.
+
+Use **Lyrics sync** in Settings to move the displayed lyrics earlier or later. The adjustment is saved locally.
+
+If lyrics do not load, check your connection and try the current track again. Some tracks may not have a matching lyric entry.
+
+## Translation and romanization
+
+- Translation is optional and uses Google Translate. The lyric text is sent to Google Translate when this feature is enabled.
+- Romanization is performed locally for supported Korean, Japanese, and Cyrillic text.
+- Neither feature is required for normal lyric playback.
 
 ## Privacy
 
-- Luma Lyrics sends the song title, artist, album, and duration to LRCLIB.
-- It does not send your Spotify token to LRCLIB.
-- Appearance settings are saved locally in Spotify on your device.
+- LRCLIB receives the track title, artist, album, and duration to find matching lyrics.
+- Your Spotify token is not sent to LRCLIB.
+- Translation sends lyric text to Google Translate only when translation is enabled.
+- Display preferences are stored in Spotify's local storage.
 
 ## Troubleshooting
 
-Spotify or Spicetify updates and other themes may affect the extension. If something feels off, open an [issue](https://github.com/Altertone/Luma-Lyrics/issues) with your Spotify and Spicetify versions.
+If the overlay or playbar button does not appear:
+
+1. Confirm that `luma-lyrics.js` is in the correct Spicetify extensions directory.
+2. Check that the extension is enabled:
+
+   ```bash
+   spicetify config extensions
+   ```
+
+3. Apply Spicetify again:
+
+   ```bash
+   spicetify apply
+   ```
+
+4. Fully restart Spotify.
+
+Spotify updates, Spicetify changes, and other extensions or themes can affect the player bar. If the issue continues, [open an issue](https://github.com/Altertone/Luma-Lyrics/issues) and include your Spotify version, Spicetify version, operating system, and any relevant console errors.
 
 ## Development
 
-The repository keeps readable source modules under `src/` and generates the single-file extension that Spicetify loads.
+The readable source is kept in `src/`. The single-file `luma-lyrics.js` bundle is generated from those modules and is the file Spicetify loads.
 
-```text
-src/
-├── main.js                 # Spotify/Spicetify runtime and overlay lifecycle
-├── core/
-│   └── settings.js         # Defaults, storage, and preference migrations
-├── lyrics/
-│   ├── parsing.js          # LRC, lyricsfile, matching, and timing helpers
-│   └── romanization.js     # Offline Korean, Japanese, and Cyrillic romanization
-├── services/
-│   └── translation.js      # Batched Google Translate requests and bounded cache
-├── theme/
-│   └── artwork.js          # Artwork sampling and Material 3 palette generation
-└── ui/
-    └── styles.js           # Overlay and Spotify styles
+Requirements:
 
-scripts/
-└── build.mjs               # Dependency-free single-file bundler
+- Node.js 18 or newer
+- npm
 
-tests/
-└── luma-lyrics.test.mjs    # Unit tests for the source modules
-```
-
-Install Node.js 18 or newer, then run:
+From the repository root:
 
 ```bash
+npm install
 npm run build
 npm test
 npm run check
 ```
 
-`npm run build` regenerates the distributable `luma-lyrics.js`. The generated file is committed because Spicetify and the extension stores load that file directly. `npm run check` rebuilds it, runs the test suite, and fails if the committed bundle is out of date.
-
-The build has no third-party dependencies. Tests use Node's built-in test runner.
+The build uses Node.js built-ins and does not require runtime dependencies. Tests use Node's built-in test runner. `npm run check` rebuilds the bundle, runs the tests, and checks that the committed bundle is up to date.
 
 ## Credits
 
-- [Liquid Lyrics](https://github.com/NMWplays/Liquid-Lyrics) — inspiration for the lyric experience and smooth word-by-word flow.
-- [LRCLIB](https://lrclib.net) — lyric lookup service used by the extension.
-- [Spicetify](https://spicetify.app) — platform Luma Lyrics runs on.
+- [LRCLIB](https://lrclib.net) for lyric lookup.
+- [Spicetify](https://spicetify.app) for the Spotify customization platform.
+- [Liquid Lyrics](https://github.com/NMWplays/Liquid-Lyrics) for inspiration.
 
 ## License
 
-Luma Lyrics is available under the [MIT License](LICENSE). Lyrics, album artwork, and third-party services remain subject to their respective owners' terms.
+Released under the [MIT License](LICENSE). Lyrics, album artwork, and third-party services remain subject to their respective owners' terms.
 
-Luma Lyrics is not affiliated with Spotify, Spicetify, or LRCLIB.
+Luma Lyrics is not affiliated with Spotify, Spicetify, LRCLIB, or Google.
