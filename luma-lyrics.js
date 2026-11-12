@@ -1303,6 +1303,71 @@ function installStyles(document) {
   `;
   document.head.append(refinement);
 
+
+  // Standard album artwork is circular even when the vinyl effect is disabled.
+  const circularArtwork = document.createElement("style");
+  circularArtwork.textContent = `
+    #luma-root .player>.artwork-stage{
+      overflow:hidden;
+      border-radius:50%;
+      isolation:isolate;
+      aspect-ratio:1;
+    }
+    #luma-root:not(.vinyl) .player .artwork-stage .cover{
+      position:relative;
+      inset:auto;
+      display:block;
+      width:100%;
+      height:100%;
+      border:0;
+      border-radius:50%;
+      object-fit:cover;
+      box-shadow:0 10px 28px rgba(0,0,0,.22);
+    }
+    #luma-root:not(.vinyl) .player .artwork-stage:after{
+      content:"";
+      position:absolute;
+      inset:0;
+      border:1px solid rgba(255,255,255,.14);
+      border-radius:50%;
+      pointer-events:none;
+    }
+  `;
+  document.head.append(circularArtwork);
+
+  // Refine settings switches and range controls while preserving their values.
+  const settingsFinish = document.createElement("style");
+  settingsFinish.textContent = `
+    #luma-root .settings .setting-toggle input[type=checkbox]{
+      appearance:none;-webkit-appearance:none;position:relative;flex:0 0 36px;
+      width:36px;height:21px;margin:0;border:1px solid rgba(var(--md-outline-rgb),.72);
+      border-radius:999px;background:rgba(var(--md-on-surface-rgb),.12);cursor:pointer;
+      transition:background-color .16s ease,border-color .16s ease;
+    }
+    #luma-root .settings .setting-toggle input[type=checkbox]:before{
+      content:"";position:absolute;top:3px;left:3px;width:13px;height:13px;
+      border-radius:50%;background:var(--md-on-surface-variant);
+      transition:transform .16s ease,background-color .16s ease;
+    }
+    #luma-root .settings .setting-toggle input[type=checkbox]:checked{
+      border-color:var(--md-primary);background:var(--md-primary);
+    }
+    #luma-root .settings .setting-toggle input[type=checkbox]:checked:before{
+      background:var(--md-on-primary);transform:translateX(15px);
+    }
+    #luma-root .settings .setting-toggle input[type=checkbox]:focus-visible{
+      outline:2px solid var(--md-primary);outline-offset:3px;
+    }
+    #luma-root .settings .setting-control input[type=range]{
+      accent-color:var(--md-primary);touch-action:pan-y;
+    }
+    @media(prefers-reduced-motion:reduce){
+      #luma-root .settings .setting-toggle input[type=checkbox],
+      #luma-root .settings .setting-toggle input[type=checkbox]:before{transition:none}
+    }
+  `;
+  document.head.append(settingsFinish);
+
   return desktop;
 }
 
@@ -2254,7 +2319,7 @@ function setArtworkAccent(image) {
     root.hidden ? open() : close();
   }
   const loadIcon =
-    '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16m4-11h2m-2 3h2m-2 3h2"/></svg>';
+    '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16m4-11h2m-2 3h2m-2 3h2"/></svg>';
   function createLauncher() {
     const onToggle = () => toggle();
     try {
@@ -2300,7 +2365,7 @@ function setArtworkAccent(image) {
             else if (!el.classList.contains("main-genericButton-button"))
               el.classList.add("main-genericButton-button");
             if (!el.querySelector("svg"))
-              el.innerHTML = `<span style="display:grid;place-items:center">${loadIcon}</span>`;
+              el.innerHTML = `<span class="luma-playbar-icon" aria-hidden="true">${loadIcon}</span>`;
             el.type = "button";
             el.title = "Luma Lyrics";
             el.setAttribute("aria-label", "Luma Lyrics");
@@ -2334,7 +2399,7 @@ function setArtworkAccent(image) {
       el.className = anchor ? anchor.className : "main-genericButton-button";
       el.title = "Luma Lyrics";
       el.setAttribute("aria-label", "Luma Lyrics");
-      el.innerHTML = `<span style="display:grid;place-items:center">${loadIcon}</span>`;
+      el.innerHTML = `<span class="luma-playbar-icon" aria-hidden="true">${loadIcon}</span>`;
       el.onclick = onToggle;
       mount.append(el);
       launcher = {
@@ -2352,6 +2417,27 @@ function setArtworkAccent(image) {
     }
   }
   createLauncher();
+
+  const launcherPolish = document.createElement("style");
+  launcherPolish.textContent = `
+    button[aria-label="Luma Lyrics"]{
+      box-sizing:border-box!important;display:inline-grid!important;place-items:center!important;
+      flex:0 0 36px!important;width:36px!important;min-width:36px!important;max-width:36px!important;
+      height:36px!important;min-height:36px!important;padding:0!important;margin:0 2px!important;
+      overflow:visible!important;vertical-align:middle!important;line-height:0!important;
+    }
+    button[aria-label="Luma Lyrics"] .luma-playbar-icon{
+      display:grid!important;place-items:center!important;width:18px!important;height:18px!important;
+      line-height:0!important;overflow:visible!important;
+    }
+    button[aria-label="Luma Lyrics"] svg{
+      display:block!important;flex:none!important;width:18px!important;min-width:18px!important;
+      max-width:18px!important;height:18px!important;min-height:18px!important;
+      max-height:18px!important;overflow:visible!important;
+    }
+  `;
+  document.head.append(launcherPolish);
+
 
   window.LumaLyrics = {
     version: "2.3.1",
