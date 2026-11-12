@@ -1,942 +1,1175 @@
 // Luma Lyrics v2.5.0
 
 (async () => {
-function parse(text) {
-  const offset = Number(text.match(/\[offset:([+-]?\d+)\]/i)?.[1] || 0),
-    result = [];
-  for (const row of text.split(/\r?\n/)) {
-    const tags = [
-      ...row.matchAll(/<(\d+):(\d+(?:\.\d+)?)>|\[(\d+):(\d+(?:\.\d+)?)\]/g),
-    ];
-    if (!tags.length) continue;
-    const timeOf = (tag) =>
-        (Number(tag[1] ?? tag[3]) * 60 + Number(tag[2] ?? tag[4])) * 1000 +
-        offset,
-      hasEnhancedTags = tags.some((tag) => tag[1] !== undefined),
-      hasInlineSquareWordTags = tags.some(
-        (tag, i) =>
-          tag[3] !== undefined &&
-          i < tags.length - 1 &&
-          /\S/.test(row.slice(tag.index + tag[0].length, tags[i + 1].index)),
-      );
-    if (hasEnhancedTags || hasInlineSquareWordTags) {
-      const words = tags
-        .map((tag, i) => ({
-          ms: Math.max(0, timeOf(tag)),
-          text: row.slice(
-            tag.index + tag[0].length,
-            tags[i + 1]?.index ?? row.length,
-          ),
-        }))
-        .filter((word) => word.text.trim());
-      if (!words.length) continue;
-      result.push({
-        ms: Math.max(0, timeOf(tags[0])),
-        text:
-          words
-            .map((word) => word.text)
-            .join("")
-            .trim() || "♪",
-        words,
-        exact: true,
-      });
-      continue;
-    }
-    const body = row.replace(/\[[^\]]*\]/g, "").trim() || "♪";
-    for (const tag of tags)
-      result.push({
-        ms: Math.max(0, timeOf(tag)),
-        text: body,
-        words: [],
-        exact: false,
-      });
-  }
-  result.sort((a, b) => a.ms - b.ms);
-  result.forEach((line, i) => {
-    line.lineIndex = i;
-    line.words.forEach((word, j) => {
-      word.endTime =
-        line.words[j + 1]?.ms ?? result[i + 1]?.ms ?? line.ms + 4000;
-    });
-  });
-  return result;
-}
-// LRCLIB "Lyricsfile" adapter. LRCLIB returns a YAML `lyricsfile` string with word timing
-// alongside the legacy `syncedLyrics`. Spec: https://github.com/tranxuanthang/lyricsfile
-// The spec only allows mappings, sequences, strings, integers, booleans and null, so a small
-// parser for that subset is enough (no dependency). Anything else throws and we fall back.
-function parseYamlSubset(source) {
-  if (typeof source !== "string" || !source.trim() || source.length > 1500000)
-    throw new Error("Unusable lyricsfile");
-  const rows = source.replace(/^\uFEFF/, "").split(/\r?\n/);
-  const KEY =
-    /^("(?:[^"\\]|\\.)*"|'(?:[^']|'')*'|[A-Za-z0-9_][A-Za-z0-9_.-]*)[ \t]*:(?:[ \t]+(.*))?$/;
-  const isDash = (s) => s === "-" || s.startsWith("- ");
-  let i = 0,
-    depth = 0;
-  const indentOf = (row) => {
-    const n = /^ */.exec(row)[0].length;
-    if (row[n] === "\t") throw new Error("Tab indentation");
-    return n;
-  };
-  const skip = () => {
-    while (i < rows.length) {
-      const t = rows[i].trim();
-      if (!t || t[0] === "#") i++;
-      else break;
-    }
-  };
-  const scalar = (raw) => {
-    const s = raw.trim();
-    if (s === "" || s === "~" || /^(null|Null|NULL)$/.test(s)) return null;
-    if (s === "[]") return [];
-    if (s === "{}") return {};
-    if (s[0] === '"') {
-      const m = /^"((?:[^"\\]|\\.)*)"\s*(?:#.*)?$/.exec(s);
-      if (!m) throw new Error("Bad string");
-      return JSON.parse('"' + m[1] + '"');
-    }
-    if (s[0] === "'") {
-      const m = /^'((?:[^']|'')*)'\s*(?:#.*)?$/.exec(s);
-      if (!m) throw new Error("Bad string");
-      return m[1].replace(/''/g, "'");
-    }
-    if ("&*!|>%@`[{".includes(s[0])) throw new Error("Unsupported YAML");
-    const plain = s.replace(/\s+#.*$/, "");
-    if (/^[+-]?\d+$/.test(plain)) return Number(plain);
-    if (/^(true|True|TRUE)$/.test(plain)) return true;
-    if (/^(false|False|FALSE)$/.test(plain)) return false;
-    return plain;
-  };
-  const blockScalar = (header, parentIndent) => {
-    const literal = header[0] === "|",
-      out = [];
-    let blockIndent = -1;
-    while (i < rows.length) {
-      const row = rows[i];
-      if (!row.trim()) {
-        out.push("");
-        i++;
+  function parse(text) {
+    const offset = Number(text.match(/\[offset:([+-]?\d+)\]/i)?.[1] || 0),
+      result = [];
+    for (const row of text.split(/\r?\n/)) {
+      const tags = [
+        ...row.matchAll(/<(\d+):(\d+(?:\.\d+)?)>|\[(\d+):(\d+(?:\.\d+)?)\]/g),
+      ];
+      if (!tags.length) continue;
+      const timeOf = (tag) =>
+          (Number(tag[1] ?? tag[3]) * 60 + Number(tag[2] ?? tag[4])) * 1000 +
+          offset,
+        hasEnhancedTags = tags.some((tag) => tag[1] !== undefined),
+        hasInlineSquareWordTags = tags.some(
+          (tag, i) =>
+            tag[3] !== undefined &&
+            i < tags.length - 1 &&
+            /\S/.test(row.slice(tag.index + tag[0].length, tags[i + 1].index)),
+        );
+      if (hasEnhancedTags || hasInlineSquareWordTags) {
+        const words = tags
+          .map((tag, i) => ({
+            ms: Math.max(0, timeOf(tag)),
+            text: row.slice(
+              tag.index + tag[0].length,
+              tags[i + 1]?.index ?? row.length,
+            ),
+          }))
+          .filter((word) => word.text.trim());
+        if (!words.length) continue;
+        result.push({
+          ms: Math.max(0, timeOf(tags[0])),
+          text:
+            words
+              .map((word) => word.text)
+              .join("")
+              .trim() || "♪",
+          words,
+          exact: true,
+        });
         continue;
       }
-      const ind = indentOf(row);
-      if (ind <= parentIndent) break;
-      if (blockIndent < 0) blockIndent = ind;
-      out.push(row.slice(Math.min(ind, blockIndent)));
-      i++;
+      const body = row.replace(/\[[^\]]*\]/g, "").trim() || "♪";
+      for (const tag of tags)
+        result.push({
+          ms: Math.max(0, timeOf(tag)),
+          text: body,
+          words: [],
+          exact: false,
+        });
     }
-    while (out.length && out[out.length - 1] === "") out.pop();
-    const body = literal ? out.join("\n") : out.join(" ");
-    return header.includes("-") ? body : body + "\n";
-  };
-  const parseNode = (minIndent) => {
-    skip();
-    if (i >= rows.length) return null;
-    const ind = indentOf(rows[i]);
-    if (ind < minIndent) return null;
-    const content = rows[i].slice(ind);
-    if (++depth > 16) throw new Error("Too deeply nested");
-    try {
-      if (isDash(content)) return parseSeq(ind);
-      if (KEY.test(content)) return parseMap(ind);
-      i++;
-      return scalar(content);
-    } finally {
-      depth--;
-    }
-  };
-  const parseMap = (ind) => {
-    const obj = Object.create(null);
-    for (;;) {
-      skip();
-      if (i >= rows.length) break;
-      const here = indentOf(rows[i]);
-      if (here < ind) break;
-      if (here > ind) throw new Error("Bad indentation");
-      const content = rows[i].slice(ind);
-      if (isDash(content)) break;
-      const m = KEY.exec(content);
-      if (!m) throw new Error("Bad mapping");
-      const key = m[1][0] === '"' || m[1][0] === "'" ? scalar(m[1]) : m[1];
-      if (key in obj) throw new Error("Duplicate key");
-      i++;
-      const rest = (m[2] || "").trim();
-      let value;
-      if (rest === "" || rest[0] === "#") {
-        skip();
-        const next = i < rows.length ? indentOf(rows[i]) : -1;
-        if (next > ind) value = parseNode(ind + 1);
-        else if (next === ind && isDash(rows[i].slice(next)))
-          value = parseSeq(ind);
-        else value = null;
-      } else if (/^[|>][+-]?\d*\s*(#.*)?$/.test(rest))
-        value = blockScalar(rest, ind);
-      else value = scalar(rest);
-      obj[key] = value;
-    }
-    return obj;
-  };
-  const parseSeq = (ind) => {
-    const arr = [];
-    for (;;) {
-      skip();
-      if (i >= rows.length) break;
-      const here = indentOf(rows[i]);
-      if (here < ind) break;
-      if (here > ind) throw new Error("Bad indentation");
-      const content = rows[i].slice(ind);
-      if (!isDash(content)) break;
-      const after = content.slice(1),
-        rest = after.trimStart(),
-        restIndent = ind + 1 + (after.length - rest.length);
-      if (rest === "" || rest[0] === "#") {
-        i++;
-        arr.push(parseNode(ind + 1));
-      } else if (KEY.test(rest)) {
-        rows[i] = " ".repeat(restIndent) + rest;
-        arr.push(parseMap(restIndent));
-      } else {
-        i++;
-        arr.push(scalar(rest));
-      }
-    }
-    return arr;
-  };
-  skip();
-  if (rows[i]?.trim() === "---") i++;
-  const doc = parseNode(0);
-  skip();
-  if (i < rows.length && rows[i].trim() !== "...")
-    throw new Error("Unexpected content");
-  return doc;
-}
-// Converts a lyricsfile into Luma's internal lines ({ ms, text, words, exact }).
-// `wordTimed` is true only when real word timestamps cover most of the lyrics.
-function lyricsfileToLines(source) {
-  const doc = parseYamlSubset(source),
-    isMap = (v) => v && typeof v === "object" && !Array.isArray(v);
-  if (!isMap(doc) || doc.version !== "1.0" || !isMap(doc.metadata))
-    throw new Error("Unsupported lyricsfile");
-  const metadata = doc.metadata,
-    time = (v, label) => {
-      if (!Number.isSafeInteger(v) || v < 0)
-        throw new Error("Invalid " + label);
-      return v;
-    },
-    optionalEnd = (v, start, label) => {
-      if (v == null) return null;
-      const end = time(v, label);
-      if (end < start) throw new Error("Invalid " + label);
-      return end;
-    };
-  if (!Array.isArray(doc.lines) || !doc.lines.length)
-    return { metadata, lines: [], wordTimed: false };
-  const parsed = doc.lines
-    .map((raw) => {
-      if (!isMap(raw) || typeof raw.text !== "string")
-        throw new Error("Invalid line");
-      const start = time(raw.start_ms, "line start"),
-        end = optionalEnd(raw.end_ms, start, "line end");
-      if (raw.words != null && !Array.isArray(raw.words))
-        throw new Error("Invalid words");
-      const words = [];
-      for (const w of raw.words || []) {
-        if (!isMap(w) || typeof w.text !== "string")
-          throw new Error("Invalid word");
-        const ms = time(w.start_ms, "word start"),
-          wordEnd = optionalEnd(w.end_ms, ms, "word end");
-        if (!w.text.trim()) {
-          // Keep spacing that was written as its own segment.
-          if (words.length) words[words.length - 1].text += w.text;
-          continue;
-        }
-        words.push({ ms, text: w.text, end: wordEnd });
-      }
-      words.sort((a, b) => a.ms - b.ms);
-      return { ms: start, end, text: raw.text, words };
-    })
-    .sort((a, b) => a.ms - b.ms);
-  const out = parsed.map((l, idx) => {
-    const hasWords = l.words.length > 0,
-      fallbackEnd = l.end ?? parsed[idx + 1]?.ms;
-    return {
-      ms: hasWords ? Math.min(l.ms, l.words[0].ms) : l.ms,
-      text:
-        (hasWords ? l.words.map((w) => w.text).join("") : l.text).trim() ||
-        "♪",
-      words: l.words.map((w, j) => ({
-        ms: w.ms,
-        text: w.text,
-        endTime: Math.max(
-          w.ms,
-          w.end ?? l.words[j + 1]?.ms ?? fallbackEnd ?? w.ms + 4000,
-        ),
-      })),
-      exact: hasWords,
-      lineIndex: idx,
-    };
-  });
-  const textLines = parsed.filter((l) => l.text.trim()).length,
-    wordLines = out.filter((l) => l.exact).length;
-  return {
-    metadata,
-    lines: out,
-    wordTimed:
-      wordLines > 0 &&
-      wordLines >= textLines / 2 &&
-      out.some((l) => l.words.some((w) => w.ms > 0)),
-  };
-}
-function normalizeName(value) {
-  const base = String(value ?? "")
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/&/g, " and ");
-  const clean = (s) => s.replace(/[^\p{L}\p{N}]+/gu, " ").trim();
-  return (
-    clean(
-      base
-        .replace(/\([^)]*\)|\[[^\]]*\]/g, " ")
-        .replace(
-          /\s[-–—]\s.*\b(remaster(ed)?|version|mix|edit|live|mono|stereo|deluxe|radio|acoustic|feat\.?|ft\.?)\b.*$/,
-          " ",
-        ),
-    ) || clean(base)
-  );
-}
-function sameName(a, b) {
-  const x = normalizeName(a),
-    y = normalizeName(b);
-  if (!x || !y) return false;
-  if (x === y) return true;
-  const tx = new Set(x.split(" ")),
-    ty = new Set(y.split(" ")),
-    shared = [...tx].filter((t) => ty.has(t)).length;
-  return shared / new Set([...tx, ...ty]).size >= 0.6;
-}
-function splitArtists(value) {
-  return String(value ?? "")
-    .split(/,|;|\/|&|\band\b|\bfeat\.?|\bft\.?|\bx\b|\bwith\b/i)
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-// Decides whether a lyrics record plausibly belongs to the playing track.
-// Only fields that are actually present are compared; any disagreement rejects the record.
-function trackMatches(record, metadata, track) {
-  let compared = 0;
-  const present = (v) => typeof v === "string" && v.trim();
-  for (const title of [record?.trackName, record?.name, metadata?.title])
-    if (present(title) && present(track?.title)) {
-      compared++;
-      if (!sameName(title, track.title)) return { ok: false, reason: "title" };
-    }
-  const wanted = (track?.artists || []).flatMap(splitArtists);
-  for (const artist of [record?.artistName, metadata?.artist])
-    if (present(artist) && wanted.length) {
-      compared++;
-      const found = splitArtists(artist);
-      if (!found.some((f) => wanted.some((w) => sameName(f, w))))
-        return { ok: false, reason: "artist" };
-    }
-  if (track?.durationMs > 0)
-    for (const ms of [
-      Number(record?.duration) * 1000,
-      Number(metadata?.duration_ms),
-    ])
-      if (Number.isFinite(ms) && ms > 0) {
-        compared++;
-        if (Math.abs(ms - track.durationMs) > 3000)
-          return { ok: false, reason: "duration" };
-      }
-  return compared ? { ok: true } : { ok: false, reason: "no metadata" };
-}
-// Fallback order: verified word-timed lyricsfile -> existing LRCLIB synced lyrics.
-// (Estimated word timing for line-only lyrics is applied later, in render().)
-function pickLyrics(record, track) {
-  if (typeof record?.lyricsfile === "string" && record.lyricsfile.trim()) {
-    try {
-      const result = lyricsfileToLines(record.lyricsfile);
-      if (result.wordTimed) {
-        const match = trackMatches(record, result.metadata, track);
-        if (match.ok) return { lines: result.lines, source: "word-timed" };
-        console.debug("[Luma Lyrics] Ignoring word-timed lyrics:", match.reason);
-      }
-    } catch (error) {
-      console.debug("[Luma Lyrics] Ignoring unusable lyricsfile:", error.message);
-    }
-  }
-  const lines =
-    typeof record?.syncedLyrics === "string" ? parse(record.syncedLyrics) : [];
-  return { lines, source: lines.length ? "synced" : "none" };
-}
-// What Escape should do. Settings/menu close from anywhere while Luma is open; closing the
-// whole overlay still requires focus inside it; text fields are never interrupted.
-function escapeStep({ overlayOpen, menuOpen, settingsOpen, inRoot, editable }) {
-  if (!overlayOpen || editable) return null;
-  if (menuOpen) return "menu";
-  if (settingsOpen) return "settings";
-  return inRoot ? "overlay" : null;
-}
-// A word stays current until its real end time when the source has one, or
-// until the next word starts when the timing is estimated.
-function endOfWord(line, j) {
-  const word = line.display[j];
-  return line.exact
-    ? Math.max(word.ms + 1, word.endTime ?? line.end)
-    : Math.min(line.display[j + 1]?.ms ?? line.end, line.end);
-}
-// Opacity for a single word: upcoming words sit dim, the current word ramps
-// up across its duration, and sung words settle at full strength. The small
-// pre-roll lets the highlight ease into the next word.
-function wordFlowOpacity(start, end, progress) {
-  if (progress < start) {
-    const lead = 180,
-      approach = Math.max(0, Math.min(1, 1 - (start - progress) / lead));
-    return 0.5 + approach * 0.12;
-  }
-  if (progress >= end) return 1;
-  // Long words settle quickly instead of fading in for their whole duration.
-  const ramp = Math.max(1, Math.min(end - start, 480));
-  const fraction = Math.max(0, Math.min(1, (progress - start) / ramp));
-  return 0.62 + fraction * 0.38;
-}
-
-// ── Romanization (offline, built in) ──────────────────────────────
-// Korean: Revised Romanization. Japanese: Hepburn (kana; kanji left as-is).
-// Cyrillic: ISO 9-style. Latin text and Chinese return "" (nothing to do).
-const KO_I = ["g","kk","n","d","tt","r","m","b","p","s","ss","","j","jj","ch","k","t","p","h"],
-  KO_M = ["a","ae","ya","yae","eo","e","yeo","ye","o","wa","wae","oe","yo","u","wo","we","wi","yu","eu","ui","i"],
-  KO_F = ["","k","k","k","n","n","n","t","l","k","m","l","l","l","p","l","m","p","p","t","t","ng","t","t","k","t","p","t"],
-  CYR = {А:"A",Б:"B",В:"V",Г:"G",Д:"D",Е:"E",Ё:"Yo",Ж:"Zh",З:"Z",И:"I",Й:"Y",К:"K",Л:"L",М:"M",Н:"N",О:"O",П:"P",Р:"R",С:"S",Т:"T",У:"U",Ф:"F",Х:"Kh",Ц:"Ts",Ч:"Ch",Ш:"Sh",Щ:"Shch",Ъ:"",Ы:"Y",Ь:"",Э:"E",Ю:"Yu",Я:"Ya"},
-  KANA = Object.fromEntries(
-    [
-      ["あ","a"],["い","i"],["う","u"],["え","e"],["お","o"],["か","ka"],["き","ki"],["く","ku"],["け","ke"],["こ","ko"],
-      ["が","ga"],["ぎ","gi"],["ぐ","gu"],["げ","ge"],["ご","go"],["さ","sa"],["し","shi"],["す","su"],["せ","se"],["そ","so"],
-      ["ざ","za"],["じ","ji"],["ず","zu"],["ぜ","ze"],["ぞ","zo"],["た","ta"],["ち","chi"],["つ","tsu"],["て","te"],["と","to"],
-      ["だ","da"],["ぢ","ji"],["づ","zu"],["で","de"],["ど","do"],["な","na"],["に","ni"],["ぬ","nu"],["ね","ne"],["の","no"],
-      ["は","ha"],["ひ","hi"],["ふ","fu"],["へ","he"],["ほ","ho"],["ば","ba"],["び","bi"],["ぶ","bu"],["べ","be"],["ぼ","bo"],
-      ["ぱ","pa"],["ぴ","pi"],["ぷ","pu"],["ぺ","pe"],["ぽ","po"],["ま","ma"],["み","mi"],["む","mu"],["め","me"],["も","mo"],
-      ["や","ya"],["ゆ","yu"],["よ","yo"],["ら","ra"],["り","ri"],["る","ru"],["れ","re"],["ろ","ro"],["わ","wa"],["を","wo"],
-      ["ん","n"],["ゔ","vu"],
-    ],
-  ),
-  SMALL = {ゃ:"ya",ゅ:"yu",ょ:"yo",ぁ:"a",ぃ:"i",ぅ:"u",ぇ:"e",ぉ:"o",ャ:"ya",ュ:"yu",ョ:"yo"},
-  romajiOf = (ch) =>
-    KANA[ch] ??
-    (ch >= "ァ" && ch <= "ヶ"
-      ? KANA[String.fromCharCode(ch.charCodeAt(0) - 0x60)]
-      : null);
-function romanizeText(text) {
-  if (!text || !/[가-힣ㄱ-ㅎ\u3040-\u30FF\u0400-\u04FF]/.test(text)) return "";
-  let out = "";
-  const chars = [...text];
-  for (let i = 0; i < chars.length; i++) {
-    const ch = chars[i], code = ch.charCodeAt(0);
-    if (code >= 0xac00 && code <= 0xd7a3) {
-      const base = code - 0xac00;
-      out += KO_I[(base / 588) | 0] + KO_M[((base % 588) / 28) | 0] + KO_F[base % 28];
-    } else if (code >= 0x1100 && code <= 0x11ff) {
-      out += KO_F[code - 0x1100]; // lone jongseong cluster
-    } else if (code >= 0x3131 && code <= 0x314e) {
-      out += KO_I[code - 0x3131]; // jamo consonant
-    } else if (code >= 0x314f && code <= 0x3163) {
-      out += KO_M[code - 0x314f]; // jamo vowel
-    } else if (ch === "っ" || ch === "ッ") {
-      const next = romajiOf(chars[i + 1] || "") || chars[i + 1] || "";
-      out += next[0] === "c" ? "t" : /^[kstpbjgdzchg]/.test(next[0] || "") ? next[0] : "";
-    } else if (ch === "ー") {
-      out += /[aeiou]/.test(out.slice(-1)) ? out.slice(-1) : "";
-    } else if (code >= 0x3040 && code <= 0x30ff) {
-      const base = romajiOf(ch), small = SMALL[chars[i + 1]];
-      if (base && small) {
-        out += base.slice(0, -1) + small;
-        i++; // consumed the combining small kana
-      } else out += base ?? ch;
-    } else if (code >= 0x400 && code <= 0x4ff) {
-      const upper = ch.toUpperCase(), r = CYR[upper] ?? "";
-      out += ch === upper ? r : r.toLowerCase();
-    } else out += ch;
-  }
-  return out;
-}
-
-// Translation requests are isolated from the overlay so batching, caching, and
-// cancellation can be tested without a Spotify runtime.
-
-function createTranslationService({
-  fetchImpl = (...args) => globalThis.fetch(...args),
-  maxCacheEntries = 500,
-} = {}) {
-  const cache = new Map();
-
-  function remember(key, value) {
-    if (cache.has(key)) cache.delete(key);
-    cache.set(key, value);
-    while (cache.size > maxCacheEntries) {
-      cache.delete(cache.keys().next().value);
-    }
-  }
-
-  async function translateLines(texts, lang, signal) {
-    const out = new Array(texts.length).fill("");
-    const todo = [];
-
-    texts.forEach((text, index) => {
-      const key = lang + "\u0000" + text;
-      if (cache.has(key)) out[index] = cache.get(key);
-      else todo.push(index);
-    });
-
-    for (let i = 0; i < todo.length;) {
-      const batch = [];
-      let length = 0;
-
-      while (i < todo.length && batch.length < 40 && length < 1200) {
-        const index = todo[i++];
-        const text = texts[index];
-        if (!text) {
-          out[index] = "";
-          remember(lang + "\u0000" + text, "");
-          continue;
-        }
-        batch.push(index);
-        length += text.length;
-      }
-
-      if (!batch.length) continue;
-
-      const response = await fetchImpl(
-        `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(lang)}&dt=t&q=${encodeURIComponent(batch.map((index) => texts[index]).join("\n"))}`,
-        { signal },
-      );
-      if (!response.ok) throw new Error("HTTP " + response.status);
-
-      const parts = (await response.json())[0].map((part) => part[0]).join("").split("\n");
-      batch.forEach((index, offset) => {
-        const translated = (parts[offset] || "").trim();
-        remember(lang + "\u0000" + texts[index], translated);
-        out[index] = translated;
+    result.sort((a, b) => a.ms - b.ms);
+    result.forEach((line, i) => {
+      line.lineIndex = i;
+      line.words.forEach((word, j) => {
+        word.endTime =
+          line.words[j + 1]?.ms ?? result[i + 1]?.ms ?? line.ms + 4000;
       });
+    });
+    return result;
+  }
+  // LRCLIB "Lyricsfile" adapter. LRCLIB returns a YAML `lyricsfile` string with word timing
+  // alongside the legacy `syncedLyrics`. Spec: https://github.com/tranxuanthang/lyricsfile
+  // The spec only allows mappings, sequences, strings, integers, booleans and null, so a small
+  // parser for that subset is enough (no dependency). Anything else throws and we fall back.
+  function parseYamlSubset(source) {
+    if (typeof source !== "string" || !source.trim() || source.length > 1500000)
+      throw new Error("Unusable lyricsfile");
+    const rows = source.replace(/^\uFEFF/, "").split(/\r?\n/);
+    const KEY =
+      /^("(?:[^"\\]|\\.)*"|'(?:[^']|'')*'|[A-Za-z0-9_][A-Za-z0-9_.-]*)[ \t]*:(?:[ \t]+(.*))?$/;
+    const isDash = (s) => s === "-" || s.startsWith("- ");
+    let i = 0,
+      depth = 0;
+    const indentOf = (row) => {
+      const n = /^ */.exec(row)[0].length;
+      if (row[n] === "\t") throw new Error("Tab indentation");
+      return n;
+    };
+    const skip = () => {
+      while (i < rows.length) {
+        const t = rows[i].trim();
+        if (!t || t[0] === "#") i++;
+        else break;
+      }
+    };
+    const scalar = (raw) => {
+      const s = raw.trim();
+      if (s === "" || s === "~" || /^(null|Null|NULL)$/.test(s)) return null;
+      if (s === "[]") return [];
+      if (s === "{}") return {};
+      if (s[0] === '"') {
+        const m = /^"((?:[^"\\]|\\.)*)"\s*(?:#.*)?$/.exec(s);
+        if (!m) throw new Error("Bad string");
+        return JSON.parse('"' + m[1] + '"');
+      }
+      if (s[0] === "'") {
+        const m = /^'((?:[^']|'')*)'\s*(?:#.*)?$/.exec(s);
+        if (!m) throw new Error("Bad string");
+        return m[1].replace(/''/g, "'");
+      }
+      if ("&*!|>%@`[{".includes(s[0])) throw new Error("Unsupported YAML");
+      const plain = s.replace(/\s+#.*$/, "");
+      if (/^[+-]?\d+$/.test(plain)) return Number(plain);
+      if (/^(true|True|TRUE)$/.test(plain)) return true;
+      if (/^(false|False|FALSE)$/.test(plain)) return false;
+      return plain;
+    };
+    const blockScalar = (header, parentIndent) => {
+      const literal = header[0] === "|",
+        out = [];
+      let blockIndent = -1;
+      while (i < rows.length) {
+        const row = rows[i];
+        if (!row.trim()) {
+          out.push("");
+          i++;
+          continue;
+        }
+        const ind = indentOf(row);
+        if (ind <= parentIndent) break;
+        if (blockIndent < 0) blockIndent = ind;
+        out.push(row.slice(Math.min(ind, blockIndent)));
+        i++;
+      }
+      while (out.length && out[out.length - 1] === "") out.pop();
+      const body = literal ? out.join("\n") : out.join(" ");
+      return header.includes("-") ? body : body + "\n";
+    };
+    const parseNode = (minIndent) => {
+      skip();
+      if (i >= rows.length) return null;
+      const ind = indentOf(rows[i]);
+      if (ind < minIndent) return null;
+      const content = rows[i].slice(ind);
+      if (++depth > 16) throw new Error("Too deeply nested");
+      try {
+        if (isDash(content)) return parseSeq(ind);
+        if (KEY.test(content)) return parseMap(ind);
+        i++;
+        return scalar(content);
+      } finally {
+        depth--;
+      }
+    };
+    const parseMap = (ind) => {
+      const obj = Object.create(null);
+      for (;;) {
+        skip();
+        if (i >= rows.length) break;
+        const here = indentOf(rows[i]);
+        if (here < ind) break;
+        if (here > ind) throw new Error("Bad indentation");
+        const content = rows[i].slice(ind);
+        if (isDash(content)) break;
+        const m = KEY.exec(content);
+        if (!m) throw new Error("Bad mapping");
+        const key = m[1][0] === '"' || m[1][0] === "'" ? scalar(m[1]) : m[1];
+        if (key in obj) throw new Error("Duplicate key");
+        i++;
+        const rest = (m[2] || "").trim();
+        let value;
+        if (rest === "" || rest[0] === "#") {
+          skip();
+          const next = i < rows.length ? indentOf(rows[i]) : -1;
+          if (next > ind) value = parseNode(ind + 1);
+          else if (next === ind && isDash(rows[i].slice(next)))
+            value = parseSeq(ind);
+          else value = null;
+        } else if (/^[|>][+-]?\d*\s*(#.*)?$/.test(rest))
+          value = blockScalar(rest, ind);
+        else value = scalar(rest);
+        obj[key] = value;
+      }
+      return obj;
+    };
+    const parseSeq = (ind) => {
+      const arr = [];
+      for (;;) {
+        skip();
+        if (i >= rows.length) break;
+        const here = indentOf(rows[i]);
+        if (here < ind) break;
+        if (here > ind) throw new Error("Bad indentation");
+        const content = rows[i].slice(ind);
+        if (!isDash(content)) break;
+        const after = content.slice(1),
+          rest = after.trimStart(),
+          restIndent = ind + 1 + (after.length - rest.length);
+        if (rest === "" || rest[0] === "#") {
+          i++;
+          arr.push(parseNode(ind + 1));
+        } else if (KEY.test(rest)) {
+          rows[i] = " ".repeat(restIndent) + rest;
+          arr.push(parseMap(restIndent));
+        } else {
+          i++;
+          arr.push(scalar(rest));
+        }
+      }
+      return arr;
+    };
+    skip();
+    if (rows[i]?.trim() === "---") i++;
+    const doc = parseNode(0);
+    skip();
+    if (i < rows.length && rows[i].trim() !== "...")
+      throw new Error("Unexpected content");
+    return doc;
+  }
+  // Converts a lyricsfile into Luma's internal lines ({ ms, text, words, exact }).
+  // `wordTimed` is true only when real word timestamps cover most of the lyrics.
+  function lyricsfileToLines(source) {
+    const doc = parseYamlSubset(source),
+      isMap = (v) => v && typeof v === "object" && !Array.isArray(v);
+    if (!isMap(doc) || doc.version !== "1.0" || !isMap(doc.metadata))
+      throw new Error("Unsupported lyricsfile");
+    const metadata = doc.metadata,
+      time = (v, label) => {
+        if (!Number.isSafeInteger(v) || v < 0)
+          throw new Error("Invalid " + label);
+        return v;
+      },
+      optionalEnd = (v, start, label) => {
+        if (v == null) return null;
+        const end = time(v, label);
+        if (end < start) throw new Error("Invalid " + label);
+        return end;
+      };
+    if (!Array.isArray(doc.lines) || !doc.lines.length)
+      return { metadata, lines: [], wordTimed: false };
+    const parsed = doc.lines
+      .map((raw) => {
+        if (!isMap(raw) || typeof raw.text !== "string")
+          throw new Error("Invalid line");
+        const start = time(raw.start_ms, "line start"),
+          end = optionalEnd(raw.end_ms, start, "line end");
+        if (raw.words != null && !Array.isArray(raw.words))
+          throw new Error("Invalid words");
+        const words = [];
+        for (const w of raw.words || []) {
+          if (!isMap(w) || typeof w.text !== "string")
+            throw new Error("Invalid word");
+          const ms = time(w.start_ms, "word start"),
+            wordEnd = optionalEnd(w.end_ms, ms, "word end");
+          if (!w.text.trim()) {
+            // Keep spacing that was written as its own segment.
+            if (words.length) words[words.length - 1].text += w.text;
+            continue;
+          }
+          words.push({ ms, text: w.text, end: wordEnd });
+        }
+        words.sort((a, b) => a.ms - b.ms);
+        return { ms: start, end, text: raw.text, words };
+      })
+      .sort((a, b) => a.ms - b.ms);
+    const out = parsed.map((l, idx) => {
+      const hasWords = l.words.length > 0,
+        fallbackEnd = l.end ?? parsed[idx + 1]?.ms;
+      return {
+        ms: hasWords ? Math.min(l.ms, l.words[0].ms) : l.ms,
+        text:
+          (hasWords ? l.words.map((w) => w.text).join("") : l.text).trim() ||
+          "♪",
+        words: l.words.map((w, j) => ({
+          ms: w.ms,
+          text: w.text,
+          endTime: Math.max(
+            w.ms,
+            w.end ?? l.words[j + 1]?.ms ?? fallbackEnd ?? w.ms + 4000,
+          ),
+        })),
+        exact: hasWords,
+        lineIndex: idx,
+      };
+    });
+    const textLines = parsed.filter((l) => l.text.trim()).length,
+      wordLines = out.filter((l) => l.exact).length;
+    return {
+      metadata,
+      lines: out,
+      wordTimed:
+        wordLines > 0 &&
+        wordLines >= textLines / 2 &&
+        out.some((l) => l.words.some((w) => w.ms > 0)),
+    };
+  }
+  function normalizeName(value) {
+    const base = String(value ?? "")
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/&/g, " and ");
+    const clean = (s) => s.replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+    return (
+      clean(
+        base
+          .replace(/\([^)]*\)|\[[^\]]*\]/g, " ")
+          .replace(
+            /\s[-–—]\s.*\b(remaster(ed)?|version|mix|edit|live|mono|stereo|deluxe|radio|acoustic|feat\.?|ft\.?)\b.*$/,
+            " ",
+          ),
+      ) || clean(base)
+    );
+  }
+  function sameName(a, b) {
+    const x = normalizeName(a),
+      y = normalizeName(b);
+    if (!x || !y) return false;
+    if (x === y) return true;
+    const tx = new Set(x.split(" ")),
+      ty = new Set(y.split(" ")),
+      shared = [...tx].filter((t) => ty.has(t)).length;
+    return shared / new Set([...tx, ...ty]).size >= 0.6;
+  }
+  function splitArtists(value) {
+    return String(value ?? "")
+      .split(/,|;|\/|&|\band\b|\bfeat\.?|\bft\.?|\bx\b|\bwith\b/i)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  // Decides whether a lyrics record plausibly belongs to the playing track.
+  // Only fields that are actually present are compared; any disagreement rejects the record.
+  function trackMatches(record, metadata, track) {
+    let compared = 0;
+    const present = (v) => typeof v === "string" && v.trim();
+    for (const title of [record?.trackName, record?.name, metadata?.title])
+      if (present(title) && present(track?.title)) {
+        compared++;
+        if (!sameName(title, track.title))
+          return { ok: false, reason: "title" };
+      }
+    const wanted = (track?.artists || []).flatMap(splitArtists);
+    for (const artist of [record?.artistName, metadata?.artist])
+      if (present(artist) && wanted.length) {
+        compared++;
+        const found = splitArtists(artist);
+        if (!found.some((f) => wanted.some((w) => sameName(f, w))))
+          return { ok: false, reason: "artist" };
+      }
+    if (track?.durationMs > 0)
+      for (const ms of [
+        Number(record?.duration) * 1000,
+        Number(metadata?.duration_ms),
+      ])
+        if (Number.isFinite(ms) && ms > 0) {
+          compared++;
+          if (Math.abs(ms - track.durationMs) > 3000)
+            return { ok: false, reason: "duration" };
+        }
+    return compared ? { ok: true } : { ok: false, reason: "no metadata" };
+  }
+  // Fallback order: verified word-timed lyricsfile -> existing LRCLIB synced lyrics.
+  // (Estimated word timing for line-only lyrics is applied later, in render().)
+  function pickLyrics(record, track) {
+    if (typeof record?.lyricsfile === "string" && record.lyricsfile.trim()) {
+      try {
+        const result = lyricsfileToLines(record.lyricsfile);
+        if (result.wordTimed) {
+          const match = trackMatches(record, result.metadata, track);
+          if (match.ok) return { lines: result.lines, source: "word-timed" };
+          console.debug(
+            "[Luma Lyrics] Ignoring word-timed lyrics:",
+            match.reason,
+          );
+        }
+      } catch (error) {
+        console.debug(
+          "[Luma Lyrics] Ignoring unusable lyricsfile:",
+          error.message,
+        );
+      }
     }
+    const lines =
+      typeof record?.syncedLyrics === "string"
+        ? parse(record.syncedLyrics)
+        : [];
+    return { lines, source: lines.length ? "synced" : "none" };
+  }
+  // What Escape should do. Settings/menu close from anywhere while Luma is open; closing the
+  // whole overlay still requires focus inside it; text fields are never interrupted.
+  function escapeStep({
+    overlayOpen,
+    menuOpen,
+    settingsOpen,
+    inRoot,
+    editable,
+  }) {
+    if (!overlayOpen || editable) return null;
+    if (menuOpen) return "menu";
+    if (settingsOpen) return "settings";
+    return inRoot ? "overlay" : null;
+  }
+  // A word stays current until its real end time when the source has one, or
+  // until the next word starts when the timing is estimated.
+  function endOfWord(line, j) {
+    const word = line.display[j];
+    return line.exact
+      ? Math.max(word.ms + 1, word.endTime ?? line.end)
+      : Math.min(line.display[j + 1]?.ms ?? line.end, line.end);
+  }
+  // Opacity for a single word: upcoming words sit dim, the current word ramps
+  // up across its duration, and sung words settle at full strength. The small
+  // pre-roll lets the highlight ease into the next word.
+  function wordFlowOpacity(start, end, progress) {
+    if (progress < start) {
+      const lead = 180,
+        approach = Math.max(0, Math.min(1, 1 - (start - progress) / lead));
+      return 0.5 + approach * 0.12;
+    }
+    if (progress >= end) return 1;
+    // Long words settle quickly instead of fading in for their whole duration.
+    const ramp = Math.max(1, Math.min(end - start, 480));
+    const fraction = Math.max(0, Math.min(1, (progress - start) / ramp));
+    return 0.62 + fraction * 0.38;
+  }
 
+  // ── Romanization (offline, built in) ──────────────────────────────
+  // Korean: Revised Romanization. Japanese: Hepburn (kana; kanji left as-is).
+  // Cyrillic: ISO 9-style. Latin text and Chinese return "" (nothing to do).
+  const KO_I = [
+      "g",
+      "kk",
+      "n",
+      "d",
+      "tt",
+      "r",
+      "m",
+      "b",
+      "p",
+      "s",
+      "ss",
+      "",
+      "j",
+      "jj",
+      "ch",
+      "k",
+      "t",
+      "p",
+      "h",
+    ],
+    KO_M = [
+      "a",
+      "ae",
+      "ya",
+      "yae",
+      "eo",
+      "e",
+      "yeo",
+      "ye",
+      "o",
+      "wa",
+      "wae",
+      "oe",
+      "yo",
+      "u",
+      "wo",
+      "we",
+      "wi",
+      "yu",
+      "eu",
+      "ui",
+      "i",
+    ],
+    KO_F = [
+      "",
+      "k",
+      "k",
+      "k",
+      "n",
+      "n",
+      "n",
+      "t",
+      "l",
+      "k",
+      "m",
+      "l",
+      "l",
+      "l",
+      "p",
+      "l",
+      "m",
+      "p",
+      "p",
+      "t",
+      "t",
+      "ng",
+      "t",
+      "t",
+      "k",
+      "t",
+      "p",
+      "t",
+    ],
+    CYR = {
+      А: "A",
+      Б: "B",
+      В: "V",
+      Г: "G",
+      Д: "D",
+      Е: "E",
+      Ё: "Yo",
+      Ж: "Zh",
+      З: "Z",
+      И: "I",
+      Й: "Y",
+      К: "K",
+      Л: "L",
+      М: "M",
+      Н: "N",
+      О: "O",
+      П: "P",
+      Р: "R",
+      С: "S",
+      Т: "T",
+      У: "U",
+      Ф: "F",
+      Х: "Kh",
+      Ц: "Ts",
+      Ч: "Ch",
+      Ш: "Sh",
+      Щ: "Shch",
+      Ъ: "",
+      Ы: "Y",
+      Ь: "",
+      Э: "E",
+      Ю: "Yu",
+      Я: "Ya",
+    },
+    KANA = Object.fromEntries([
+      ["あ", "a"],
+      ["い", "i"],
+      ["う", "u"],
+      ["え", "e"],
+      ["お", "o"],
+      ["か", "ka"],
+      ["き", "ki"],
+      ["く", "ku"],
+      ["け", "ke"],
+      ["こ", "ko"],
+      ["が", "ga"],
+      ["ぎ", "gi"],
+      ["ぐ", "gu"],
+      ["げ", "ge"],
+      ["ご", "go"],
+      ["さ", "sa"],
+      ["し", "shi"],
+      ["す", "su"],
+      ["せ", "se"],
+      ["そ", "so"],
+      ["ざ", "za"],
+      ["じ", "ji"],
+      ["ず", "zu"],
+      ["ぜ", "ze"],
+      ["ぞ", "zo"],
+      ["た", "ta"],
+      ["ち", "chi"],
+      ["つ", "tsu"],
+      ["て", "te"],
+      ["と", "to"],
+      ["だ", "da"],
+      ["ぢ", "ji"],
+      ["づ", "zu"],
+      ["で", "de"],
+      ["ど", "do"],
+      ["な", "na"],
+      ["に", "ni"],
+      ["ぬ", "nu"],
+      ["ね", "ne"],
+      ["の", "no"],
+      ["は", "ha"],
+      ["ひ", "hi"],
+      ["ふ", "fu"],
+      ["へ", "he"],
+      ["ほ", "ho"],
+      ["ば", "ba"],
+      ["び", "bi"],
+      ["ぶ", "bu"],
+      ["べ", "be"],
+      ["ぼ", "bo"],
+      ["ぱ", "pa"],
+      ["ぴ", "pi"],
+      ["ぷ", "pu"],
+      ["ぺ", "pe"],
+      ["ぽ", "po"],
+      ["ま", "ma"],
+      ["み", "mi"],
+      ["む", "mu"],
+      ["め", "me"],
+      ["も", "mo"],
+      ["や", "ya"],
+      ["ゆ", "yu"],
+      ["よ", "yo"],
+      ["ら", "ra"],
+      ["り", "ri"],
+      ["る", "ru"],
+      ["れ", "re"],
+      ["ろ", "ro"],
+      ["わ", "wa"],
+      ["を", "wo"],
+      ["ん", "n"],
+      ["ゔ", "vu"],
+    ]),
+    SMALL = {
+      ゃ: "ya",
+      ゅ: "yu",
+      ょ: "yo",
+      ぁ: "a",
+      ぃ: "i",
+      ぅ: "u",
+      ぇ: "e",
+      ぉ: "o",
+      ャ: "ya",
+      ュ: "yu",
+      ョ: "yo",
+    },
+    romajiOf = (ch) =>
+      KANA[ch] ??
+      (ch >= "ァ" && ch <= "ヶ"
+        ? KANA[String.fromCharCode(ch.charCodeAt(0) - 0x60)]
+        : null);
+  function romanizeText(text) {
+    if (!text || !/[가-힣ㄱ-ㅎ\u3040-\u30FF\u0400-\u04FF]/.test(text))
+      return "";
+    let out = "";
+    const chars = [...text];
+    for (let i = 0; i < chars.length; i++) {
+      const ch = chars[i],
+        code = ch.charCodeAt(0);
+      if (code >= 0xac00 && code <= 0xd7a3) {
+        const base = code - 0xac00;
+        out +=
+          KO_I[(base / 588) | 0] +
+          KO_M[((base % 588) / 28) | 0] +
+          KO_F[base % 28];
+      } else if (code >= 0x1100 && code <= 0x11ff) {
+        out += KO_F[code - 0x1100]; // lone jongseong cluster
+      } else if (code >= 0x3131 && code <= 0x314e) {
+        out += KO_I[code - 0x3131]; // jamo consonant
+      } else if (code >= 0x314f && code <= 0x3163) {
+        out += KO_M[code - 0x314f]; // jamo vowel
+      } else if (ch === "っ" || ch === "ッ") {
+        const next = romajiOf(chars[i + 1] || "") || chars[i + 1] || "";
+        out +=
+          next[0] === "c"
+            ? "t"
+            : /^[kstpbjgdzchg]/.test(next[0] || "")
+              ? next[0]
+              : "";
+      } else if (ch === "ー") {
+        out += /[aeiou]/.test(out.slice(-1)) ? out.slice(-1) : "";
+      } else if (code >= 0x3040 && code <= 0x30ff) {
+        const base = romajiOf(ch),
+          small = SMALL[chars[i + 1]];
+        if (base && small) {
+          out += base.slice(0, -1) + small;
+          i++; // consumed the combining small kana
+        } else out += base ?? ch;
+      } else if (code >= 0x400 && code <= 0x4ff) {
+        const upper = ch.toUpperCase(),
+          r = CYR[upper] ?? "";
+        out += ch === upper ? r : r.toLowerCase();
+      } else out += ch;
+    }
     return out;
   }
 
-  return {
-    translateLines,
-    clearCache: () => cache.clear(),
-    get cacheSize() {
-      return cache.size;
-    },
-  };
-}
+  // Translation requests are isolated from the overlay so batching, caching, and
+  // cancellation can be tested without a Spotify runtime.
 
-// LRCLIB client.
-//
-// Two queries run in parallel: the exact `/api/get` lookup and the tolerant
-// `/api/search` catalog. The first usable record wins, which keeps the common
-// case fast while covering tracks whose album/duration tags do not match the
-// exact endpoint. Each request owns its AbortController, so a timeout never
-// cancels the track itself, and a timeout is retried once with a fresh request.
-//
-// Everything is injectable so the behaviour can be tested without a network.
+  function createTranslationService({
+    fetchImpl = (...args) => globalThis.fetch(...args),
+    maxCacheEntries = 500,
+  } = {}) {
+    const cache = new Map();
 
-const LRCLIB_ORIGIN = "https://lrclib.net";
-const LRCLIB_CLIENT = "LumaLyrics/2.5.0 (Spicetify independent extension)";
-
-function failure(code, message, extra) {
-  const error = new Error(message);
-  error.code = code;
-  if (extra) Object.assign(error, extra);
-  return error;
-}
-
-function lookupParams(track = {}) {
-  const params = new URLSearchParams();
-  if (track.title) params.set("track_name", track.title);
-  if (track.artist) params.set("artist_name", track.artist);
-  if (track.album) params.set("album_name", track.album);
-  const seconds = Math.round(Number(track.durationMs) / 1000);
-  if (seconds > 0 && seconds <= 3600) params.set("duration", String(seconds));
-  return params;
-}
-
-function searchParams(track = {}) {
-  const params = new URLSearchParams();
-  if (track.title) params.set("track_name", track.title);
-  if (track.artist) params.set("artist_name", track.artist);
-  return params;
-}
-
-// Prefers word-timed records, then line-synced ones, then plain text, and
-// breaks ties by how close the record's duration is to the playing track.
-function chooseBestRecord(
-  records,
-  { accept = () => true, durationMs = 0 } = {},
-) {
-  if (!Array.isArray(records)) return null;
-  let best = null,
-    bestScore = -Infinity;
-  for (const record of records) {
-    if (!record || typeof record !== "object") continue;
-    if (!accept(record)) continue;
-    const wordTimed =
-      Boolean(record.hasWordSync) ||
-      (typeof record.lyricsfile === "string" && record.lyricsfile.trim());
-    const synced =
-      typeof record.syncedLyrics === "string" && record.syncedLyrics.trim();
-    let score =
-      (wordTimed ? 6 : 0) + (synced ? 3 : 0) + (record.instrumental ? 0 : 1);
-    if (durationMs > 0 && Number(record.duration) > 0)
-      score -= Math.min(
-        3,
-        Math.abs(Number(record.duration) * 1000 - durationMs) / 8000,
-      );
-    if (score > bestScore) {
-      bestScore = score;
-      best = record;
+    function remember(key, value) {
+      if (cache.has(key)) cache.delete(key);
+      cache.set(key, value);
+      while (cache.size > maxCacheEntries) {
+        cache.delete(cache.keys().next().value);
+      }
     }
-  }
-  return best;
-}
 
-function retryable(error) {
-  return Boolean(error) && (error.code === "timeout" || error.code === "network");
-}
+    async function translateLines(texts, lang, signal) {
+      const out = new Array(texts.length).fill("");
+      const todo = [];
 
-// Resolves with the first success and aborts the losing request. When every
-// request fails, a retryable failure (timeout/network) is preferred over a
-// definitive "not found" so the caller can decide to retry.
-function firstSuccess(promises, controller) {
-  return new Promise((resolve, reject) => {
-    let pending = promises.length;
-    const errors = [];
-    const settle = () => {
-      if (--pending > 0) return;
-      reject(errors.find(retryable) || errors[0] || failure("notfound", "No lyrics found for this track."));
+      texts.forEach((text, index) => {
+        const key = lang + "\u0000" + text;
+        if (cache.has(key)) out[index] = cache.get(key);
+        else todo.push(index);
+      });
+
+      for (let i = 0; i < todo.length; ) {
+        const batch = [];
+        let length = 0;
+
+        while (i < todo.length && batch.length < 40 && length < 1200) {
+          const index = todo[i++];
+          const text = texts[index];
+          if (!text) {
+            out[index] = "";
+            remember(lang + "\u0000" + text, "");
+            continue;
+          }
+          batch.push(index);
+          length += text.length;
+        }
+
+        if (!batch.length) continue;
+
+        const response = await fetchImpl(
+          `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(lang)}&dt=t&q=${encodeURIComponent(batch.map((index) => texts[index]).join("\n"))}`,
+          { signal },
+        );
+        if (!response.ok) throw new Error("HTTP " + response.status);
+
+        const parts = (await response.json())[0]
+          .map((part) => part[0])
+          .join("")
+          .split("\n");
+        batch.forEach((index, offset) => {
+          const translated = (parts[offset] || "").trim();
+          remember(lang + "\u0000" + texts[index], translated);
+          out[index] = translated;
+        });
+      }
+
+      return out;
+    }
+
+    return {
+      translateLines,
+      clearCache: () => cache.clear(),
+      get cacheSize() {
+        return cache.size;
+      },
     };
-    for (const promise of promises) {
-      promise.then(
-        (value) => {
-          controller.abort();
-          resolve(value);
-        },
-        (error) => {
-          errors.push(error);
-          settle();
-        },
-      );
-    }
-  });
-}
-
-function createLyricsClient({
-  fetchImpl = (...args) => globalThis.fetch(...args),
-  timeoutMs = 20000,
-  retryTimeoutMs = 15000,
-  retryDelayMs = 600,
-  slowAfterMs = 7000,
-  origin = LRCLIB_ORIGIN,
-  client = LRCLIB_CLIENT,
-  delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
-} = {}) {
-  async function request(path, { signal, timeout = timeoutMs } = {}) {
-    if (signal?.aborted) throw failure("aborted", "Aborted");
-    const local = new AbortController();
-    const onAbort = () => local.abort();
-    signal?.addEventListener("abort", onAbort, { once: true });
-    let timedOut = false;
-    const timer = setTimeout(() => {
-      timedOut = true;
-      local.abort();
-    }, timeout);
-    try {
-      const response = await fetchImpl(origin + path, {
-        credentials: "omit",
-        headers: { "Lrclib-Client": client },
-        signal: local.signal,
-      });
-      if (response.status === 404)
-        throw failure("notfound", "No lyrics found for this track.");
-      if (response.status === 429 || response.status === 503) {
-        const raw = response.headers.get("Retry-After");
-        const seconds = Number(raw);
-        throw failure("busy", "Lyrics service is busy. Try again later.", {
-          retryAfterMs:
-            raw && Number.isFinite(seconds)
-              ? seconds * 1000
-              : Math.max(60000, (Date.parse(raw) || 0) - Date.now()),
-        });
-      }
-      if (!response.ok)
-        throw failure("http", "Lyrics service error " + response.status, {
-          status: response.status,
-        });
-      return await response.json();
-    } catch (error) {
-      if (error?.code) throw error;
-      if (timedOut) throw failure("timeout", "LRCLIB did not respond in time.");
-      if (signal?.aborted || error?.name === "AbortError")
-        throw failure("aborted", "Aborted");
-      throw failure("network", "Could not reach LRCLIB.", { cause: error });
-    } finally {
-      clearTimeout(timer);
-      signal?.removeEventListener("abort", onAbort);
-    }
   }
 
-  async function round({ signal, timeout, accept, track }) {
-    const local = new AbortController();
-    const onAbort = () => local.abort();
-    if (signal) {
-      if (signal.aborted) throw failure("aborted", "Aborted");
-      signal.addEventListener("abort", onAbort, { once: true });
-    }
-    const exact = request("/api/get?" + lookupParams(track), {
-      signal: local.signal,
-      timeout,
-    }).then((record) => {
-      if (record && typeof record === "object") return record;
-      throw failure("notfound", "No lyrics found for this track.");
-    });
-    const search = request("/api/search?" + searchParams(track), {
-      signal: local.signal,
-      timeout,
-    }).then((records) => {
-      const record = chooseBestRecord(records, {
-        accept,
-        durationMs: track?.durationMs,
-      });
-      if (record) return record;
-      throw failure("notfound", "No lyrics found for this track.");
-    });
-    try {
-      return await firstSuccess([exact, search], local);
-    } finally {
-      signal?.removeEventListener("abort", onAbort);
-      local.abort();
-    }
+  // LRCLIB client.
+  //
+  // Two queries run in parallel: the exact `/api/get` lookup and the tolerant
+  // `/api/search` catalog. The first usable record wins, which keeps the common
+  // case fast while covering tracks whose album/duration tags do not match the
+  // exact endpoint. Each request owns its AbortController, so a timeout never
+  // cancels the track itself, and a timeout is retried once with a fresh request.
+  //
+  // Everything is injectable so the behaviour can be tested without a network.
+
+  const LRCLIB_ORIGIN = "https://lrclib.net";
+  const LRCLIB_CLIENT = "LumaLyrics/2.5.0 (Spicetify independent extension)";
+
+  function failure(code, message, extra) {
+    const error = new Error(message);
+    error.code = code;
+    if (extra) Object.assign(error, extra);
+    return error;
   }
 
-  async function lookup(track, { signal, onStage = () => {}, accept = () => true } = {}) {
-    const slowTimer = setTimeout(() => onStage("slow"), slowAfterMs);
-    try {
-      try {
-        return await round({ signal, timeout: timeoutMs, accept, track });
-      } catch (error) {
-        if (
-          error.code === "aborted" ||
-          signal?.aborted ||
-          error.code === "notfound" ||
-          error.code === "busy" ||
-          error.code === "http"
-        )
-          throw error;
-        onStage("retrying");
-        await delay(retryDelayMs);
-        return await round({ signal, timeout: retryTimeoutMs, accept, track });
-      }
-    } finally {
-      clearTimeout(slowTimer);
-    }
+  function lookupParams(track = {}) {
+    const params = new URLSearchParams();
+    if (track.title) params.set("track_name", track.title);
+    if (track.artist) params.set("artist_name", track.artist);
+    if (track.album) params.set("album_name", track.album);
+    const seconds = Math.round(Number(track.durationMs) / 1000);
+    if (seconds > 0 && seconds <= 3600) params.set("duration", String(seconds));
+    return params;
   }
 
-  return { lookup, chooseBestRecord };
-}
-
-const defaultOptions = {
-  size: 40,
-  dim: 0.25,
-  estimated: true,
-  desktop: false,
-  vinyl: false,
-  syncOffset: 0,
-  lyricMode: "word",
-  scrollSmoothness: 65,
-  translate: false,
-  translateLang: "en",
-  romanize: false,
-};
-
-function loadSettings(storage) {
-  let options = { ...defaultOptions };
-  let migratedDefaultDim = false;
-
-  try {
-    const target = storage ?? globalThis.localStorage;
-    const savedOptions = JSON.parse(target.getItem("luma-settings") || "{}");
-    options = { ...options, ...savedOptions };
-    if (savedOptions.dim === 0.4) {
-      options.dim = defaultOptions.dim;
-      migratedDefaultDim = true;
-    }
-  } catch {}
-
-  if ("sliderStyle" in options) {
-    delete options.sliderStyle;
-    try {
-      (storage ?? globalThis.localStorage).setItem("luma-settings", JSON.stringify(options));
-    } catch (error) {
-      console.warn("[Luma Lyrics] Could not remove the retired slider preference.", error);
-    }
+  function searchParams(track = {}) {
+    const params = new URLSearchParams();
+    if (track.title) params.set("track_name", track.title);
+    if (track.artist) params.set("artist_name", track.artist);
+    return params;
   }
 
-  return { options, migratedDefaultDim };
-}
-
-function saveSettings(options, storage) {
-  try {
-    (storage ?? globalThis.localStorage).setItem("luma-settings", JSON.stringify(options));
-  } catch {}
-}
-
-// Local .lrc imports.
-//
-// Imported lyrics live in one localStorage entry keyed by a caller-supplied
-// track key, so they survive restarts without touching LRCLIB. The store is
-// bounded by both track count and serialized size, and evicts the oldest
-// imports first; a blocked or full storage never throws into the UI.
-
-const LOCAL_LYRICS_STORAGE_KEY = "luma-local-lyrics";
-const MAX_LOCAL_TRACKS = 20;
-const MAX_LOCAL_BYTES = 180000;
-
-function readStore(storage) {
-  try {
-    const raw = storage?.getItem(LOCAL_LYRICS_STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      ? parsed
-      : {};
-  } catch {
-    return {};
-  }
-}
-
-function writeStore(storage, store) {
-  try {
-    storage?.setItem(LOCAL_LYRICS_STORAGE_KEY, JSON.stringify(store));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function sizeOf(store) {
-  try {
-    return JSON.stringify(store).length;
-  } catch {
-    return Infinity;
-  }
-}
-
-function oldestKey(store, except) {
-  let key = null,
-    savedAt = Infinity;
-  for (const [candidate, entry] of Object.entries(store)) {
-    if (candidate === except) continue;
-    const time = Number(entry?.savedAt) || 0;
-    if (time < savedAt) {
-      savedAt = time;
-      key = candidate;
-    }
-  }
-  return key;
-}
-
-function getLocalLyrics(storage, key) {
-  if (!key) return null;
-  const entry = readStore(storage)[key];
-  return entry && typeof entry.text === "string" && entry.text.trim()
-    ? entry
-    : null;
-}
-
-function hasLocalLyrics(storage, key) {
-  return Boolean(getLocalLyrics(storage, key));
-}
-
-function removeLocalLyrics(storage, key) {
-  if (!key) return false;
-  const store = readStore(storage);
-  if (!(key in store)) return false;
-  delete store[key];
-  return writeStore(storage, store);
-}
-
-function saveLocalLyrics(
-  storage,
-  key,
-  { text, title = "", artist = "", savedAt = Date.now() } = {},
-  { maxTracks = MAX_LOCAL_TRACKS, maxBytes = MAX_LOCAL_BYTES } = {},
-) {
-  if (!key) throw new Error("A track is required before importing lyrics.");
-  if (typeof text !== "string" || !text.trim())
-    throw new Error("The selected file has no lyrics.");
-  const store = readStore(storage);
-  store[key] = { text, title, artist, savedAt };
-
-  // Drop the oldest imports until both limits are satisfied. The entry being
-  // saved is never evicted.
-  let guard = 0;
-  while (
-    (Object.keys(store).length > maxTracks || sizeOf(store) > maxBytes) &&
-    guard++ < 1000
+  // Prefers word-timed records, then line-synced ones, then plain text, and
+  // breaks ties by how close the record's duration is to the playing track.
+  function chooseBestRecord(
+    records,
+    { accept = () => true, durationMs = 0 } = {},
   ) {
-    const victim = oldestKey(store, key);
-    if (!victim) break;
-    delete store[victim];
+    if (!Array.isArray(records)) return null;
+    let best = null,
+      bestScore = -Infinity;
+    for (const record of records) {
+      if (!record || typeof record !== "object") continue;
+      if (!accept(record)) continue;
+      const wordTimed =
+        Boolean(record.hasWordSync) ||
+        (typeof record.lyricsfile === "string" && record.lyricsfile.trim());
+      const synced =
+        typeof record.syncedLyrics === "string" && record.syncedLyrics.trim();
+      let score =
+        (wordTimed ? 6 : 0) + (synced ? 3 : 0) + (record.instrumental ? 0 : 1);
+      if (durationMs > 0 && Number(record.duration) > 0)
+        score -= Math.min(
+          3,
+          Math.abs(Number(record.duration) * 1000 - durationMs) / 8000,
+        );
+      if (score > bestScore) {
+        bestScore = score;
+        best = record;
+      }
+    }
+    return best;
   }
 
-  if (writeStore(storage, store)) return store[key];
+  function retryable(error) {
+    return (
+      Boolean(error) && (error.code === "timeout" || error.code === "network")
+    );
+  }
 
-  // Storage may be full: free the oldest entry and try once more.
-  const victim = oldestKey(store, key);
-  if (victim) delete store[victim];
-  if (writeStore(storage, store)) return store[key];
-  throw new Error("Lyrics could not be saved on this device.");
-}
+  // Resolves with the first success and aborts the losing request. When every
+  // request fails, a retryable failure (timeout/network) is preferred over a
+  // definitive "not found" so the caller can decide to retry.
+  function firstSuccess(promises, controller) {
+    return new Promise((resolve, reject) => {
+      let pending = promises.length;
+      const errors = [];
+      const settle = () => {
+        if (--pending > 0) return;
+        reject(
+          errors.find(retryable) ||
+            errors[0] ||
+            failure("notfound", "No lyrics found for this track."),
+        );
+      };
+      for (const promise of promises) {
+        promise.then(
+          (value) => {
+            controller.abort();
+            resolve(value);
+          },
+          (error) => {
+            errors.push(error);
+            settle();
+          },
+        );
+      }
+    });
+  }
 
-function listLocalLyrics(storage) {
-  return Object.entries(readStore(storage))
-    .map(([key, entry]) => ({ key, ...entry }))
-    .sort((a, b) => (Number(b.savedAt) || 0) - (Number(a.savedAt) || 0));
-}
+  function createLyricsClient({
+    fetchImpl = (...args) => globalThis.fetch(...args),
+    timeoutMs = 20000,
+    retryTimeoutMs = 15000,
+    retryDelayMs = 600,
+    slowAfterMs = 7000,
+    origin = LRCLIB_ORIGIN,
+    client = LRCLIB_CLIENT,
+    delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  } = {}) {
+    async function request(path, { signal, timeout = timeoutMs } = {}) {
+      if (signal?.aborted) throw failure("aborted", "Aborted");
+      const local = new AbortController();
+      const onAbort = () => local.abort();
+      signal?.addEventListener("abort", onAbort, { once: true });
+      let timedOut = false;
+      const timer = setTimeout(() => {
+        timedOut = true;
+        local.abort();
+      }, timeout);
+      try {
+        const response = await fetchImpl(origin + path, {
+          credentials: "omit",
+          headers: { "Lrclib-Client": client },
+          signal: local.signal,
+        });
+        if (response.status === 404)
+          throw failure("notfound", "No lyrics found for this track.");
+        if (response.status === 429 || response.status === 503) {
+          const raw = response.headers.get("Retry-After");
+          const seconds = Number(raw);
+          throw failure("busy", "Lyrics service is busy. Try again later.", {
+            retryAfterMs:
+              raw && Number.isFinite(seconds)
+                ? seconds * 1000
+                : Math.max(60000, (Date.parse(raw) || 0) - Date.now()),
+          });
+        }
+        if (!response.ok)
+          throw failure("http", "Lyrics service error " + response.status, {
+            status: response.status,
+          });
+        return await response.json();
+      } catch (error) {
+        if (error?.code) throw error;
+        if (timedOut)
+          throw failure("timeout", "LRCLIB did not respond in time.");
+        if (signal?.aborted || error?.name === "AbortError")
+          throw failure("aborted", "Aborted");
+        throw failure("network", "Could not reach LRCLIB.", { cause: error });
+      } finally {
+        clearTimeout(timer);
+        signal?.removeEventListener("abort", onAbort);
+      }
+    }
 
-// Overlay and Spotify styles live here so visual changes stay separate from
-// player state, lyric timing, and event handling.
+    async function round({ signal, timeout, accept, track }) {
+      const local = new AbortController();
+      const onAbort = () => local.abort();
+      if (signal) {
+        if (signal.aborted) throw failure("aborted", "Aborted");
+        signal.addEventListener("abort", onAbort, { once: true });
+      }
+      const exact = request("/api/get?" + lookupParams(track), {
+        signal: local.signal,
+        timeout,
+      }).then((record) => {
+        if (record && typeof record === "object") return record;
+        throw failure("notfound", "No lyrics found for this track.");
+      });
+      const search = request("/api/search?" + searchParams(track), {
+        signal: local.signal,
+        timeout,
+      }).then((records) => {
+        const record = chooseBestRecord(records, {
+          accept,
+          durationMs: track?.durationMs,
+        });
+        if (record) return record;
+        throw failure("notfound", "No lyrics found for this track.");
+      });
+      try {
+        return await firstSuccess([exact, search], local);
+      } finally {
+        signal?.removeEventListener("abort", onAbort);
+        local.abort();
+      }
+    }
 
-function installStyles(document) {
-  const style = document.createElement("style");
-  style.textContent =
-    "\n#luma-root{position:fixed;inset:0;z-index:999999;background:#151517;color:#fff;font-family:'Segoe UI',sans-serif;overflow:hidden;--lyric-size:36px;--dim:.25}\n#luma-root[hidden],#luma-root [hidden]{display:none!important}\n#luma-root *{box-sizing:border-box}\n#luma-root .backdrop{position:absolute;inset:-100px;background:center/cover;filter:blur(85px) saturate(1.5);opacity:.8;transform:scale(1.1);pointer-events:none}\n#luma-root .shade{position:absolute;inset:0;background:rgba(0,0,0,var(--dim));pointer-events:none}\n#luma-root .bar{position:absolute;inset:20px 25px auto;display:flex;align-items:center;gap:10px;z-index:3}\n#luma-root button{font:inherit;color:inherit;cursor:pointer}\n#luma-root .tool{border:1px solid #ffffff18;border-radius:50%;width:38px;height:38px;background:#ffffff0c;display:grid;place-items:center}\n#luma-root button:hover{background:#ffffff10}\n#luma-root svg{width:20px;height:20px;fill:currentColor}\n#luma-root .status{margin-left:auto;font-size:12px;color:#ffffffa0}\n#luma-root .layout{position:relative;height:100%;padding:85px 9vw 45px;display:grid;grid-template-columns:minmax(230px,360px) minmax(0,1fr);gap:8vw;align-items:center}\n#luma-root .cover{display:block;width:100%;aspect-ratio:1;object-fit:cover;border-radius:13px;background:#28282b;box-shadow:0 30px 80px #0007}\n#luma-root .title{font-size:23px;font-weight:700;margin:22px 0 4px;letter-spacing:-.6px}\n#luma-root .artist{font-size:16px;color:#ffffffaa;margin-bottom:20px}\n#luma-root input[type=range]{width:100%;height:5px;accent-color:white;cursor:pointer}\n#luma-root .times{display:flex;justify-content:space-between;color:#ffffff90;font-size:12px;margin-top:6px}\n#luma-root .controls{display:flex;justify-content:center;gap:24px;margin:15px 0}\n#luma-root .controls button{background:none;border:0;padding:8px;display:grid;place-items:center}\n#luma-root .controls svg{width:29px;height:29px}\n#luma-root .controls .play svg{width:38px;height:38px}\n#luma-root .volume{display:flex;align-items:center;gap:12px;margin-top:14px;color:#ffffffa0}\n#luma-root .lyrics{position:relative;height:100%;overflow:auto;scrollbar-width:none;padding:40vh 8px;mask-image:linear-gradient(transparent,#000 12%,#000 88%,transparent)}\n#luma-root .line{display:block;width:100%;text-align:left;border:0;background:transparent;padding:15px 0;font-size:var(--lyric-size);font-weight:750;letter-spacing:-1px;line-height:1.35;white-space:pre-wrap;opacity:.25;transform:scale(.96);transform-origin:left;transition:transform .5s,opacity .4s}\n#luma-root .line.active{opacity:1;transform:scale(1)}\n#luma-root .line.past{opacity:.35}\n#luma-root .word{display:inline-block;white-space:pre;color:transparent;background:linear-gradient(90deg,#fff var(--fill,0%),#ffffff55 var(--fill,0%));background-clip:text;-webkit-background-clip:text}\n#luma-root .line:not(.active) .word{background:none;color:inherit}\n#luma-root .message{font-size:22px;line-height:1.6;white-space:pre-wrap;color:#ffffffc0}\n#luma-root .settings{position:absolute;right:25px;top:68px;width:300px;max-height:75vh;overflow:auto;z-index:4;padding:20px;border-radius:16px;background:#232326f5;box-shadow:0 20px 60px #0007;border:1px solid #ffffff15}\n#luma-root .settings h2{margin:0 0 15px;font-size:18px}\n#luma-root .settings label{display:block;margin:16px 0;font-size:13px;line-height:1.5}\n#luma-root .settings small{display:block;color:#ffffff90;margin-top:6px;line-height:1.5}\n#luma-root .settings button{border:1px solid #ffffff20;background:#ffffff0c;border-radius:8px;padding:8px 12px;margin:3px}\n@media(max-width:760px){#luma-root .layout{padding:78px 25px 25px;gap:25px;grid-template-columns:minmax(170px,1fr) minmax(0,1.2fr)}#luma-root .line{font-size:26px}#luma-root .status{font-size:10px}}\n@media(prefers-reduced-motion:reduce){#luma-root .line{transition:none;transform:none}}\n";
-  document.head.append(style);
-  const desktop = document.createElement("style");
-  desktop.textContent =
-    ':root{--spice-main:var(--luma-surface,#141218);--spice-sidebar:var(--luma-surface-low,#1d1b20);--spice-player:var(--luma-surface-container,#211f26);--spice-card:var(--luma-surface-high,#2b2930);--spice-button:var(--luma-primary,#d0bcff);--spice-button-active:var(--luma-primary,#d0bcff)}.Root__main-view,.Root__nav-bar,.main-card-card{border-radius:12px!important}.main-nowPlayingBar-nowPlayingBar{background:var(--luma-surface-container,#211f26)!important}button[data-testid="play-button"]{background:var(--luma-primary,#d0bcff)!important;color:var(--luma-on-primary,#381e72)!important}';
-  document.head.append(desktop);
-  const polish = document.createElement("style");
-  polish.textContent =
-    '@property --luma-word-fill{syntax:"<percentage>";inherits:false;initial-value:0%}#luma-root .bar{top:56px;justify-content:flex-end}#luma-root .bar .status{order:0;margin-left:0}#luma-root .bar [data-action=settings]{order:1}#luma-root .bar [data-action=full]{order:2}#luma-root .bar [data-action=close]{order:3}#luma-root .settings{top:104px}#luma-root .lyrics{scroll-behavior:auto;overscroll-behavior:contain}#luma-root .line{transition:transform .65s cubic-bezier(.22,1,.36,1),opacity .65s ease,filter .65s ease;text-shadow:0 0 0 transparent}#luma-root .line:not(.active){filter:blur(.35px)}#luma-root .line.active{transform:translateX(5px) scale(1);text-shadow:0 8px 32px #ffffff20}#luma-root .word{--luma-word-fill:var(--fill,0%);background:linear-gradient(90deg,#fff var(--luma-word-fill),#ffffff55 var(--luma-word-fill));transition:--luma-word-fill 40ms linear}@media(max-width:500px){#luma-root .bar .status{display:none}}@media(prefers-reduced-motion:reduce){#luma-root .line,#luma-root .word{transition:none}#luma-root .line:not(.active){filter:none}#luma-root .line.active{text-shadow:none;transform:none}}';
-  polish.textContent +=
-    "#luma-root .lyrics .line .luma-lyric-token{display:inline-block;white-space:pre-wrap;background:transparent!important;background-image:none!important;background-clip:border-box!important;-webkit-background-clip:border-box!important;color:#ffffffa8!important;-webkit-text-fill-color:#ffffffa8!important;text-shadow:none;transform:scale(1);transform-origin:bottom center;transition:color .2s ease,opacity .12s linear,transform .2s ease,text-shadow .2s ease}#luma-root .lyrics .line .luma-lyric-token.active{color:var(--accent)!important;-webkit-text-fill-color:var(--accent)!important;font-weight:850;text-shadow:0 0 18px rgba(var(--accent-rgb),.48);transform:scale(1.08);opacity:1!important}#luma-root .lyrics .line .luma-lyric-token.upcoming{color:#ffffff78!important;-webkit-text-fill-color:#ffffff78!important;opacity:.72!important}@media(prefers-reduced-motion:reduce){#luma-root .lyrics .line .luma-lyric-token{transition:none}}";
-  polish.textContent +=
-    "#luma-root .lyrics{scroll-padding-block:38vh}#luma-root .line{padding:13px 0;letter-spacing:-.7px;transition:transform .7s cubic-bezier(.22,1,.36,1),opacity .7s ease,filter .7s ease}#luma-root .line:not(.active){filter:blur(.15px);opacity:.38}#luma-root .line.past{opacity:.48}#luma-root .line.active{transform:translateX(2px);text-shadow:0 4px 24px rgba(var(--accent-rgb),.12)}#luma-root .lyrics .line .luma-lyric-token{font-weight:inherit;transform:none;transition:color .24s ease,opacity .18s ease,text-shadow .24s ease}#luma-root .lyrics .line .luma-lyric-token.active{color:#fff!important;-webkit-text-fill-color:#fff!important;font-weight:780;text-shadow:0 0 12px rgba(var(--accent-rgb),.28);transform:none;opacity:inherit}#luma-root .lyrics .line .luma-lyric-token.upcoming{color:#ffffff88!important;-webkit-text-fill-color:#ffffff88!important;opacity:.78!important}";
-  polish.textContent +=
-    "#luma-root .lyrics .line .luma-lyric-token.active{color:var(--accent)!important;-webkit-text-fill-color:var(--accent)!important;font-weight:850;text-shadow:0 0 18px rgba(var(--accent-rgb),.48);transform:scale(1.08);opacity:1!important}";
-  polish.textContent +=
-    "#luma-root .line{white-space:normal}#luma-root .lyric-main{display:block;font-size:calc(var(--lyric-size) + 2px);line-height:1.28}#luma-root .lyric-secondary{display:block;margin-top:.12em;color:#ffffffa0;font-size:.68em;font-weight:500;letter-spacing:-.25px;line-height:1.25;opacity:.82}#luma-root .lyric-secondary .luma-lyric-token{font-size:inherit;font-weight:inherit}#luma-root .line.active .lyric-secondary{opacity:.9}#luma-root .line:not(.active) .lyric-secondary{opacity:.65}@media(max-width:760px){#luma-root .lyric-main{font-size:28px}}";
-  document.head.append(polish);
-  const appearance = document.createElement("style");
-  appearance.textContent =
-    '#luma-root .tool{width:42px;height:42px;border-color:#ffffff24;backdrop-filter:blur(16px);transition:background .2s,border-color .2s,transform .2s}#luma-root .tool:hover{background:#ffffff20;border-color:#ffffff50;transform:translateY(-1px)}#luma-root .artwork-stage{position:relative;width:100%;aspect-ratio:1;border-radius:13px}#luma-root .cover{height:100%}#luma-root.vinyl .artwork-stage{overflow:hidden;border-radius:50%;background:radial-gradient(circle,#242428 0 2%,#0d0d0f 2.3% 5%,#222226 5.3% 5.8%,#111113 6% 100%);box-shadow:0 28px 70px #0009}#luma-root.vinyl .artwork-stage:before{content:"";position:absolute;inset:0;border-radius:50%;background:repeating-radial-gradient(circle at center,transparent 0 3px,#ffffff12 3.5px,#0008 4px,#0000 4.5px 7px);pointer-events:none}#luma-root.vinyl .artwork-stage:after{content:"";position:absolute;left:50%;top:50%;width:7px;height:7px;border:2px solid #ffffffb0;border-radius:50%;background:#111;transform:translate(-50%,-50%);box-shadow:0 0 0 3px #0008;pointer-events:none}#luma-root.vinyl .cover{position:absolute;left:18%;top:18%;width:64%;height:64%;border:3px solid #111;border-radius:50%;box-shadow:0 2px 14px #0009}#luma-root.vinyl.playing .artwork-stage{animation:luma-vinyl-spin 5s linear infinite}@keyframes luma-vinyl-spin{to{transform:rotate(360deg)}}#luma-root input[type=range]{--range-color:#fff;appearance:none;-webkit-appearance:none;width:100%;height:20px;margin:0;background:transparent;cursor:pointer}#luma-root input[type=range]::-webkit-slider-runnable-track{height:5px;border-radius:99px;background:linear-gradient(90deg,var(--range-color),#ffffff3a);box-shadow:inset 0 0 0 1px #ffffff12}#luma-root input[type=range]::-moz-range-track{height:5px;border-radius:99px;background:linear-gradient(90deg,var(--range-color),#ffffff3a);box-shadow:inset 0 0 0 1px #ffffff12}#luma-root input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;margin-top:-5px;border:2px solid #fff;border-radius:50%;background:var(--range-color);box-shadow:0 1px 8px #0008;transition:transform .15s,box-shadow .15s}#luma-root input[type=range]::-moz-range-thumb{width:11px;height:11px;border:2px solid #fff;border-radius:50%;background:var(--range-color);box-shadow:0 1px 8px #0008;transition:transform .15s,box-shadow .15s}#luma-root input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.2);box-shadow:0 0 0 5px #ffffff20}#luma-root input[type=range]:hover::-moz-range-thumb{transform:scale(1.2);box-shadow:0 0 0 5px #ffffff20}#luma-root[data-slider-style=glow] input[type=range]{--range-color:#b9a3ff}#luma-root[data-slider-style=glow] input[type=range]::-webkit-slider-runnable-track{box-shadow:0 0 12px #a78bfa80}#luma-root[data-slider-style=glow] input[type=range]::-moz-range-track{box-shadow:0 0 12px #a78bfa80}#luma-root[data-slider-style=minimal] input[type=range]::-webkit-slider-runnable-track{height:3px;background:#ffffff70;box-shadow:none}#luma-root[data-slider-style=minimal] input[type=range]::-moz-range-track{height:3px;background:#ffffff70;box-shadow:none}#luma-root[data-slider-style=minimal] input[type=range]::-webkit-slider-thumb{width:13px;height:13px;margin-top:-5px;background:#fff;box-shadow:none}#luma-root[data-slider-style=minimal] input[type=range]::-moz-range-thumb{width:9px;height:9px;background:#fff;box-shadow:none}#luma-root .controls button{width:46px;height:46px;border-radius:50%;color:#ffffffc0;transition:background .2s,color .2s,transform .2s}#luma-root .controls button:hover{background:#ffffff16;color:#fff;transform:scale(1.06)}#luma-root .controls .play{width:58px;height:58px;background:#ffffffed;color:#171719;box-shadow:0 6px 24px #0004}#luma-root .controls .play:hover{background:#fff;transform:scale(1.07)}#luma-root .controls .play svg{width:30px;height:30px}#luma-root .settings select{display:block;width:100%;margin-top:8px;padding:10px 12px;border:1px solid #ffffff20;border-radius:10px;background:#ffffff0c;color:#fff;font:inherit}#luma-root .settings select option{background:#232326;color:#fff}#luma-root .settings input[type=checkbox]{accent-color:#b9a3ff}@media(prefers-reduced-motion:reduce){#luma-root.vinyl.playing .artwork-stage{animation:none}}';
-  appearance.textContent +=
-    "#luma-root input[type=range]::-webkit-slider-runnable-track{background:linear-gradient(90deg,var(--range-color) var(--range-progress,0%),#ffffff3a var(--range-progress,0%))}#luma-root input[type=range]::-moz-range-track{background:linear-gradient(90deg,var(--range-color) var(--range-progress,0%),#ffffff3a var(--range-progress,0%))}#luma-root[data-slider-style=minimal] input[type=range]::-webkit-slider-runnable-track{background:linear-gradient(90deg,#fff var(--range-progress,0%),#ffffff40 var(--range-progress,0%))}#luma-root[data-slider-style=minimal] input[type=range]::-moz-range-track{background:linear-gradient(90deg,#fff var(--range-progress,0%),#ffffff40 var(--range-progress,0%))}";
-  appearance.textContent +=
-    "#luma-root[data-slider-style=bar] input[type=range]::-webkit-slider-runnable-track,#luma-root[data-slider-style=bar] input[type=range]::-moz-range-track{height:8px;border-radius:99px}#luma-root[data-slider-style=bar] input[type=range]::-webkit-slider-thumb{width:16px;height:16px;margin-top:-4px}#luma-root[data-slider-style=bar] input[type=range]::-moz-range-thumb{width:12px;height:12px}#luma-root[data-slider-style=wavy] input[type=range]::-webkit-slider-runnable-track,#luma-root[data-slider-style=wavy] input[type=range]::-moz-range-track{height:10px;border-radius:0;clip-path:polygon(0 50%,4% 10%,8% 0,12% 10%,16% 50%,20% 90%,24% 100%,28% 90%,32% 50%,36% 10%,40% 0,44% 10%,48% 50%,52% 90%,56% 100%,60% 90%,64% 50%,68% 10%,72% 0,76% 10%,80% 50%,84% 90%,88% 100%,92% 90%,96% 50%,100% 10%)}#luma-root[data-slider-style=wavy] input[type=range]::-webkit-slider-thumb{width:14px;height:14px;margin-top:-2px}#luma-root[data-slider-style=wavy] input[type=range]::-moz-range-thumb{width:10px;height:10px}#luma-root[data-slider-style=slim] input[type=range]::-webkit-slider-runnable-track,#luma-root[data-slider-style=slim] input[type=range]::-moz-range-track{height:2px;border-radius:99px}#luma-root[data-slider-style=slim] input[type=range]::-webkit-slider-thumb{width:12px;height:12px;margin-top:-5px}#luma-root[data-slider-style=slim] input[type=range]::-moz-range-thumb{width:8px;height:8px}#luma-root[data-slider-style=squiggly] input[type=range]::-webkit-slider-runnable-track,#luma-root[data-slider-style=squiggly] input[type=range]::-moz-range-track{height:10px;border-radius:0;clip-path:polygon(0 50%,4% 0,8% 50%,12% 100%,16% 50%,20% 0,24% 50%,28% 100%,32% 50%,36% 0,40% 50%,44% 100%,48% 50%,52% 0,56% 50%,60% 100%,64% 50%,68% 0,72% 50%,76% 100%,80% 50%,84% 0,88% 50%,92% 100%,96% 50%,100% 0);mask-image:repeating-linear-gradient(90deg,#000 0 7px,transparent 7px 11px)}#luma-root[data-slider-style=squiggly] input[type=range]::-webkit-slider-thumb{width:13px;height:13px;margin-top:-2px}#luma-root[data-slider-style=squiggly] input[type=range]::-moz-range-thumb{width:9px;height:9px}";
-  appearance.textContent += `
+    async function lookup(
+      track,
+      { signal, onStage = () => {}, accept = () => true } = {},
+    ) {
+      const slowTimer = setTimeout(() => onStage("slow"), slowAfterMs);
+      try {
+        try {
+          return await round({ signal, timeout: timeoutMs, accept, track });
+        } catch (error) {
+          if (
+            error.code === "aborted" ||
+            signal?.aborted ||
+            error.code === "notfound" ||
+            error.code === "busy" ||
+            error.code === "http"
+          )
+            throw error;
+          onStage("retrying");
+          await delay(retryDelayMs);
+          return await round({
+            signal,
+            timeout: retryTimeoutMs,
+            accept,
+            track,
+          });
+        }
+      } finally {
+        clearTimeout(slowTimer);
+      }
+    }
+
+    return { lookup, chooseBestRecord };
+  }
+
+  const defaultOptions = {
+    size: 40,
+    dim: 0.25,
+    estimated: true,
+    desktop: false,
+    vinyl: false,
+    syncOffset: 0,
+    lyricMode: "word",
+    scrollSmoothness: 65,
+    translate: false,
+    translateLang: "en",
+    romanize: false,
+  };
+
+  function loadSettings(storage) {
+    let options = { ...defaultOptions };
+    let migratedDefaultDim = false;
+
+    try {
+      const target = storage ?? globalThis.localStorage;
+      const savedOptions = JSON.parse(target.getItem("luma-settings") || "{}");
+      options = { ...options, ...savedOptions };
+      if (savedOptions.dim === 0.4) {
+        options.dim = defaultOptions.dim;
+        migratedDefaultDim = true;
+      }
+    } catch {}
+
+    if ("sliderStyle" in options) {
+      delete options.sliderStyle;
+      try {
+        (storage ?? globalThis.localStorage).setItem(
+          "luma-settings",
+          JSON.stringify(options),
+        );
+      } catch (error) {
+        console.warn(
+          "[Luma Lyrics] Could not remove the retired slider preference.",
+          error,
+        );
+      }
+    }
+
+    return { options, migratedDefaultDim };
+  }
+
+  function saveSettings(options, storage) {
+    try {
+      (storage ?? globalThis.localStorage).setItem(
+        "luma-settings",
+        JSON.stringify(options),
+      );
+    } catch {}
+  }
+
+  // Local .lrc imports.
+  //
+  // Imported lyrics live in one localStorage entry keyed by a caller-supplied
+  // track key, so they survive restarts without touching LRCLIB. The store is
+  // bounded by both track count and serialized size, and evicts the oldest
+  // imports first; a blocked or full storage never throws into the UI.
+
+  const LOCAL_LYRICS_STORAGE_KEY = "luma-local-lyrics";
+  const MAX_LOCAL_TRACKS = 20;
+  const MAX_LOCAL_BYTES = 180000;
+
+  function readStore(storage) {
+    try {
+      const raw = storage?.getItem(LOCAL_LYRICS_STORAGE_KEY);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? parsed
+        : {};
+    } catch {
+      return {};
+    }
+  }
+
+  function writeStore(storage, store) {
+    try {
+      storage?.setItem(LOCAL_LYRICS_STORAGE_KEY, JSON.stringify(store));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function sizeOf(store) {
+    try {
+      return JSON.stringify(store).length;
+    } catch {
+      return Infinity;
+    }
+  }
+
+  function oldestKey(store, except) {
+    let key = null,
+      savedAt = Infinity;
+    for (const [candidate, entry] of Object.entries(store)) {
+      if (candidate === except) continue;
+      const time = Number(entry?.savedAt) || 0;
+      if (time < savedAt) {
+        savedAt = time;
+        key = candidate;
+      }
+    }
+    return key;
+  }
+
+  function getLocalLyrics(storage, key) {
+    if (!key) return null;
+    const entry = readStore(storage)[key];
+    return entry && typeof entry.text === "string" && entry.text.trim()
+      ? entry
+      : null;
+  }
+
+  function hasLocalLyrics(storage, key) {
+    return Boolean(getLocalLyrics(storage, key));
+  }
+
+  function removeLocalLyrics(storage, key) {
+    if (!key) return false;
+    const store = readStore(storage);
+    if (!(key in store)) return false;
+    delete store[key];
+    return writeStore(storage, store);
+  }
+
+  function saveLocalLyrics(
+    storage,
+    key,
+    { text, title = "", artist = "", savedAt = Date.now() } = {},
+    { maxTracks = MAX_LOCAL_TRACKS, maxBytes = MAX_LOCAL_BYTES } = {},
+  ) {
+    if (!key) throw new Error("A track is required before importing lyrics.");
+    if (typeof text !== "string" || !text.trim())
+      throw new Error("The selected file has no lyrics.");
+    const store = readStore(storage);
+    store[key] = { text, title, artist, savedAt };
+
+    // Drop the oldest imports until both limits are satisfied. The entry being
+    // saved is never evicted.
+    let guard = 0;
+    while (
+      (Object.keys(store).length > maxTracks || sizeOf(store) > maxBytes) &&
+      guard++ < 1000
+    ) {
+      const victim = oldestKey(store, key);
+      if (!victim) break;
+      delete store[victim];
+    }
+
+    if (writeStore(storage, store)) return store[key];
+
+    // Storage may be full: free the oldest entry and try once more.
+    const victim = oldestKey(store, key);
+    if (victim) delete store[victim];
+    if (writeStore(storage, store)) return store[key];
+    throw new Error("Lyrics could not be saved on this device.");
+  }
+
+  function listLocalLyrics(storage) {
+    return Object.entries(readStore(storage))
+      .map(([key, entry]) => ({ key, ...entry }))
+      .sort((a, b) => (Number(b.savedAt) || 0) - (Number(a.savedAt) || 0));
+  }
+
+  // Overlay and Spotify styles live here so visual changes stay separate from
+  // player state, lyric timing, and event handling.
+
+  function installStyles(document) {
+    const style = document.createElement("style");
+    style.textContent =
+      "\n#luma-root{position:fixed;inset:0;z-index:999999;background:#151517;color:#fff;font-family:'Segoe UI',sans-serif;overflow:hidden;--lyric-size:36px;--dim:.25}\n#luma-root[hidden],#luma-root [hidden]{display:none!important}\n#luma-root *{box-sizing:border-box}\n#luma-root .backdrop{position:absolute;inset:-100px;background:center/cover;filter:blur(85px) saturate(1.5);opacity:.8;transform:scale(1.1);pointer-events:none}\n#luma-root .shade{position:absolute;inset:0;background:rgba(0,0,0,var(--dim));pointer-events:none}\n#luma-root .bar{position:absolute;inset:20px 25px auto;display:flex;align-items:center;gap:10px;z-index:3}\n#luma-root button{font:inherit;color:inherit;cursor:pointer}\n#luma-root .tool{border:1px solid #ffffff18;border-radius:50%;width:38px;height:38px;background:#ffffff0c;display:grid;place-items:center}\n#luma-root button:hover{background:#ffffff10}\n#luma-root svg{width:20px;height:20px;fill:currentColor}\n#luma-root .status{margin-left:auto;font-size:12px;color:#ffffffa0}\n#luma-root .layout{position:relative;height:100%;padding:85px 9vw 45px;display:grid;grid-template-columns:minmax(230px,360px) minmax(0,1fr);gap:8vw;align-items:center}\n#luma-root .cover{display:block;width:100%;aspect-ratio:1;object-fit:cover;border-radius:13px;background:#28282b;box-shadow:0 30px 80px #0007}\n#luma-root .title{font-size:23px;font-weight:700;margin:22px 0 4px;letter-spacing:-.6px}\n#luma-root .artist{font-size:16px;color:#ffffffaa;margin-bottom:20px}\n#luma-root input[type=range]{width:100%;height:5px;accent-color:white;cursor:pointer}\n#luma-root .times{display:flex;justify-content:space-between;color:#ffffff90;font-size:12px;margin-top:6px}\n#luma-root .controls{display:flex;justify-content:center;gap:24px;margin:15px 0}\n#luma-root .controls button{background:none;border:0;padding:8px;display:grid;place-items:center}\n#luma-root .controls svg{width:29px;height:29px}\n#luma-root .controls .play svg{width:38px;height:38px}\n#luma-root .volume{display:flex;align-items:center;gap:12px;margin-top:14px;color:#ffffffa0}\n#luma-root .lyrics{position:relative;height:100%;overflow:auto;scrollbar-width:none;padding:40vh 8px;mask-image:linear-gradient(transparent,#000 12%,#000 88%,transparent)}\n#luma-root .line{display:block;width:100%;text-align:left;border:0;background:transparent;padding:15px 0;font-size:var(--lyric-size);font-weight:750;letter-spacing:-1px;line-height:1.35;white-space:pre-wrap;opacity:.25;transform:scale(.96);transform-origin:left;transition:transform .5s,opacity .4s}\n#luma-root .line.active{opacity:1;transform:scale(1)}\n#luma-root .line.past{opacity:.35}\n#luma-root .word{display:inline-block;white-space:pre;color:transparent;background:linear-gradient(90deg,#fff var(--fill,0%),#ffffff55 var(--fill,0%));background-clip:text;-webkit-background-clip:text}\n#luma-root .line:not(.active) .word{background:none;color:inherit}\n#luma-root .message{font-size:22px;line-height:1.6;white-space:pre-wrap;color:#ffffffc0}\n#luma-root .settings{position:absolute;right:25px;top:68px;width:300px;max-height:75vh;overflow:auto;z-index:4;padding:20px;border-radius:16px;background:#232326f5;box-shadow:0 20px 60px #0007;border:1px solid #ffffff15}\n#luma-root .settings h2{margin:0 0 15px;font-size:18px}\n#luma-root .settings label{display:block;margin:16px 0;font-size:13px;line-height:1.5}\n#luma-root .settings small{display:block;color:#ffffff90;margin-top:6px;line-height:1.5}\n#luma-root .settings button{border:1px solid #ffffff20;background:#ffffff0c;border-radius:8px;padding:8px 12px;margin:3px}\n@media(max-width:760px){#luma-root .layout{padding:78px 25px 25px;gap:25px;grid-template-columns:minmax(170px,1fr) minmax(0,1.2fr)}#luma-root .line{font-size:26px}#luma-root .status{font-size:10px}}\n@media(prefers-reduced-motion:reduce){#luma-root .line{transition:none;transform:none}}\n";
+    document.head.append(style);
+    const desktop = document.createElement("style");
+    desktop.textContent =
+      ':root{--spice-main:var(--luma-surface,#141218);--spice-sidebar:var(--luma-surface-low,#1d1b20);--spice-player:var(--luma-surface-container,#211f26);--spice-card:var(--luma-surface-high,#2b2930);--spice-button:var(--luma-primary,#d0bcff);--spice-button-active:var(--luma-primary,#d0bcff)}.Root__main-view,.Root__nav-bar,.main-card-card{border-radius:12px!important}.main-nowPlayingBar-nowPlayingBar{background:var(--luma-surface-container,#211f26)!important}button[data-testid="play-button"]{background:var(--luma-primary,#d0bcff)!important;color:var(--luma-on-primary,#381e72)!important}';
+    document.head.append(desktop);
+    const polish = document.createElement("style");
+    polish.textContent =
+      '@property --luma-word-fill{syntax:"<percentage>";inherits:false;initial-value:0%}#luma-root .bar{top:56px;justify-content:flex-end}#luma-root .bar .status{order:0;margin-left:0}#luma-root .bar [data-action=settings]{order:1}#luma-root .bar [data-action=full]{order:2}#luma-root .bar [data-action=close]{order:3}#luma-root .settings{top:104px}#luma-root .lyrics{scroll-behavior:auto;overscroll-behavior:contain}#luma-root .line{transition:transform .65s cubic-bezier(.22,1,.36,1),opacity .65s ease,filter .65s ease;text-shadow:0 0 0 transparent}#luma-root .line:not(.active){filter:blur(.35px)}#luma-root .line.active{transform:translateX(5px) scale(1);text-shadow:0 8px 32px #ffffff20}#luma-root .word{--luma-word-fill:var(--fill,0%);background:linear-gradient(90deg,#fff var(--luma-word-fill),#ffffff55 var(--luma-word-fill));transition:--luma-word-fill 40ms linear}@media(max-width:500px){#luma-root .bar .status{display:none}}@media(prefers-reduced-motion:reduce){#luma-root .line,#luma-root .word{transition:none}#luma-root .line:not(.active){filter:none}#luma-root .line.active{text-shadow:none;transform:none}}';
+    polish.textContent +=
+      "#luma-root .lyrics .line .luma-lyric-token{display:inline-block;white-space:pre-wrap;background:transparent!important;background-image:none!important;background-clip:border-box!important;-webkit-background-clip:border-box!important;color:#ffffffa8!important;-webkit-text-fill-color:#ffffffa8!important;text-shadow:none;transform:scale(1);transform-origin:bottom center;transition:color .2s ease,opacity .12s linear,transform .2s ease,text-shadow .2s ease}#luma-root .lyrics .line .luma-lyric-token.active{color:var(--accent)!important;-webkit-text-fill-color:var(--accent)!important;font-weight:850;text-shadow:0 0 18px rgba(var(--accent-rgb),.48);transform:scale(1.08);opacity:1!important}#luma-root .lyrics .line .luma-lyric-token.upcoming{color:#ffffff78!important;-webkit-text-fill-color:#ffffff78!important;opacity:.72!important}@media(prefers-reduced-motion:reduce){#luma-root .lyrics .line .luma-lyric-token{transition:none}}";
+    polish.textContent +=
+      "#luma-root .lyrics{scroll-padding-block:38vh}#luma-root .line{padding:13px 0;letter-spacing:-.7px;transition:transform .7s cubic-bezier(.22,1,.36,1),opacity .7s ease,filter .7s ease}#luma-root .line:not(.active){filter:blur(.15px);opacity:.38}#luma-root .line.past{opacity:.48}#luma-root .line.active{transform:translateX(2px);text-shadow:0 4px 24px rgba(var(--accent-rgb),.12)}#luma-root .lyrics .line .luma-lyric-token{font-weight:inherit;transform:none;transition:color .24s ease,opacity .18s ease,text-shadow .24s ease}#luma-root .lyrics .line .luma-lyric-token.active{color:#fff!important;-webkit-text-fill-color:#fff!important;font-weight:780;text-shadow:0 0 12px rgba(var(--accent-rgb),.28);transform:none;opacity:inherit}#luma-root .lyrics .line .luma-lyric-token.upcoming{color:#ffffff88!important;-webkit-text-fill-color:#ffffff88!important;opacity:.78!important}";
+    polish.textContent +=
+      "#luma-root .lyrics .line .luma-lyric-token.active{color:var(--accent)!important;-webkit-text-fill-color:var(--accent)!important;font-weight:850;text-shadow:0 0 18px rgba(var(--accent-rgb),.48);transform:scale(1.08);opacity:1!important}";
+    polish.textContent +=
+      "#luma-root .line{white-space:normal}#luma-root .lyric-main{display:block;font-size:calc(var(--lyric-size) + 2px);line-height:1.28}#luma-root .lyric-secondary{display:block;margin-top:.12em;color:#ffffffa0;font-size:.68em;font-weight:500;letter-spacing:-.25px;line-height:1.25;opacity:.82}#luma-root .lyric-secondary .luma-lyric-token{font-size:inherit;font-weight:inherit}#luma-root .line.active .lyric-secondary{opacity:.9}#luma-root .line:not(.active) .lyric-secondary{opacity:.65}@media(max-width:760px){#luma-root .lyric-main{font-size:28px}}";
+    document.head.append(polish);
+    const appearance = document.createElement("style");
+    appearance.textContent =
+      '#luma-root .tool{width:42px;height:42px;border-color:#ffffff24;backdrop-filter:blur(16px);transition:background .2s,border-color .2s,transform .2s}#luma-root .tool:hover{background:#ffffff20;border-color:#ffffff50;transform:translateY(-1px)}#luma-root .artwork-stage{position:relative;width:100%;aspect-ratio:1;border-radius:13px}#luma-root .cover{height:100%}#luma-root.vinyl .artwork-stage{overflow:hidden;border-radius:50%;background:radial-gradient(circle,#242428 0 2%,#0d0d0f 2.3% 5%,#222226 5.3% 5.8%,#111113 6% 100%);box-shadow:0 28px 70px #0009}#luma-root.vinyl .artwork-stage:before{content:"";position:absolute;inset:0;border-radius:50%;background:repeating-radial-gradient(circle at center,transparent 0 3px,#ffffff12 3.5px,#0008 4px,#0000 4.5px 7px);pointer-events:none}#luma-root.vinyl .artwork-stage:after{content:"";position:absolute;left:50%;top:50%;width:7px;height:7px;border:2px solid #ffffffb0;border-radius:50%;background:#111;transform:translate(-50%,-50%);box-shadow:0 0 0 3px #0008;pointer-events:none}#luma-root.vinyl .cover{position:absolute;left:18%;top:18%;width:64%;height:64%;border:3px solid #111;border-radius:50%;box-shadow:0 2px 14px #0009}#luma-root.vinyl.playing .artwork-stage{animation:luma-vinyl-spin 5s linear infinite}@keyframes luma-vinyl-spin{to{transform:rotate(360deg)}}#luma-root input[type=range]{--range-color:#fff;appearance:none;-webkit-appearance:none;width:100%;height:20px;margin:0;background:transparent;cursor:pointer}#luma-root input[type=range]::-webkit-slider-runnable-track{height:5px;border-radius:99px;background:linear-gradient(90deg,var(--range-color),#ffffff3a);box-shadow:inset 0 0 0 1px #ffffff12}#luma-root input[type=range]::-moz-range-track{height:5px;border-radius:99px;background:linear-gradient(90deg,var(--range-color),#ffffff3a);box-shadow:inset 0 0 0 1px #ffffff12}#luma-root input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;margin-top:-5px;border:2px solid #fff;border-radius:50%;background:var(--range-color);box-shadow:0 1px 8px #0008;transition:transform .15s,box-shadow .15s}#luma-root input[type=range]::-moz-range-thumb{width:11px;height:11px;border:2px solid #fff;border-radius:50%;background:var(--range-color);box-shadow:0 1px 8px #0008;transition:transform .15s,box-shadow .15s}#luma-root input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.2);box-shadow:0 0 0 5px #ffffff20}#luma-root input[type=range]:hover::-moz-range-thumb{transform:scale(1.2);box-shadow:0 0 0 5px #ffffff20}#luma-root[data-slider-style=glow] input[type=range]{--range-color:#b9a3ff}#luma-root[data-slider-style=glow] input[type=range]::-webkit-slider-runnable-track{box-shadow:0 0 12px #a78bfa80}#luma-root[data-slider-style=glow] input[type=range]::-moz-range-track{box-shadow:0 0 12px #a78bfa80}#luma-root[data-slider-style=minimal] input[type=range]::-webkit-slider-runnable-track{height:3px;background:#ffffff70;box-shadow:none}#luma-root[data-slider-style=minimal] input[type=range]::-moz-range-track{height:3px;background:#ffffff70;box-shadow:none}#luma-root[data-slider-style=minimal] input[type=range]::-webkit-slider-thumb{width:13px;height:13px;margin-top:-5px;background:#fff;box-shadow:none}#luma-root[data-slider-style=minimal] input[type=range]::-moz-range-thumb{width:9px;height:9px;background:#fff;box-shadow:none}#luma-root .controls button{width:46px;height:46px;border-radius:50%;color:#ffffffc0;transition:background .2s,color .2s,transform .2s}#luma-root .controls button:hover{background:#ffffff16;color:#fff;transform:scale(1.06)}#luma-root .controls .play{width:58px;height:58px;background:#ffffffed;color:#171719;box-shadow:0 6px 24px #0004}#luma-root .controls .play:hover{background:#fff;transform:scale(1.07)}#luma-root .controls .play svg{width:30px;height:30px}#luma-root .settings select{display:block;width:100%;margin-top:8px;padding:10px 12px;border:1px solid #ffffff20;border-radius:10px;background:#ffffff0c;color:#fff;font:inherit}#luma-root .settings select option{background:#232326;color:#fff}#luma-root .settings input[type=checkbox]{accent-color:#b9a3ff}@media(prefers-reduced-motion:reduce){#luma-root.vinyl.playing .artwork-stage{animation:none}}';
+    appearance.textContent +=
+      "#luma-root input[type=range]::-webkit-slider-runnable-track{background:linear-gradient(90deg,var(--range-color) var(--range-progress,0%),#ffffff3a var(--range-progress,0%))}#luma-root input[type=range]::-moz-range-track{background:linear-gradient(90deg,var(--range-color) var(--range-progress,0%),#ffffff3a var(--range-progress,0%))}#luma-root[data-slider-style=minimal] input[type=range]::-webkit-slider-runnable-track{background:linear-gradient(90deg,#fff var(--range-progress,0%),#ffffff40 var(--range-progress,0%))}#luma-root[data-slider-style=minimal] input[type=range]::-moz-range-track{background:linear-gradient(90deg,#fff var(--range-progress,0%),#ffffff40 var(--range-progress,0%))}";
+    appearance.textContent +=
+      "#luma-root[data-slider-style=bar] input[type=range]::-webkit-slider-runnable-track,#luma-root[data-slider-style=bar] input[type=range]::-moz-range-track{height:8px;border-radius:99px}#luma-root[data-slider-style=bar] input[type=range]::-webkit-slider-thumb{width:16px;height:16px;margin-top:-4px}#luma-root[data-slider-style=bar] input[type=range]::-moz-range-thumb{width:12px;height:12px}#luma-root[data-slider-style=wavy] input[type=range]::-webkit-slider-runnable-track,#luma-root[data-slider-style=wavy] input[type=range]::-moz-range-track{height:10px;border-radius:0;clip-path:polygon(0 50%,4% 10%,8% 0,12% 10%,16% 50%,20% 90%,24% 100%,28% 90%,32% 50%,36% 10%,40% 0,44% 10%,48% 50%,52% 90%,56% 100%,60% 90%,64% 50%,68% 10%,72% 0,76% 10%,80% 50%,84% 90%,88% 100%,92% 90%,96% 50%,100% 10%)}#luma-root[data-slider-style=wavy] input[type=range]::-webkit-slider-thumb{width:14px;height:14px;margin-top:-2px}#luma-root[data-slider-style=wavy] input[type=range]::-moz-range-thumb{width:10px;height:10px}#luma-root[data-slider-style=slim] input[type=range]::-webkit-slider-runnable-track,#luma-root[data-slider-style=slim] input[type=range]::-moz-range-track{height:2px;border-radius:99px}#luma-root[data-slider-style=slim] input[type=range]::-webkit-slider-thumb{width:12px;height:12px;margin-top:-5px}#luma-root[data-slider-style=slim] input[type=range]::-moz-range-thumb{width:8px;height:8px}#luma-root[data-slider-style=squiggly] input[type=range]::-webkit-slider-runnable-track,#luma-root[data-slider-style=squiggly] input[type=range]::-moz-range-track{height:10px;border-radius:0;clip-path:polygon(0 50%,4% 0,8% 50%,12% 100%,16% 50%,20% 0,24% 50%,28% 100%,32% 50%,36% 0,40% 50%,44% 100%,48% 50%,52% 0,56% 50%,60% 100%,64% 50%,68% 0,72% 50%,76% 100%,80% 50%,84% 0,88% 50%,92% 100%,96% 50%,100% 0);mask-image:repeating-linear-gradient(90deg,#000 0 7px,transparent 7px 11px)}#luma-root[data-slider-style=squiggly] input[type=range]::-webkit-slider-thumb{width:13px;height:13px;margin-top:-2px}#luma-root[data-slider-style=squiggly] input[type=range]::-moz-range-thumb{width:9px;height:9px}";
+    appearance.textContent += `
     #luma-root[data-slider-style=bar] .player .seek::-webkit-slider-runnable-track,
     #luma-root[data-slider-style=bar] .player .seek::-moz-range-track{height:8px;border-radius:99px}
     #luma-root[data-slider-style=wavy] .player .seek::-webkit-slider-runnable-track,
@@ -977,9 +1210,9 @@ function installStyles(document) {
     #luma-root .preview-liquid i{width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#a78bfa 55%,#6d4aca)}
     @media(max-width:340px){#luma-root .slider-options{grid-template-columns:repeat(3,minmax(0,1fr))}}
   `;
-  appearance.textContent +=
-    "#luma-root[data-lyric-mode=block] .line.active{transform:none}#luma-root[data-lyric-mode=gentle] .line{transform:none;filter:none;opacity:.4;transition:opacity .8s ease}#luma-root[data-lyric-mode=gentle] .line.active{opacity:.9}#luma-root[data-lyric-mode=static] .line{transform:none;filter:none;transition:none;opacity:.55}#luma-root[data-lyric-mode=static] .line.active{opacity:1}#luma-root .placeholder{height:1.35em;margin:15px 0;border-radius:8px;background:linear-gradient(90deg,#ffffff0b 20%,#ffffff1b 45%,#ffffff0b 70%);background-size:220% 100%;animation:luma-placeholder 1.5s ease-in-out infinite}#luma-root .placeholder:nth-child(3n){width:76%}#luma-root .placeholder:nth-child(3n + 1){width:91%}#luma-root .placeholder:nth-child(3n + 2){width:62%}@keyframes luma-placeholder{to{background-position-x:-220%}}@media(prefers-reduced-motion:reduce){#luma-root .placeholder{animation:none}}";
-  appearance.textContent += `
+    appearance.textContent +=
+      "#luma-root[data-lyric-mode=block] .line.active{transform:none}#luma-root[data-lyric-mode=gentle] .line{transform:none;filter:none;opacity:.4;transition:opacity .8s ease}#luma-root[data-lyric-mode=gentle] .line.active{opacity:.9}#luma-root[data-lyric-mode=static] .line{transform:none;filter:none;transition:none;opacity:.55}#luma-root[data-lyric-mode=static] .line.active{opacity:1}#luma-root .placeholder{height:1.35em;margin:15px 0;border-radius:8px;background:linear-gradient(90deg,#ffffff0b 20%,#ffffff1b 45%,#ffffff0b 70%);background-size:220% 100%;animation:luma-placeholder 1.5s ease-in-out infinite}#luma-root .placeholder:nth-child(3n){width:76%}#luma-root .placeholder:nth-child(3n + 1){width:91%}#luma-root .placeholder:nth-child(3n + 2){width:62%}@keyframes luma-placeholder{to{background-position-x:-220%}}@media(prefers-reduced-motion:reduce){#luma-root .placeholder{animation:none}}";
+    appearance.textContent += `
     #luma-root .settings{border-radius:18px;background:linear-gradient(145deg,rgba(var(--accent-rgb),.1),rgba(255,255,255,.035) 48%,rgba(var(--accent-rgb),.055)),rgba(20,21,24,.72);backdrop-filter:blur(30px) saturate(1.45);-webkit-backdrop-filter:blur(30px) saturate(1.45);box-shadow:0 22px 70px #0007,0 1px 0 #ffffff20 inset,0 0 34px rgba(var(--accent-rgb),.08)}
     #luma-root .settings-header{background:linear-gradient(110deg,rgba(var(--accent-rgb),.09),rgba(28,28,32,.74));backdrop-filter:blur(30px) saturate(1.45);-webkit-backdrop-filter:blur(30px) saturate(1.45);border-bottom-color:#ffffff15}
     #luma-root .settings-eyebrow{color:#ffffff8a;font-size:9px;letter-spacing:1.1px}
@@ -1006,7 +1239,7 @@ function installStyles(document) {
     #luma-root .settings .settings-footer button{background:rgba(255,255,255,.045);border-color:#ffffff1c;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
     #luma-root .settings .settings-footer button:hover{background:rgba(var(--accent-rgb),.12);border-color:rgba(var(--accent-rgb),.45)}
   `;
-  appearance.textContent += `
+    appearance.textContent += `
     #luma-root[data-slider-style=bar] .layout input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:99px}
     #luma-root[data-slider-style=bar] .layout input[type=range]::-moz-range-track{height:8px;border-radius:99px}
     #luma-root[data-slider-style=bar] .layout input[type=range]::-webkit-slider-thumb{width:16px;height:16px;margin-top:-4px}
@@ -1073,7 +1306,7 @@ function installStyles(document) {
     @media(max-width:760px){#luma-root .player{padding:12px}}
     @media(max-width:600px){#luma-root .settings{top:100px;right:12px;width:calc(100vw - 24px);max-height:calc(100vh - 112px)}#luma-root .settings-section{padding-right:18px;padding-left:18px}#luma-root .settings-header{padding-right:18px;padding-left:18px}}
   `;
-  appearance.textContent += `
+    appearance.textContent += `
     #luma-root{--material-surface:rgba(28,29,34,.72);--material-surface-high:rgba(255,255,255,.085);--material-outline:rgba(255,255,255,.14);--material-on-surface:#f5f2f8}
     #luma-root .shade{background:linear-gradient(135deg,rgba(5,7,11,.48),rgba(8,9,13,.24) 55%,rgba(5,7,11,.48))}
     #luma-root .bar{inset:22px 28px auto}
@@ -1120,7 +1353,7 @@ function installStyles(document) {
     @media(max-width:520px){#luma-root .layout{grid-template-columns:minmax(0,1fr);align-content:start;overflow:auto;padding:82px 18px 20px;gap:16px}#luma-root .player{display:grid;grid-template-columns:72px minmax(0,1fr);column-gap:14px;align-items:center;padding:13px 15px}#luma-root .artwork-stage,#luma-root.vinyl .artwork-stage{grid-row:1 / span 3;width:72px;height:72px;margin:0}#luma-root .player .title,#luma-root .player .artist{grid-column:2}#luma-root .player .title{align-self:end;font-size:17px}#luma-root .player .artist{align-self:start;margin:2px 0 0;font-size:12px}#luma-root .player .seek,#luma-root .times,#luma-root .controls,#luma-root .volume{grid-column:1 / -1}#luma-root .player .seek{margin-top:12px}#luma-root .controls{margin:5px 0}#luma-root .settings{top:76px;right:12px;width:calc(100vw - 24px);max-height:calc(100vh - 92px)}#luma-root .lyrics{min-height:42vh;padding:20vh 8px}}
     @media(prefers-reduced-motion:reduce){#luma-root .controls button,#luma-root .tool{transition:none}}
   `;
-  appearance.textContent += `
+    appearance.textContent += `
     #luma-root .bar{inset:76px 28px auto;justify-content:flex-end}
     #luma-root .settings{top:132px;max-height:calc(100vh - 156px)}
     #luma-root .shade{background:rgba(0,0,0,var(--dim));transition:background .2s ease}
@@ -1135,19 +1368,20 @@ function installStyles(document) {
     #luma-root .controls button:not(.play):hover{background:rgba(255,255,255,.08)}
     @media(max-width:600px){#luma-root .bar{inset:72px 16px auto}#luma-root .settings{top:126px;right:12px;width:calc(100vw - 24px);max-height:calc(100vh - 146px)}}
   `;
-  document.head.append(appearance);
-  const material = document.createElement("style");
-  const track = (sel, decl) =>
-    `${sel}::-webkit-slider-runnable-track{${decl}}${sel}::-moz-range-track{${decl}}`;
-  const thumb = (sel, decl, webkitOnly = "") =>
-    `${sel}::-webkit-slider-thumb{-webkit-appearance:none;${decl};${webkitOnly}}${sel}::-moz-range-thumb{${decl}}`;
-  const fill = (alpha) =>
-    `linear-gradient(90deg,var(--md-primary) var(--range-progress,0%),rgba(var(--md-on-surface-rgb),${alpha}) var(--range-progress,0%))`;
-  const handle =
-    "width:5px;border:0;border-radius:3px;background:var(--md-primary);box-shadow:0 1px 5px rgba(0,0,0,.4)";
-  const playerRange = "#luma-root[data-slider-style] .layout input[type=range]";
-  const panel = "#luma-root .settings input[type=range]";
-  material.textContent = `
+    document.head.append(appearance);
+    const material = document.createElement("style");
+    const track = (sel, decl) =>
+      `${sel}::-webkit-slider-runnable-track{${decl}}${sel}::-moz-range-track{${decl}}`;
+    const thumb = (sel, decl, webkitOnly = "") =>
+      `${sel}::-webkit-slider-thumb{-webkit-appearance:none;${decl};${webkitOnly}}${sel}::-moz-range-thumb{${decl}}`;
+    const fill = (alpha) =>
+      `linear-gradient(90deg,var(--md-primary) var(--range-progress,0%),rgba(var(--md-on-surface-rgb),${alpha}) var(--range-progress,0%))`;
+    const handle =
+      "width:5px;border:0;border-radius:3px;background:var(--md-primary);box-shadow:0 1px 5px rgba(0,0,0,.4)";
+    const playerRange =
+      "#luma-root[data-slider-style] .layout input[type=range]";
+    const panel = "#luma-root .settings input[type=range]";
+    material.textContent = `
     #luma-root{background:var(--md-surface);color:var(--md-on-surface);accent-color:var(--md-primary)}
     #luma-root .shade{background:rgba(var(--md-surface-rgb),var(--dim))}
     #luma-root button:focus-visible,#luma-root input:focus-visible,#luma-root .lyrics:focus-visible{outline:2px solid var(--md-primary);outline-offset:2px}
@@ -1223,13 +1457,13 @@ function installStyles(document) {
     #luma-root .settings-footer{flex-wrap:wrap;gap:8px}
     @media(prefers-reduced-motion:reduce){#luma-root .controls .play:before,#luma-root .settings .setting-toggle input[type=checkbox]:before{transition:none}}
   `;
-  document.head.append(material);
-  // Final word-flow pass: opacity is driven per frame by tick(), so the
-  // highlight can cross-fade into the next word instead of jumping. The active
-  // word keeps the same font weight as its neighbours to avoid reflow, and the
-  // old per-line blur is dropped so text stays crisp and cheap to composite.
-  const flow = document.createElement("style");
-  flow.textContent = `
+    document.head.append(material);
+    // Final word-flow pass: opacity is driven per frame by tick(), so the
+    // highlight can cross-fade into the next word instead of jumping. The active
+    // word keeps the same font weight as its neighbours to avoid reflow, and the
+    // old per-line blur is dropped so text stays crisp and cheap to composite.
+    const flow = document.createElement("style");
+    flow.textContent = `
     #luma-root .lyrics .line .luma-lyric-token,
     #luma-root .lyrics .line .luma-lyric-token.active,
     #luma-root .lyrics .line .luma-lyric-token.upcoming{opacity:var(--flow-opacity,.52)!important;font-weight:inherit!important;transition:color .3s cubic-bezier(.22,1,.36,1),text-shadow .3s ease,transform .3s cubic-bezier(.22,1,.36,1)!important}
@@ -1241,11 +1475,11 @@ function installStyles(document) {
       #luma-root .line{transition:none!important}
     }
   `;
-  document.head.append(flow);
-  // UI polish: clearer states, usable sync controls, and better small-screen
-  // spacing. These rules are appended last so they win over earlier passes.
-  const ui = document.createElement("style");
-  ui.textContent = `
+    document.head.append(flow);
+    // UI polish: clearer states, usable sync controls, and better small-screen
+    // spacing. These rules are appended last so they win over earlier passes.
+    const ui = document.createElement("style");
+    ui.textContent = `
     #luma-root .bar{top:22px;inset-inline:24px;z-index:6}
     #luma-root .status{padding:6px 10px;border-radius:999px;background:rgba(var(--md-surface-container-rgb,.2),.5);color:var(--md-on-surface-variant,#ffffffa8);font-size:11px;line-height:1;white-space:nowrap;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
     #luma-root .layout{grid-template-columns:minmax(300px,430px) minmax(0,1fr)!important;gap:min(5vw,60px)!important;padding:78px min(5vw,56px) 34px!important;align-items:center}
@@ -1299,12 +1533,10 @@ function installStyles(document) {
     #luma-root .import-control .import-actions button:disabled{opacity:.5;cursor:default}
     #luma-root .import-status{color:var(--md-primary);font-size:11px;letter-spacing:.2px}
   `;
-  document.head.append(ui);
+    document.head.append(ui);
 
-
-
-  const spotifyControls = document.createElement("style");
-  spotifyControls.textContent = `
+    const spotifyControls = document.createElement("style");
+    spotifyControls.textContent = `
     button[data-testid="control-button-lyrics"],
     button[data-testid="lyrics-button"],
     button[aria-label="Lyrics"],
@@ -1319,161 +1551,169 @@ function installStyles(document) {
       min-width:18px!important;min-height:18px!important;max-width:18px!important;max-height:18px!important;
       overflow:visible!important;flex:none!important}
   `;
-  document.head.append(spotifyControls);
-  return desktop;
-}
+    document.head.append(spotifyControls);
+    return desktop;
+  }
 
-// Artwork sampling and Material 3 tonal palette generation.
-function createArtworkPalette(root, document) {
-const toneToL = (t) =>
-  Math.cbrt(t > 8 ? Math.pow((t + 16) / 116, 3) : t / 903.3);
-const oklchToRgb = (L, C, hue) => {
-  const rad = (hue * Math.PI) / 180;
-  for (let i = 0; i < 80; i++) {
-    const a = C * Math.cos(rad),
-      b = C * Math.sin(rad),
-      l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3,
-      m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3,
-      s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3,
-      lin = [
-        4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
-        -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
-        -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s,
-      ];
-    if (C <= 0.0005 || lin.every((v) => v >= -0.0005 && v <= 1.0005))
-      return lin.map((v) => {
-        v = Math.max(0, Math.min(1, v));
-        v = v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055;
-        return Math.round(v * 255);
+  // Artwork sampling and Material 3 tonal palette generation.
+  function createArtworkPalette(root, document) {
+    const toneToL = (t) =>
+      Math.cbrt(t > 8 ? Math.pow((t + 16) / 116, 3) : t / 903.3);
+    const oklchToRgb = (L, C, hue) => {
+      const rad = (hue * Math.PI) / 180;
+      for (let i = 0; i < 80; i++) {
+        const a = C * Math.cos(rad),
+          b = C * Math.sin(rad),
+          l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3,
+          m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3,
+          s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3,
+          lin = [
+            4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+            -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+            -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s,
+          ];
+        if (C <= 0.0005 || lin.every((v) => v >= -0.0005 && v <= 1.0005))
+          return lin.map((v) => {
+            v = Math.max(0, Math.min(1, v));
+            v =
+              v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055;
+            return Math.round(v * 255);
+          });
+        C = i > 70 ? 0 : C * 0.94;
+      }
+      return [128, 128, 128];
+    };
+    const srgbToOklab = (r, g, b) => {
+      const lin = [r, g, b].map((v) => {
+        v /= 255;
+        return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
       });
-    C = i > 70 ? 0 : C * 0.94;
-  }
-  return [128, 128, 128];
-};
-const srgbToOklab = (r, g, b) => {
-  const lin = [r, g, b].map((v) => {
-    v /= 255;
-    return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-  });
-  const l = Math.cbrt(
-      0.4122214708 * lin[0] + 0.5363325363 * lin[1] + 0.0514459929 * lin[2],
-    ),
-    m = Math.cbrt(
-      0.2119034982 * lin[0] + 0.6806995451 * lin[1] + 0.1073969566 * lin[2],
-    ),
-    s = Math.cbrt(
-      0.0883024619 * lin[0] + 0.2817188376 * lin[1] + 0.6299787005 * lin[2],
-    );
-  return [
-    0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
-    1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
-    0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
-  ];
-};
-const hex = (rgb) =>
-  "#" + rgb.map((v) => v.toString(16).padStart(2, "0")).join("");
-const applyPalette = (hue, chroma) => {
-  const primaryC =
-      chroma < 0.05 ? chroma : Math.max(0.08, Math.min(0.13, chroma * 0.9)),
-    secondaryC = primaryC * 0.42,
-    tertiaryC = primaryC * 0.66,
-    neutralC = Math.min(0.014, primaryC * 0.2),
-    variantC = Math.min(0.022, primaryC * 0.3),
-    P = (t) => oklchToRgb(toneToL(t), primaryC, hue),
-    S = (t) => oklchToRgb(toneToL(t), secondaryC, hue),
-    T = (t) => oklchToRgb(toneToL(t), tertiaryC, hue + 60),
-    N = (t) => oklchToRgb(toneToL(t), neutralC, hue),
-    V = (t) => oklchToRgb(toneToL(t), variantC, hue);
-  const roles = {
-    primary: P(80),
-    "on-primary": P(20),
-    "primary-container": P(30),
-    "on-primary-container": P(90),
-    secondary: S(80),
-    "on-secondary": S(20),
-    "secondary-container": S(30),
-    "on-secondary-container": S(90),
-    tertiary: T(80),
-    "on-tertiary": T(20),
-    "tertiary-container": T(30),
-    "on-tertiary-container": T(90),
-    surface: N(6),
-    "surface-low": N(10),
-    "surface-container": N(12),
-    "surface-high": N(17),
-    "surface-highest": N(22),
-    "on-surface": N(90),
-    "on-surface-variant": V(80),
-    outline: V(60),
-    "outline-variant": V(30),
-  };
-  for (const [name, rgb] of Object.entries(roles)) {
-    root.style.setProperty("--md-" + name, "rgb(" + rgb.join(",") + ")");
-    root.style.setProperty("--md-" + name + "-rgb", rgb.join(","));
-  }
-  root.style.setProperty("--accent-rgb", roles.primary.join(","));
-  root.style.setProperty("--accent", "rgb(" + roles.primary.join(",") + ")");
-  const page = document.documentElement.style;
-  page.setProperty("--luma-primary", hex(roles.primary));
-  page.setProperty("--luma-on-primary", hex(roles["on-primary"]));
-  page.setProperty("--luma-surface", hex(roles.surface));
-  page.setProperty("--luma-surface-low", hex(roles["surface-low"]));
-  page.setProperty(
-    "--luma-surface-container",
-    hex(roles["surface-container"]),
-  );
-  page.setProperty("--luma-surface-high", hex(roles["surface-high"]));
-};
-const setDefaultAccent = () => applyPalette(295, 0.13);
-function setArtworkAccent(image) {
-  const canvas = document.createElement("canvas");
-  canvas.width = 32;
-  canvas.height = 32;
-  const context = canvas.getContext("2d", { willReadFrequently: true });
-  if (!context) {
-    console.warn(
-      "[Luma Lyrics] Could not sample album artwork for its accent color.",
-    );
-    return;
-  }
-  try {
-    context.drawImage(image, 0, 0, 32, 32);
-    const pixels = context.getImageData(0, 0, 32, 32).data;
-    let sumA = 0,
-      sumB = 0,
-      sumC = 0,
-      sumW = 0;
-    for (let i = 0; i < pixels.length; i += 4) {
-      if (pixels[i + 3] < 128) continue;
-      const [L, a, b] = srgbToOklab(pixels[i], pixels[i + 1], pixels[i + 2]),
-        c = Math.hypot(a, b);
-      if (c < 0.04 || L < 0.2 || L > 0.96) continue;
-      const w = c * c;
-      sumA += a * w;
-      sumB += b * w;
-      sumC += c * w;
-      sumW += w;
+      const l = Math.cbrt(
+          0.4122214708 * lin[0] + 0.5363325363 * lin[1] + 0.0514459929 * lin[2],
+        ),
+        m = Math.cbrt(
+          0.2119034982 * lin[0] + 0.6806995451 * lin[1] + 0.1073969566 * lin[2],
+        ),
+        s = Math.cbrt(
+          0.0883024619 * lin[0] + 0.2817188376 * lin[1] + 0.6299787005 * lin[2],
+        );
+      return [
+        0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
+        1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
+        0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
+      ];
+    };
+    const hex = (rgb) =>
+      "#" + rgb.map((v) => v.toString(16).padStart(2, "0")).join("");
+    const applyPalette = (hue, chroma) => {
+      const primaryC =
+          chroma < 0.05 ? chroma : Math.max(0.08, Math.min(0.13, chroma * 0.9)),
+        secondaryC = primaryC * 0.42,
+        tertiaryC = primaryC * 0.66,
+        neutralC = Math.min(0.014, primaryC * 0.2),
+        variantC = Math.min(0.022, primaryC * 0.3),
+        P = (t) => oklchToRgb(toneToL(t), primaryC, hue),
+        S = (t) => oklchToRgb(toneToL(t), secondaryC, hue),
+        T = (t) => oklchToRgb(toneToL(t), tertiaryC, hue + 60),
+        N = (t) => oklchToRgb(toneToL(t), neutralC, hue),
+        V = (t) => oklchToRgb(toneToL(t), variantC, hue);
+      const roles = {
+        primary: P(80),
+        "on-primary": P(20),
+        "primary-container": P(30),
+        "on-primary-container": P(90),
+        secondary: S(80),
+        "on-secondary": S(20),
+        "secondary-container": S(30),
+        "on-secondary-container": S(90),
+        tertiary: T(80),
+        "on-tertiary": T(20),
+        "tertiary-container": T(30),
+        "on-tertiary-container": T(90),
+        surface: N(6),
+        "surface-low": N(10),
+        "surface-container": N(12),
+        "surface-high": N(17),
+        "surface-highest": N(22),
+        "on-surface": N(90),
+        "on-surface-variant": V(80),
+        outline: V(60),
+        "outline-variant": V(30),
+      };
+      for (const [name, rgb] of Object.entries(roles)) {
+        root.style.setProperty("--md-" + name, "rgb(" + rgb.join(",") + ")");
+        root.style.setProperty("--md-" + name + "-rgb", rgb.join(","));
+      }
+      root.style.setProperty("--accent-rgb", roles.primary.join(","));
+      root.style.setProperty(
+        "--accent",
+        "rgb(" + roles.primary.join(",") + ")",
+      );
+      const page = document.documentElement.style;
+      page.setProperty("--luma-primary", hex(roles.primary));
+      page.setProperty("--luma-on-primary", hex(roles["on-primary"]));
+      page.setProperty("--luma-surface", hex(roles.surface));
+      page.setProperty("--luma-surface-low", hex(roles["surface-low"]));
+      page.setProperty(
+        "--luma-surface-container",
+        hex(roles["surface-container"]),
+      );
+      page.setProperty("--luma-surface-high", hex(roles["surface-high"]));
+    };
+    const setDefaultAccent = () => applyPalette(295, 0.13);
+    function setArtworkAccent(image) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 32;
+      canvas.height = 32;
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      if (!context) {
+        console.warn(
+          "[Luma Lyrics] Could not sample album artwork for its accent color.",
+        );
+        return;
+      }
+      try {
+        context.drawImage(image, 0, 0, 32, 32);
+        const pixels = context.getImageData(0, 0, 32, 32).data;
+        let sumA = 0,
+          sumB = 0,
+          sumC = 0,
+          sumW = 0;
+        for (let i = 0; i < pixels.length; i += 4) {
+          if (pixels[i + 3] < 128) continue;
+          const [L, a, b] = srgbToOklab(
+              pixels[i],
+              pixels[i + 1],
+              pixels[i + 2],
+            ),
+            c = Math.hypot(a, b);
+          if (c < 0.04 || L < 0.2 || L > 0.96) continue;
+          const w = c * c;
+          sumA += a * w;
+          sumB += b * w;
+          sumC += c * w;
+          sumW += w;
+        }
+        if (!sumW) {
+          // Near-monochrome artwork: keep the palette close to neutral.
+          applyPalette(295, 0.02);
+          return;
+        }
+        const hue = ((Math.atan2(sumB, sumA) * 180) / Math.PI + 360) % 360,
+          // Keep highlights readable on the dark overlay: avoid very low-chroma
+          // artwork accents that blend into the text, and avoid oversaturated ones.
+          chroma = Math.max(0.055, Math.min(0.15, sumC / sumW));
+        applyPalette(hue, chroma);
+      } catch (error) {
+        setDefaultAccent();
+        console.warn(
+          "[Luma Lyrics] Could not sample album artwork for its accent color.",
+          error,
+        );
+      }
     }
-    if (!sumW) {
-      // Near-monochrome artwork: keep the palette close to neutral.
-      applyPalette(295, 0.02);
-      return;
-    }
-    const hue = ((Math.atan2(sumB, sumA) * 180) / Math.PI + 360) % 360,
-      // Keep highlights readable on the dark overlay: avoid very low-chroma
-      // artwork accents that blend into the text, and avoid oversaturated ones.
-      chroma = Math.max(0.055, Math.min(0.15, sumC / sumW));
-    applyPalette(hue, chroma);
-  } catch (error) {
-    setDefaultAccent();
-    console.warn(
-      "[Luma Lyrics] Could not sample album artwork for its accent color.",
-      error,
-    );
+    return { applyPalette, setDefaultAccent, setArtworkAccent };
   }
-}
-  return { applyPalette, setDefaultAccent, setArtworkAccent };
-}
 
   // Player is required for the lyrics experience; Playbar.Button is optional.
   // Do not block startup on the button API: createLauncher has a DOM fallback.
@@ -1531,7 +1771,10 @@ function setArtworkAccent(image) {
     artworkStage = document.createElement("div");
   // Material You style dynamic color: one hue from the artwork -> tonal palette.
   // Tones follow Material 3 dark-scheme roles; tone is approximated in OKLCH.
-  const { setDefaultAccent, setArtworkAccent } = createArtworkPalette(root, document);
+  const { setDefaultAccent, setArtworkAccent } = createArtworkPalette(
+    root,
+    document,
+  );
   artworkStage.className = "artwork-stage";
   cover.before(artworkStage);
   artworkStage.append(cover);
@@ -1740,9 +1983,15 @@ function setArtworkAccent(image) {
       lineEls = [...pane.querySelectorAll(".line")];
     if (!lines.length || lineEls.length !== lines.length) return;
     const texts = lines.map((l) => l.text.replace(/\s+/g, " ").trim());
-    const roms = options.romanize ? texts.map(romanizeText) : texts.map(() => "");
+    const roms = options.romanize
+      ? texts.map(romanizeText)
+      : texts.map(() => "");
     const trs = options.translate
-      ? await translateLines(texts, options.translateLang || "en", controller?.signal).catch((e) => {
+      ? await translateLines(
+          texts,
+          options.translateLang || "en",
+          controller?.signal,
+        ).catch((e) => {
           console.warn("[Luma Lyrics] Translation unavailable:", e.message);
           return texts.map(() => "");
         })
@@ -2404,13 +2653,16 @@ function setArtworkAccent(image) {
         document.querySelector('[data-testid="control-button-queue"]') ||
         document.querySelector('[data-testid="control-button-npv"]');
       const mount =
-        (anchor && (anchor.parentElement?.parentElement || anchor.parentElement)) ||
+        (anchor &&
+          (anchor.parentElement?.parentElement || anchor.parentElement)) ||
         document.querySelector(".main-nowPlayingBar-extraControls") ||
         document.querySelector(".main-nowPlayingBar-right > div") ||
         document.querySelector(".main-nowPlayingBar-right") ||
         document.querySelector('[data-testid="now-playing-bar"]');
       if (!mount) {
-        if ((createLauncher.attempts = (createLauncher.attempts || 0) + 1) < 20) {
+        if (
+          (createLauncher.attempts = (createLauncher.attempts || 0) + 1) < 20
+        ) {
           setTimeout(createLauncher, 1000);
         } else {
           console.warn("[Luma Lyrics] Could not find a playbar mount point.");
@@ -2536,7 +2788,10 @@ function setArtworkAccent(image) {
         else q(".lrc-file").click();
       }
       if (action === "remove-lrc" && currentTrackInfo) {
-        removeLocalLyrics(globalThis.localStorage, trackKeyFor(currentTrackInfo));
+        removeLocalLyrics(
+          globalThis.localStorage,
+          trackKeyFor(currentTrackInfo),
+        );
         updateImportStatus();
         key = null;
         lastMetaKey = null;
@@ -2577,7 +2832,13 @@ function setArtworkAccent(image) {
       save();
       applySettings();
       if (
-        ["estimated", "lyricMode", "translate", "romanize", "translateLang"].includes(field) &&
+        [
+          "estimated",
+          "lyricMode",
+          "translate",
+          "romanize",
+          "translateLang",
+        ].includes(field) &&
         lines.length
       )
         render();
@@ -2612,7 +2873,16 @@ function setArtworkAccent(image) {
     (el.isContentEditable ||
       el.tagName === "TEXTAREA" ||
       (el.tagName === "INPUT" &&
-        !["range", "checkbox", "radio", "button", "submit", "reset", "file", "color"].includes(el.type)));
+        ![
+          "range",
+          "checkbox",
+          "radio",
+          "button",
+          "submit",
+          "reset",
+          "file",
+          "color",
+        ].includes(el.type)));
   document.addEventListener(
     "keydown",
     (e) => {

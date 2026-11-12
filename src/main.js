@@ -1,10 +1,26 @@
 // Luma Lyrics v2.5.0
-import { parse, parseYamlSubset, lyricsfileToLines, normalizeName, sameName, splitArtists, trackMatches, pickLyrics, escapeStep, endOfWord, wordFlowOpacity } from "./lyrics/parsing.js";
+import {
+  parse,
+  parseYamlSubset,
+  lyricsfileToLines,
+  normalizeName,
+  sameName,
+  splitArtists,
+  trackMatches,
+  pickLyrics,
+  escapeStep,
+  endOfWord,
+  wordFlowOpacity,
+} from "./lyrics/parsing.js";
 import { romanizeText } from "./lyrics/romanization.js";
 import { createTranslationService } from "./services/translation.js";
 import { createLyricsClient } from "./services/lrclib.js";
 import { defaultOptions, loadSettings, saveSettings } from "./core/settings.js";
-import { getLocalLyrics, saveLocalLyrics, removeLocalLyrics } from "./core/local-lyrics.js";
+import {
+  getLocalLyrics,
+  saveLocalLyrics,
+  removeLocalLyrics,
+} from "./core/local-lyrics.js";
 import { installStyles } from "./ui/styles.js";
 import { createArtworkPalette } from "./theme/artwork.js";
 (async () => {
@@ -64,7 +80,10 @@ import { createArtworkPalette } from "./theme/artwork.js";
     artworkStage = document.createElement("div");
   // Material You style dynamic color: one hue from the artwork -> tonal palette.
   // Tones follow Material 3 dark-scheme roles; tone is approximated in OKLCH.
-  const { setDefaultAccent, setArtworkAccent } = createArtworkPalette(root, document);
+  const { setDefaultAccent, setArtworkAccent } = createArtworkPalette(
+    root,
+    document,
+  );
   artworkStage.className = "artwork-stage";
   cover.before(artworkStage);
   artworkStage.append(cover);
@@ -273,9 +292,15 @@ import { createArtworkPalette } from "./theme/artwork.js";
       lineEls = [...pane.querySelectorAll(".line")];
     if (!lines.length || lineEls.length !== lines.length) return;
     const texts = lines.map((l) => l.text.replace(/\s+/g, " ").trim());
-    const roms = options.romanize ? texts.map(romanizeText) : texts.map(() => "");
+    const roms = options.romanize
+      ? texts.map(romanizeText)
+      : texts.map(() => "");
     const trs = options.translate
-      ? await translateLines(texts, options.translateLang || "en", controller?.signal).catch((e) => {
+      ? await translateLines(
+          texts,
+          options.translateLang || "en",
+          controller?.signal,
+        ).catch((e) => {
           console.warn("[Luma Lyrics] Translation unavailable:", e.message);
           return texts.map(() => "");
         })
@@ -937,13 +962,16 @@ import { createArtworkPalette } from "./theme/artwork.js";
         document.querySelector('[data-testid="control-button-queue"]') ||
         document.querySelector('[data-testid="control-button-npv"]');
       const mount =
-        (anchor && (anchor.parentElement?.parentElement || anchor.parentElement)) ||
+        (anchor &&
+          (anchor.parentElement?.parentElement || anchor.parentElement)) ||
         document.querySelector(".main-nowPlayingBar-extraControls") ||
         document.querySelector(".main-nowPlayingBar-right > div") ||
         document.querySelector(".main-nowPlayingBar-right") ||
         document.querySelector('[data-testid="now-playing-bar"]');
       if (!mount) {
-        if ((createLauncher.attempts = (createLauncher.attempts || 0) + 1) < 20) {
+        if (
+          (createLauncher.attempts = (createLauncher.attempts || 0) + 1) < 20
+        ) {
           setTimeout(createLauncher, 1000);
         } else {
           console.warn("[Luma Lyrics] Could not find a playbar mount point.");
@@ -1069,7 +1097,10 @@ import { createArtworkPalette } from "./theme/artwork.js";
         else q(".lrc-file").click();
       }
       if (action === "remove-lrc" && currentTrackInfo) {
-        removeLocalLyrics(globalThis.localStorage, trackKeyFor(currentTrackInfo));
+        removeLocalLyrics(
+          globalThis.localStorage,
+          trackKeyFor(currentTrackInfo),
+        );
         updateImportStatus();
         key = null;
         lastMetaKey = null;
@@ -1110,7 +1141,13 @@ import { createArtworkPalette } from "./theme/artwork.js";
       save();
       applySettings();
       if (
-        ["estimated", "lyricMode", "translate", "romanize", "translateLang"].includes(field) &&
+        [
+          "estimated",
+          "lyricMode",
+          "translate",
+          "romanize",
+          "translateLang",
+        ].includes(field) &&
         lines.length
       )
         render();
@@ -1145,7 +1182,16 @@ import { createArtworkPalette } from "./theme/artwork.js";
     (el.isContentEditable ||
       el.tagName === "TEXTAREA" ||
       (el.tagName === "INPUT" &&
-        !["range", "checkbox", "radio", "button", "submit", "reset", "file", "color"].includes(el.type)));
+        ![
+          "range",
+          "checkbox",
+          "radio",
+          "button",
+          "submit",
+          "reset",
+          "file",
+          "color",
+        ].includes(el.type)));
   document.addEventListener(
     "keydown",
     (e) => {

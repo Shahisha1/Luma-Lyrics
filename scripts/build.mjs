@@ -16,7 +16,17 @@ const imports = [
   'import { createArtworkPalette } from "./theme/artwork.js";',
 ].join("\n");
 
-const [main, parsing, romanization, translation, lrclib, settings, localLyrics, styles, artwork] = await Promise.all([
+const [
+  main,
+  parsing,
+  romanization,
+  translation,
+  lrclib,
+  settings,
+  localLyrics,
+  styles,
+  artwork,
+] = await Promise.all([
   readFile(mainPath, "utf8"),
   readFile(resolve(root, "src/lyrics/parsing.js"), "utf8"),
   readFile(resolve(root, "src/lyrics/romanization.js"), "utf8"),
@@ -29,10 +39,21 @@ const [main, parsing, romanization, translation, lrclib, settings, localLyrics, 
 ]);
 
 if (main.split(imports).length !== 2) {
-  throw new Error("Expected the source entry to contain the module import block exactly once.");
+  throw new Error(
+    "Expected the source entry to contain the module import block exactly once.",
+  );
 }
 
-const inline = [parsing, romanization, translation, lrclib, settings, localLyrics, styles, artwork]
+const inline = [
+  parsing,
+  romanization,
+  translation,
+  lrclib,
+  settings,
+  localLyrics,
+  styles,
+  artwork,
+]
   .map((moduleSource) => moduleSource.replace(/^export\s+/gm, ""))
   .join("\n");
 const runtime = main.replace(imports, "");

@@ -25,7 +25,7 @@ export function createTranslationService({
       else todo.push(index);
     });
 
-    for (let i = 0; i < todo.length;) {
+    for (let i = 0; i < todo.length; ) {
       const batch = [];
       let length = 0;
 
@@ -49,7 +49,10 @@ export function createTranslationService({
       );
       if (!response.ok) throw new Error("HTTP " + response.status);
 
-      const parts = (await response.json())[0].map((part) => part[0]).join("").split("\n");
+      const parts = (await response.json())[0]
+        .map((part) => part[0])
+        .join("")
+        .split("\n");
       batch.forEach((index, offset) => {
         const translated = (parts[offset] || "").trim();
         remember(lang + "\u0000" + texts[index], translated);

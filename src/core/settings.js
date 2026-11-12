@@ -29,9 +29,15 @@ export function loadSettings(storage) {
   if ("sliderStyle" in options) {
     delete options.sliderStyle;
     try {
-      (storage ?? globalThis.localStorage).setItem("luma-settings", JSON.stringify(options));
+      (storage ?? globalThis.localStorage).setItem(
+        "luma-settings",
+        JSON.stringify(options),
+      );
     } catch (error) {
-      console.warn("[Luma Lyrics] Could not remove the retired slider preference.", error);
+      console.warn(
+        "[Luma Lyrics] Could not remove the retired slider preference.",
+        error,
+      );
     }
   }
 
@@ -40,6 +46,9 @@ export function loadSettings(storage) {
 
 export function saveSettings(options, storage) {
   try {
-    (storage ?? globalThis.localStorage).setItem("luma-settings", JSON.stringify(options));
+    (storage ?? globalThis.localStorage).setItem(
+      "luma-settings",
+      JSON.stringify(options),
+    );
   } catch {}
 }

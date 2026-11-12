@@ -9,7 +9,8 @@
 // Everything is injectable so the behaviour can be tested without a network.
 
 export const LRCLIB_ORIGIN = "https://lrclib.net";
-export const LRCLIB_CLIENT = "LumaLyrics/2.5.0 (Spicetify independent extension)";
+export const LRCLIB_CLIENT =
+  "LumaLyrics/2.5.0 (Spicetify independent extension)";
 
 function failure(code, message, extra) {
   const error = new Error(message);
@@ -68,7 +69,9 @@ export function chooseBestRecord(
 }
 
 function retryable(error) {
-  return Boolean(error) && (error.code === "timeout" || error.code === "network");
+  return (
+    Boolean(error) && (error.code === "timeout" || error.code === "network")
+  );
 }
 
 // Resolves with the first success and aborts the losing request. When every
@@ -80,7 +83,11 @@ function firstSuccess(promises, controller) {
     const errors = [];
     const settle = () => {
       if (--pending > 0) return;
-      reject(errors.find(retryable) || errors[0] || failure("notfound", "No lyrics found for this track."));
+      reject(
+        errors.find(retryable) ||
+          errors[0] ||
+          failure("notfound", "No lyrics found for this track."),
+      );
     };
     for (const promise of promises) {
       promise.then(
@@ -185,7 +192,10 @@ export function createLyricsClient({
     }
   }
 
-  async function lookup(track, { signal, onStage = () => {}, accept = () => true } = {}) {
+  async function lookup(
+    track,
+    { signal, onStage = () => {}, accept = () => true } = {},
+  ) {
     const slowTimer = setTimeout(() => onStage("slow"), slowAfterMs);
     try {
       try {

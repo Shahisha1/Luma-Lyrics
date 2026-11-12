@@ -204,7 +204,9 @@ test("lyricsfileToLines: rejects wrong version and invalid times", () => {
 });
 
 test("lyricsfileToLines: empty lines are not word-timed", () => {
-  const result = pure.lyricsfileToLines("version: '1.0'\nmetadata: {}\nlines: []");
+  const result = pure.lyricsfileToLines(
+    "version: '1.0'\nmetadata: {}\nlines: []",
+  );
   assert.deepEqual(result.lines, []);
   assert.equal(result.wordTimed, false);
 });
@@ -398,7 +400,6 @@ test("wordFlowOpacity: clamps progress outside the word", () => {
   assert.equal(pure.wordFlowOpacity(1000, 1400, 999999), 1);
 });
 
-
 test("romanizeText: Korean Hangul", () => {
   assert.equal(romanizeText("안녕하세요"), "annyeonghaseyo");
 });
@@ -431,7 +432,10 @@ test("translation service: batches, caches, and preserves empty lines", async ()
   const result = await service.translateLines(["Hello", "", "World"], "es");
   assert.deepEqual(result, ["Hola", "", "Mundo"]);
   assert.equal(requests.length, 1);
-  assert.deepEqual(await service.translateLines(["Hello", "", "World"], "es"), result);
+  assert.deepEqual(
+    await service.translateLines(["Hello", "", "World"], "es"),
+    result,
+  );
   assert.equal(requests.length, 1);
   assert.equal(service.cacheSize, 3);
 });
@@ -470,9 +474,9 @@ test("translation service: evicts old entries when the cache reaches its limit",
   assert.equal(service.cacheSize, 2);
 });
 
-
 test("settings: loads defaults when storage is empty", async () => {
-  const { defaultOptions, loadSettings } = await import("../src/core/settings.js");
+  const { defaultOptions, loadSettings } =
+    await import("../src/core/settings.js");
   const storage = { getItem: () => null, setItem: () => {} };
   const loaded = loadSettings(storage);
   assert.deepEqual(loaded.options, defaultOptions);
@@ -480,11 +484,15 @@ test("settings: loads defaults when storage is empty", async () => {
 });
 
 test("settings: migrates the old dim default and retired slider preference", async () => {
-  const { defaultOptions, loadSettings } = await import("../src/core/settings.js");
+  const { defaultOptions, loadSettings } =
+    await import("../src/core/settings.js");
   let stored;
   const storage = {
-    getItem: () => JSON.stringify({ dim: 0.4, sliderStyle: "glow", lyricMode: "gentle" }),
-    setItem: (_key, value) => { stored = JSON.parse(value); },
+    getItem: () =>
+      JSON.stringify({ dim: 0.4, sliderStyle: "glow", lyricMode: "gentle" }),
+    setItem: (_key, value) => {
+      stored = JSON.parse(value);
+    },
   };
   const loaded = loadSettings(storage);
   assert.equal(loaded.options.dim, defaultOptions.dim);
@@ -495,16 +503,18 @@ test("settings: migrates the old dim default and retired slider preference", asy
 });
 
 test("settings: malformed or blocked storage falls back without throwing", async () => {
-  const { loadSettings, saveSettings } = await import("../src/core/settings.js");
+  const { loadSettings, saveSettings } =
+    await import("../src/core/settings.js");
   const broken = {
     getItem: () => "{not json",
-    setItem: () => { throw new Error("storage blocked"); },
+    setItem: () => {
+      throw new Error("storage blocked");
+    },
   };
   const loaded = loadSettings(broken);
   assert.equal(loaded.options.lyricMode, "word");
   assert.doesNotThrow(() => saveSettings(loaded.options, broken));
 });
-
 
 test("styles: installs all overlay style layers without runtime globals", () => {
   const appended = [];
@@ -514,7 +524,12 @@ test("styles: installs all overlay style layers without runtime globals", () => 
   };
   installStyles(document);
   assert.equal(appended.length, 8);
-  assert.ok(appended.every((element) => element.tagName === "style" && element.textContent.length > 0));
+  assert.ok(
+    appended.every(
+      (element) =>
+        element.tagName === "style" && element.textContent.length > 0,
+    ),
+  );
   // Assert on content across layers, not on which layer index holds it.
   const css = appended.map((element) => element.textContent).join("\n");
   assert.match(css, /#luma-root \.layout/);
@@ -522,11 +537,13 @@ test("styles: installs all overlay style layers without runtime globals", () => 
   assert.match(css, /aria-label=\\?"Luma Lyrics/);
 });
 
-
 test("artwork palette: default accent populates Material and Spotify variables", () => {
   const values = new Map();
   const style = { setProperty: (key, value) => values.set(key, value) };
-  const palette = createArtworkPalette({ style }, { documentElement: { style } });
+  const palette = createArtworkPalette(
+    { style },
+    { documentElement: { style } },
+  );
   palette.setDefaultAccent();
   assert.ok(values.has("--md-primary"));
   assert.ok(values.has("--accent"));
@@ -544,7 +561,10 @@ test("artwork palette: artwork sampling uses a canvas and applies an accent", ()
     pixels[i + 2] = 90;
     pixels[i + 3] = 255;
   }
-  const context = { drawImage: () => {}, getImageData: () => ({ data: pixels }) };
+  const context = {
+    drawImage: () => {},
+    getImageData: () => ({ data: pixels }),
+  };
   const document = {
     documentElement: { style },
     createElement: () => ({ width: 0, height: 0, getContext: () => context }),

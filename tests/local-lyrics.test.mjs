@@ -103,5 +103,8 @@ test("local lyrics: a blocked or full storage throws a readable error", () => {
 test("local lyrics: rejects empty text and a missing track key", () => {
   const storage = new MemoryStorage();
   assert.throws(() => saveLocalLyrics(storage, "", { text: lrc }), /track/i);
-  assert.throws(() => saveLocalLyrics(storage, "a", { text: "   " }), /no lyrics/i);
+  assert.throws(
+    () => saveLocalLyrics(storage, "a", { text: "   " }),
+    /no lyrics/i,
+  );
 });

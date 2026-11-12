@@ -121,7 +121,11 @@ test("lookup: falls back to the catalog when /api/get returns 404", async () => 
       if (url.includes("/api/get?")) return reply(404, {});
       return reply(200, [
         { trackName: "Nope", syncedLyrics: "x" },
-        { trackName: "Teeth", artistName: "5 Seconds of Summer", syncedLyrics: "[00:01.00]b" },
+        {
+          trackName: "Teeth",
+          artistName: "5 Seconds of Summer",
+          syncedLyrics: "[00:01.00]b",
+        },
       ]);
     },
   });
@@ -147,7 +151,9 @@ test("lookup: retries once when the first round times out", async () => {
     },
   });
   const stages = [];
-  const record = await client.lookup(track, { onStage: (stage) => stages.push(stage) });
+  const record = await client.lookup(track, {
+    onStage: (stage) => stages.push(stage),
+  });
   assert.equal(record.syncedLyrics, "[00:01.00]c");
   assert.deepEqual(stages, ["retrying"]);
 });
@@ -196,9 +202,7 @@ test("lookup: reports a slow lookup while it is still running", async () => {
         setTimeout(
           () =>
             resolve(
-              reply(200, [
-                { trackName: "Teeth", syncedLyrics: "[00:01.00]d" },
-              ]),
+              reply(200, [{ trackName: "Teeth", syncedLyrics: "[00:01.00]d" }]),
             ),
           60,
         ),

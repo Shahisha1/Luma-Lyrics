@@ -259,8 +259,7 @@ export function lyricsfileToLines(source) {
     return {
       ms: hasWords ? Math.min(l.ms, l.words[0].ms) : l.ms,
       text:
-        (hasWords ? l.words.map((w) => w.text).join("") : l.text).trim() ||
-        "♪",
+        (hasWords ? l.words.map((w) => w.text).join("") : l.text).trim() || "♪",
       words: l.words.map((w, j) => ({
         ms: w.ms,
         text: w.text,
@@ -357,10 +356,16 @@ export function pickLyrics(record, track) {
       if (result.wordTimed) {
         const match = trackMatches(record, result.metadata, track);
         if (match.ok) return { lines: result.lines, source: "word-timed" };
-        console.debug("[Luma Lyrics] Ignoring word-timed lyrics:", match.reason);
+        console.debug(
+          "[Luma Lyrics] Ignoring word-timed lyrics:",
+          match.reason,
+        );
       }
     } catch (error) {
-      console.debug("[Luma Lyrics] Ignoring unusable lyricsfile:", error.message);
+      console.debug(
+        "[Luma Lyrics] Ignoring unusable lyricsfile:",
+        error.message,
+      );
     }
   }
   const lines =
@@ -369,7 +374,13 @@ export function pickLyrics(record, track) {
 }
 // What Escape should do. Settings/menu close from anywhere while Luma is open; closing the
 // whole overlay still requires focus inside it; text fields are never interrupted.
-export function escapeStep({ overlayOpen, menuOpen, settingsOpen, inRoot, editable }) {
+export function escapeStep({
+  overlayOpen,
+  menuOpen,
+  settingsOpen,
+  inRoot,
+  editable,
+}) {
   if (!overlayOpen || editable) return null;
   if (menuOpen) return "menu";
   if (settingsOpen) return "settings";

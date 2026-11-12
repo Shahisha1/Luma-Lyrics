@@ -394,8 +394,6 @@ export function installStyles(document) {
   `;
   document.head.append(ui);
 
-
-
   const spotifyControls = document.createElement("style");
   spotifyControls.textContent = `
     button[data-testid="control-button-lyrics"],
