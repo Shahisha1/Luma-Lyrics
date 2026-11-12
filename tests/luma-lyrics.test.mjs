@@ -524,7 +524,7 @@ test("styles: installs all overlay style layers without runtime globals", () => 
   const styles = appended.map((element) => element.textContent);
   assert.ok(styles.some((style) => /control-button-lyrics/.test(style)));
   assert.ok(styles.some((style) => /aria-label=\\?"Luma Lyrics/.test(style)));
-  assert.ok(styles.some((style) => /player \\.volume\\?\\{display:flex!important/.test(style)));
+  assert.ok(styles.some((style) => /player \.volume\{display:flex!important/.test(style)));
   assert.ok(styles.some((style) => /volume-value/.test(style)));
   assert.ok(styles.some((style) => /max-width:560px/.test(style)));
 });
