@@ -1173,8 +1173,8 @@ function installStyles(document) {
       backdrop-filter:blur(18px) saturate(1.18);
       -webkit-backdrop-filter:blur(18px) saturate(1.18);
     }
-    #luma-root .player>.artwork-stage{margin-bottom:2px}
-    #luma-root .player .cover{border-radius:16px;box-shadow:0 10px 28px rgba(0,0,0,.2)}
+    #luma-root .player>.artwork-stage{margin-bottom:2px;overflow:hidden;border-radius:50%;isolation:isolate}
+    #luma-root .player .cover{width:100%;height:100%;border-radius:50%;object-fit:cover;box-shadow:0 10px 28px rgba(0,0,0,.2)}
     #luma-root .player .title{font-size:clamp(20px,2vw,25px);letter-spacing:-.55px}
     #luma-root .player .artist{font-size:14px}
     #luma-root .player .controls{gap:14px;margin:2px 0}
@@ -2254,7 +2254,7 @@ function setArtworkAccent(image) {
     root.hidden ? open() : close();
   }
   const loadIcon =
-    '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16m4-11h2m-2 3h2m-2 3h2"/></svg>';
+    '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="display:block;flex:none;overflow:visible"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16m4-11h2m-2 3h2m-2 3h2"/></svg>';
   function createLauncher() {
     const onToggle = () => toggle();
     try {
