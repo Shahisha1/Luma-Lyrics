@@ -1137,11 +1137,9 @@ function setArtworkAccent(image) {
   return { applyPalette, setDefaultAccent, setArtworkAccent };
 }
 
-  while (
-    !globalThis.Spicetify?.Player ||
-    !globalThis.Spicetify?.Playbar?.Button ||
-    !document.body
-  )
+  // Player is required for the lyrics experience; Playbar.Button is optional.
+  // Do not block startup on the button API: createLauncher has a DOM fallback.
+  while (!globalThis.Spicetify?.Player || !document.body)
     await new Promise((r) => setTimeout(r, 300));
   if (document.getElementById("luma-root")) return;
   const player = () => globalThis.Spicetify.Player;
@@ -1977,7 +1975,15 @@ function setArtworkAccent(image) {
         document.querySelector(".main-nowPlayingBar-right > div") ||
         document.querySelector(".main-nowPlayingBar-right") ||
         document.querySelector('[data-testid="now-playing-bar"]');
-      if (!mount) return;
+      if (!mount) {
+        if ((createLauncher.attempts = (createLauncher.attempts || 0) + 1) < 20) {
+          setTimeout(createLauncher, 1000);
+        } else {
+          console.warn("[Luma Lyrics] Could not find a playbar mount point.");
+        }
+        return;
+      }
+      createLauncher.attempts = 0;
       const el = document.createElement("button");
       el.type = "button";
       el.className = anchor ? anchor.className : "main-genericButton-button";

@@ -515,10 +515,11 @@ test("styles: installs all overlay style layers without runtime globals", () => 
   installStyles(document);
   assert.equal(appended.length, 8);
   assert.ok(appended.every((element) => element.tagName === "style" && element.textContent.length > 0));
-  assert.match(appended[7].textContent, /control-button-lyrics/);
-  assert.match(appended[0].textContent, /#luma-root \.layout/);
-  assert.match(appended[2].textContent, /control-button-lyrics/);
-  assert.match(appended[2].textContent, /aria-label=\\?"Luma Lyrics/);
+  // Assert on content across layers, not on which layer index holds it.
+  const css = appended.map((element) => element.textContent).join("\n");
+  assert.match(css, /#luma-root \.layout/);
+  assert.match(css, /control-button-lyrics/);
+  assert.match(css, /aria-label=\\?"Luma Lyrics/);
 });
 
 
