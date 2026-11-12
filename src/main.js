@@ -802,7 +802,7 @@ import { createArtworkPalette } from "./theme/artwork.js";
     root.hidden ? open() : close();
   }
   const loadIcon =
-    '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16m4-11h2m-2 3h2m-2 3h2"/></svg>';
+    '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16m4-11h2m-2 3h2m-2 3h2"/></svg>';
   function createLauncher() {
     const onToggle = () => toggle();
     try {
@@ -848,7 +848,7 @@ import { createArtworkPalette } from "./theme/artwork.js";
             else if (!el.classList.contains("main-genericButton-button"))
               el.classList.add("main-genericButton-button");
             if (!el.querySelector("svg"))
-              el.innerHTML = `<span style="display:grid;place-items:center">${loadIcon}</span>`;
+              el.innerHTML = `<span class="luma-playbar-icon" aria-hidden="true">${loadIcon}</span>`;
             el.type = "button";
             el.title = "Luma Lyrics";
             el.setAttribute("aria-label", "Luma Lyrics");
@@ -882,7 +882,7 @@ import { createArtworkPalette } from "./theme/artwork.js";
       el.className = anchor ? anchor.className : "main-genericButton-button";
       el.title = "Luma Lyrics";
       el.setAttribute("aria-label", "Luma Lyrics");
-      el.innerHTML = `<span style="display:grid;place-items:center">${loadIcon}</span>`;
+      el.innerHTML = `<span class="luma-playbar-icon" aria-hidden="true">${loadIcon}</span>`;
       el.onclick = onToggle;
       mount.append(el);
       launcher = {
@@ -900,6 +900,27 @@ import { createArtworkPalette } from "./theme/artwork.js";
     }
   }
   createLauncher();
+
+  const launcherPolish = document.createElement("style");
+  launcherPolish.textContent = `
+    button[aria-label="Luma Lyrics"]{
+      box-sizing:border-box!important;display:inline-grid!important;place-items:center!important;
+      flex:0 0 36px!important;width:36px!important;min-width:36px!important;max-width:36px!important;
+      height:36px!important;min-height:36px!important;padding:0!important;margin:0 2px!important;
+      overflow:visible!important;vertical-align:middle!important;line-height:0!important;
+    }
+    button[aria-label="Luma Lyrics"] .luma-playbar-icon{
+      display:grid!important;place-items:center!important;width:18px!important;height:18px!important;
+      line-height:0!important;overflow:visible!important;
+    }
+    button[aria-label="Luma Lyrics"] svg{
+      display:block!important;flex:none!important;width:18px!important;min-width:18px!important;
+      max-width:18px!important;height:18px!important;min-height:18px!important;
+      max-height:18px!important;overflow:visible!important;
+    }
+  `;
+  document.head.append(launcherPolish);
+
 
   window.LumaLyrics = {
     version: "2.3.1",
