@@ -802,7 +802,7 @@ import { createArtworkPalette } from "./theme/artwork.js";
     root.hidden ? open() : close();
   }
   const loadIcon =
-    '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16m4-11h2m-2 3h2m-2 3h2"/></svg>';
+    '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="display:block;flex:none;overflow:visible"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16m4-11h2m-2 3h2m-2 3h2"/></svg>';
   function createLauncher() {
     const onToggle = () => toggle();
     try {
