@@ -380,6 +380,17 @@ export function installStyles(document) {
     #luma-root .settings select{margin-top:6px;width:100%;padding:8px 10px;border-radius:8px;border:1px solid #ffffff20;background:#ffffff0c;color:inherit;font:inherit}
     @media(max-width:760px){#luma-root .bar{top:16px;inset-inline:14px}#luma-root .status{font-size:10px;padding:5px 8px}#luma-root .player .title{font-size:22px}}
     @media(max-width:520px){#luma-root .status{max-width:46vw;overflow:hidden;text-overflow:ellipsis}#luma-root .lyrics{padding:16vh 6px 22vh}}
+    /* Long titles wrap to two lines instead of being cut mid-word. The full
+       text is also exposed through the title attribute. */
+    #luma-root .player .title{display:-webkit-box!important;-webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:normal!important;overflow:hidden;text-overflow:clip!important}
+    #luma-root:fullscreen .player .title{font-size:29px;line-height:1.16}
+    #luma-root .player .artist{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:normal!important;overflow:hidden;text-overflow:clip!important}
+    /* Local .lrc import controls */
+    #luma-root .import-control .import-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+    #luma-root .import-control .import-actions button{margin:0;border:1px solid rgba(var(--md-outline-rgb,255,255,255),.35);border-radius:999px;background:rgba(var(--md-secondary-container-rgb,80,80,90),.45);color:var(--md-on-secondary-container,#fff);padding:8px 12px;font-size:12px;line-height:1}
+    #luma-root .import-control .import-actions button:hover{background:rgba(var(--md-primary-rgb,180,160,255),.16);border-color:rgba(var(--md-primary-rgb,180,160,255),.55)}
+    #luma-root .import-control .import-actions button:disabled{opacity:.5;cursor:default}
+    #luma-root .import-status{color:var(--md-primary);font-size:11px;letter-spacing:.2px}
   `;
   document.head.append(ui);
 

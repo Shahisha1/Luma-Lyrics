@@ -1,8 +1,10 @@
-// Luma Lyrics v2.4.0
+// Luma Lyrics v2.5.0
 import { parse, parseYamlSubset, lyricsfileToLines, normalizeName, sameName, splitArtists, trackMatches, pickLyrics, escapeStep, endOfWord, wordFlowOpacity } from "./lyrics/parsing.js";
 import { romanizeText } from "./lyrics/romanization.js";
 import { createTranslationService } from "./services/translation.js";
+import { createLyricsClient } from "./services/lrclib.js";
 import { defaultOptions, loadSettings, saveSettings } from "./core/settings.js";
+import { getLocalLyrics, saveLocalLyrics, removeLocalLyrics } from "./core/local-lyrics.js";
 import { installStyles } from "./ui/styles.js";
 import { createArtworkPalette } from "./theme/artwork.js";
 (async () => {
@@ -52,7 +54,10 @@ import { createArtworkPalette } from "./theme/artwork.js";
       max > min
         ? Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100))
         : 0;
-    input.style.setProperty("--range-progress", progress.toFixed(1) + "%");
+    const next = progress.toFixed(1) + "%";
+    if (input.__lumaRange === next) return;
+    input.__lumaRange = next;
+    input.style.setProperty("--range-progress", next);
   }
   const updateSeekVisual = () => updateRangeVisual(seek);
   const cover = q(".cover"),
@@ -70,6 +75,7 @@ import { createArtworkPalette } from "./theme/artwork.js";
       <label class="setting-toggle"><span><strong>Estimated word animation</strong><small>Approximate timing when word timestamps are unavailable.</small></span><input type="checkbox" class="estimated"></label>
       <div class="setting-control"><span>Lyrics sync <output class="sync-offset-value">0.00 s</output></span><div class="sync-adjust"><button type="button" data-sync-adjust="-50" aria-label="Move lyrics 0.05 seconds earlier">−0.05s</button><input class="sync-offset" type="range" min="-5000" max="5000" step="50" aria-label="Lyrics sync offset"><button type="button" data-sync-adjust="50" aria-label="Move lyrics 0.05 seconds later">+0.05s</button><button type="button" data-sync-adjust="0" aria-label="Reset lyrics sync">Reset</button></div><small>Shift lyrics earlier or later to match playback.</small></div>
       <label class="setting-control"><span>Scroll smoothness <output class="scroll-smoothness-value">65%</output></span><input class="scroll-smoothness" type="range" min="0" max="100" step="5"></label>
+      <div class="setting-control import-control"><span>Imported lyrics <output class="import-status"></output></span><div class="import-actions"><button type="button" data-action="import-lrc">Import .lrc…</button><button type="button" data-action="remove-lrc" hidden>Remove</button></div><input type="file" class="lrc-file" accept=".lrc,.txt,text/plain" hidden><small>Load a timed .lrc file for the current track. Imported lyrics stay on this device and take priority over LRCLIB.</small></div>
       <small class="privacy-note">Lyrics come from LRCLIB, which receives the track title, artist, album, and duration. Word timing is used automatically when LRCLIB has it; otherwise line timing or estimated animation is used.</small>
     </section>
     <section class="settings-section"><h3>Appearance</h3>
@@ -101,34 +107,53 @@ import { createArtworkPalette } from "./theme/artwork.js";
     lastFetch = 0,
     cooldown = 0,
     frameId = 0,
+    lastMetaKey = null,
+    currentTrackInfo = null,
+    lastPlayIcon = "",
+    lastPlaying = null,
     busy = Promise.resolve();
   const cache = new Map();
-  let sourceState = null;
+  const lyricsClient = createLyricsClient();
+  const elapsedEl = q(".elapsed"),
+    durationEl = q(".duration"),
+    volumeInput = q(".vol"),
+    playButton = q(".play");
+  let lastElapsed = "",
+    lastDuration = "",
+    lastSeekValue = "",
+    lastVolumeValue = "";
+  let sourceState = null,
+    usingLocal = false;
   function setSourceState(state) {
     sourceState = state;
     const labels = {
       idle: "",
       loading: "Searching LRCLIB",
+      slow: "Still searching",
+      retrying: "Retrying",
       "word-timed": "Word timestamps",
       synced: "Line timing",
       estimated: "Estimated words",
       gentle: "Gentle",
       static: "Static",
       plain: "Unsynced lyrics",
+      local: "Imported LRC",
       instrumental: "Instrumental",
       missing: "No lyrics found",
       error: "Could not load",
       podcast: "Not a music track",
     };
+    const tips = {
+      estimated:
+        "LRCLIB provides line timing for this track; word timing is approximated.",
+      plain: "This track only has unsynchronized lyrics.",
+      local: "Using an .lrc file imported on this device.",
+      slow: "LRCLIB is responding slowly; the request is still running.",
+      retrying: "The first request did not finish; trying once more.",
+    };
     const label = labels[state] || state || "";
     q(".status").textContent = label ? "LRCLIB · " + label : "";
-    q(".status").title = label
-      ? state === "estimated"
-        ? "LRCLIB provides line timing for this track; word timing is approximated."
-        : state === "plain"
-          ? "This track only has unsynchronized lyrics."
-          : ""
-      : "";
+    q(".status").title = tips[state] || "";
   }
   const fmt = (ms) => {
     const n = Math.max(0, Math.floor((ms || 0) / 1000));
@@ -137,6 +162,7 @@ import { createArtworkPalette } from "./theme/artwork.js";
   // Shows a message in the lyric pane. Pass { retry: true } to add a button
   // that forces the current track to be fetched again.
   const note = (text, opts = {}) => {
+    usingLocal = false;
     lines = [];
     active = -1;
     lastCentered = -1;
@@ -282,8 +308,9 @@ import { createArtworkPalette } from "./theme/artwork.js";
       migratedDefaultDim = false;
       save();
     }
-    const modeState =
-      options.lyricMode === "word"
+    const modeState = usingLocal
+      ? "local"
+      : options.lyricMode === "word"
         ? lines.some((l) => l.exact)
           ? "word-timed"
           : options.estimated
@@ -329,6 +356,9 @@ import { createArtworkPalette } from "./theme/artwork.js";
       const b = document.createElement("button");
       b.className = "line";
       b.id = `line-${i}`;
+      line.el = b;
+      line.wordEls = [];
+      line.flow = [];
       b.onclick = () =>
         player().seek(Math.max(0, line.ms + options.syncOffset));
       const mainRow = document.createElement("span");
@@ -353,6 +383,7 @@ import { createArtworkPalette } from "./theme/artwork.js";
           span.className = "luma-lyric-token";
           span.id = `word-${i}-${j}`;
           span.textContent = w.text;
+          line.wordEls.push(span);
           span.style.setProperty("--flow-opacity", "0.52");
           let secondary = bracketStack.length > 0;
           for (const char of w.text) {
@@ -373,6 +404,7 @@ import { createArtworkPalette } from "./theme/artwork.js";
     decorateLyrics();
   }
   function show(record, trackInfo) {
+    usingLocal = false;
     if (record.instrumental) {
       setSourceState("instrumental");
       note("Instrumental — no lyrics.");
@@ -391,15 +423,54 @@ import { createArtworkPalette } from "./theme/artwork.js";
     setSourceState("missing");
     note("No lyrics found for this recording.", { retry: true });
   }
+  const trackKeyFor = (info) =>
+    info?.title
+      ? normalizeName(info.title) +
+        "\u0000" +
+        normalizeName(info.artists?.[0] || "")
+      : "";
+  function updateImportStatus() {
+    const imported = currentTrackInfo
+      ? getLocalLyrics(globalThis.localStorage, trackKeyFor(currentTrackInfo))
+      : null;
+    q(".import-status").textContent = imported ? "Imported" : "";
+    q('[data-action="remove-lrc"]').hidden = !imported;
+    const importButton = q('[data-action="import-lrc"]');
+    importButton.disabled = !currentTrackInfo?.title;
+    importButton.title = currentTrackInfo?.title
+      ? "Import an .lrc file for " + currentTrackInfo.title
+      : "Play a track first, then import its lyrics.";
+  }
+  function showLocal(entry) {
+    const parsed = parse(entry.text);
+    if (!parsed.length) return false;
+    usingLocal = true;
+    lines = parsed;
+    render();
+    setSourceState("local");
+    return true;
+  }
+  function lookupErrorText(error) {
+    if (error?.code === "timeout")
+      return "LRCLIB is responding slowly right now. Try again in a moment.";
+    if (error?.code === "network")
+      return "Could not reach LRCLIB. Check your connection and try again.";
+    if (error?.code === "notfound") return "No lyrics found for this track.";
+    if (error?.code === "busy")
+      return "Lyrics service is busy. Try again in a minute.";
+    return "Could not load lyrics.\n" + (error?.message || "Unknown error.");
+  }
   async function load(force = false) {
     const item = player().data?.item,
       m = item?.metadata || {};
-    const current = JSON.stringify([
-      item?.uri || "",
-      m.title || "",
-      m.artist_name || "",
-      m.album_title || "",
-    ]);
+    const current =
+      (item?.uri || "") +
+      "\u0000" +
+      (m.title || "") +
+      "\u0000" +
+      (m.artist_name || "") +
+      "\u0000" +
+      (m.album_title || "");
     if (!force && current === key) return;
     if (force && current) cache.delete(current);
     key = current;
@@ -407,8 +478,12 @@ import { createArtworkPalette } from "./theme/artwork.js";
     controller?.abort();
     const c = new AbortController();
     controller = c;
-    q(".title").textContent = m.title || "Nothing playing";
-    q(".artist").textContent = m.artist_name || "";
+    const titleEl = q(".title");
+    titleEl.textContent = m.title || "Nothing playing";
+    titleEl.title = m.title || "";
+    const artistEl = q(".artist");
+    artistEl.textContent = m.artist_name || "";
+    artistEl.title = m.artist_name || "";
     let art = m.image_xlarge_url || m.image_large_url || m.image_url || "";
     if (art.startsWith("spotify:image:"))
       art = "https://i.scdn.co/image/" + art.split(":").pop();
@@ -433,11 +508,15 @@ import { createArtworkPalette } from "./theme/artwork.js";
       setDefaultAccent();
     }
     if (!m.title || !m.artist_name) {
+      currentTrackInfo = null;
+      updateImportStatus();
       setSourceState("idle");
       note("Play a music track to load lyrics.");
       return;
     }
     if (item?.uri?.startsWith("spotify:episode:")) {
+      currentTrackInfo = null;
+      updateImportStatus();
       setSourceState("podcast");
       note("Lyrics are available for music tracks.");
       return;
@@ -451,19 +530,19 @@ import { createArtworkPalette } from "./theme/artwork.js";
       durationMs: player().getDuration() || 0,
       uri: item?.uri || "",
     };
+    currentTrackInfo = trackInfo;
+    updateImportStatus();
     emitLuma("luma:track", trackInfo);
+    const imported = getLocalLyrics(
+      globalThis.localStorage,
+      trackKeyFor(trackInfo),
+    );
+    if (imported && showLocal(imported)) return;
     if (cache.has(key)) {
       show(cache.get(key), trackInfo);
       return;
     }
     showLoading();
-    const params = new URLSearchParams({
-      track_name: m.title,
-      artist_name: m.artist_name,
-    });
-    if (m.album_title) params.set("album_name", m.album_title);
-    const seconds = Math.round(player().getDuration() / 1000);
-    if (seconds > 0 && seconds <= 3600) params.set("duration", String(seconds));
     const job = async () => {
       if (c.signal.aborted) return;
       await new Promise((r) =>
@@ -471,57 +550,35 @@ import { createArtworkPalette } from "./theme/artwork.js";
       );
       if (c.signal.aborted) return;
       if (Date.now() < cooldown)
-        throw Error("Lyrics service is busy. Try again in a minute.");
+        throw Object.assign(
+          Error("Lyrics service is busy. Try again in a minute."),
+          { code: "busy" },
+        );
       lastFetch = Date.now();
-      const timer = setTimeout(() => c.abort(), 15000);
-      let response;
-      try {
-        response = await fetch("https://lrclib.net/api/get?" + params, {
-          credentials: "omit",
-          signal: c.signal,
-          headers: {
-            "Lrclib-Client":
-              "LumaLyrics/2.4.0 (Spicetify independent extension)",
-          },
-        });
-        if (response.status === 429 || response.status === 503) {
-          const raw = response.headers.get("Retry-After"),
-            n = Number(raw);
-          cooldown =
-            Date.now() +
-            (raw && Number.isFinite(n)
-              ? n * 1000
-              : Math.max(60000, (Date.parse(raw) || 0) - Date.now()));
-          throw Error("Lyrics service is busy. Try again later.");
-        }
-        if (response.status === 404)
-          throw Error("No lyrics found for this track.");
-        if (!response.ok)
-          throw Error("Lyrics service error " + response.status);
-        const record = await response.json();
-        if (!record || typeof record !== "object")
-          throw Error("Unexpected lyrics response.");
-        cache.set(current, record);
-        if (cache.size > 50) cache.delete(cache.keys().next().value);
-        if (id === token) show(record, trackInfo);
-      } finally {
-        clearTimeout(timer);
-      }
+      const record = await lyricsClient.lookup(trackInfo, {
+        signal: c.signal,
+        // /api/get is authoritative; catalog results must match the track.
+        accept: (candidate) => trackMatches(candidate, {}, trackInfo).ok,
+        onStage: (stage) => {
+          if (id === token && (stage === "slow" || stage === "retrying"))
+            setSourceState(stage);
+        },
+      });
+      cache.set(current, record);
+      if (cache.size > 50) cache.delete(cache.keys().next().value);
+      if (id === token) show(record, trackInfo);
     };
     const pending = busy.then(job);
     busy = pending.catch(() => {});
     try {
       await pending;
     } catch (e) {
-      if (id === token) {
-        setSourceState("error");
-        note(
-          e.name === "AbortError"
-            ? "Request timed out. Try again to fetch the lyrics."
-            : "Could not load lyrics.\n" + e.message,
-          { retry: true },
-        );
-      }
+      if (id !== token || e?.code === "aborted" || e?.name === "AbortError")
+        return;
+      if (e?.code === "busy" && e.retryAfterMs)
+        cooldown = Date.now() + e.retryAfterMs;
+      setSourceState("error");
+      note(lookupErrorText(e), { retry: true });
     }
   }
   function center(index) {
@@ -609,24 +666,62 @@ import { createArtworkPalette } from "./theme/artwork.js";
   );
   function tick() {
     if (root.hidden) return;
-    load().catch((e) => note("Player update failed: " + e.message));
+    // Only touch the player when the track actually changes. Comparing a small
+    // string avoids re-running the lookup logic (and re-serializing metadata)
+    // on every animation frame.
+    const item = player().data?.item,
+      metadata = item?.metadata || {};
+    const metaKey =
+      (item?.uri || "") +
+      "\u0000" +
+      (metadata.title || "") +
+      "\u0000" +
+      (metadata.artist_name || "") +
+      "\u0000" +
+      (metadata.album_title || "");
+    if (metaKey !== lastMetaKey) {
+      lastMetaKey = metaKey;
+      load().catch((e) => note("Player update failed: " + e.message));
+    }
     const p = player(),
       duration = p.getDuration() || 0,
       progress = p.getProgress() || 0,
       lyricProgress = Math.max(0, progress - options.syncOffset);
-    q(".elapsed").textContent = fmt(progress);
-    q(".duration").textContent = fmt(duration);
-    if (document.activeElement !== seek)
-      q(".seek").value = duration ? (progress / duration) * 1000 : 0;
-    if (document.activeElement !== q(".vol")) q(".vol").value = p.getVolume();
-    updateSeekVisual(seek.value);
-    updateRangeVisual(q(".vol"));
+    const elapsed = fmt(progress);
+    if (elapsed !== lastElapsed) {
+      lastElapsed = elapsed;
+      elapsedEl.textContent = elapsed;
+    }
+    const durationLabel = fmt(duration);
+    if (durationLabel !== lastDuration) {
+      lastDuration = durationLabel;
+      durationEl.textContent = durationLabel;
+    }
+    if (document.activeElement !== seek) {
+      const seekValue = String(duration ? (progress / duration) * 1000 : 0);
+      if (seekValue !== lastSeekValue) {
+        lastSeekValue = seekValue;
+        seek.value = seekValue;
+      }
+    }
+    if (document.activeElement !== volumeInput) {
+      const volumeValue = String(p.getVolume());
+      if (volumeValue !== lastVolumeValue) {
+        lastVolumeValue = volumeValue;
+        volumeInput.value = volumeValue;
+      }
+    }
+    updateSeekVisual();
+    updateRangeVisual(volumeInput);
     const playing = p.isPlaying();
-    root.classList.toggle("playing", playing);
-    const state = playing ? "pause" : "play";
-    if (q(".play").dataset.icon !== state) {
-      q(".play").innerHTML = icons[state];
-      q(".play").dataset.icon = state;
+    if (playing !== lastPlaying) {
+      lastPlaying = playing;
+      root.classList.toggle("playing", playing);
+    }
+    const iconState = playing ? "pause" : "play";
+    if (iconState !== lastPlayIcon) {
+      lastPlayIcon = iconState;
+      playButton.innerHTML = icons[iconState];
     }
     let index = -1;
     for (let i = 0; i < lines.length; i++) {
@@ -636,8 +731,10 @@ import { createArtworkPalette } from "./theme/artwork.js";
     if (index !== active) {
       active = index;
       for (let i = 0; i < lines.length; i++) {
-        pane.children[i]?.classList.toggle("active", i === index);
-        pane.children[i]?.classList.toggle("past", i < index);
+        const el = lines[i].el;
+        if (!el) continue;
+        el.classList.toggle("active", i === index);
+        el.classList.toggle("past", i < index);
       }
     }
     // Scroll a little before the next line starts, so the new line is already
@@ -655,6 +752,7 @@ import { createArtworkPalette } from "./theme/artwork.js";
     }
     const line = lines[active];
     if (line && options.lyricMode === "word" && line.display.length) {
+      const wordEls = line.wordEls;
       let wordIndex = -1;
       for (let j = 0; j < line.display.length; j++) {
         const word = line.display[j],
@@ -664,10 +762,7 @@ import { createArtworkPalette } from "./theme/artwork.js";
           break;
         }
       }
-      const wordElement =
-        wordIndex >= 0
-          ? pane.querySelector(`#word-${active}-${wordIndex}`)
-          : null;
+      const wordElement = wordIndex >= 0 ? wordEls[wordIndex] : null;
       if (wordElement !== highlightedWord) {
         highlightedWord?.classList.remove("active");
         highlightedWord = wordElement;
@@ -696,23 +791,25 @@ import { createArtworkPalette } from "./theme/artwork.js";
       }
       const upcomingElement =
         nextLineIndex < lines.length
-          ? pane.querySelector(`#word-${nextLineIndex}-${nextWordIndex}`)
+          ? (lines[nextLineIndex].wordEls?.[nextWordIndex] ?? null)
           : null;
       if (upcomingElement !== upcomingWord) {
         upcomingWord?.classList.remove("upcoming");
         upcomingWord = upcomingElement;
         upcomingWord?.classList.add("upcoming");
       }
-      line.display.forEach((word, j) => {
+      for (let j = 0; j < line.display.length; j++) {
+        const el = wordEls[j];
+        if (!el) continue;
         const opacity = wordFlowOpacity(
-          word.ms,
+          line.display[j].ms,
           endOfWord(line, j),
           lyricProgress,
-        );
-        pane
-          .querySelector(`#word-${active}-${j}`)
-          ?.style.setProperty("--flow-opacity", opacity.toFixed(3));
-      });
+        ).toFixed(3);
+        if (line.flow[j] === opacity) continue;
+        line.flow[j] = opacity;
+        el.style.setProperty("--flow-opacity", opacity);
+      }
     } else {
       highlightedWord?.classList.remove("active");
       upcomingWord?.classList.remove("upcoming");
@@ -760,6 +857,7 @@ import { createArtworkPalette } from "./theme/artwork.js";
     previousFocus = document.activeElement;
     root.hidden = false;
     key = null;
+    lastMetaKey = null;
     scrollUntil = 0;
     if (launcher) launcher.active = true;
     if (!frameId) frameId = requestAnimationFrame(animate);
@@ -878,7 +976,7 @@ import { createArtworkPalette } from "./theme/artwork.js";
   createLauncher();
 
   window.LumaLyrics = {
-    version: "2.4.0",
+    version: "2.5.0",
     open,
     close: () => close(),
     toggle,
@@ -900,7 +998,7 @@ import { createArtworkPalette } from "./theme/artwork.js";
   window.addEventListener("luma:set-sync-offset", (e) => {
     if (typeof e?.detail?.ms === "number") setSyncOffset(e.detail.ms);
   });
-  emitLuma("luma:ready", { version: "2.4.0" });
+  emitLuma("luma:ready", { version: "2.5.0" });
   root.addEventListener("click", async (e) => {
     const action = e.target.closest("[data-action]")?.dataset.action;
     const syncAdjust = e.target.closest("[data-sync-adjust]");
@@ -959,10 +1057,23 @@ import { createArtworkPalette } from "./theme/artwork.js";
           btn.textContent = "Trying…";
         }
         key = null;
+        lastMetaKey = null;
         await load(true).catch((err) => {
           setSourceState("error");
-          note("Could not load lyrics.\n" + err.message, { retry: true });
+          note(lookupErrorText(err), { retry: true });
         });
+      }
+      if (action === "import-lrc") {
+        if (!currentTrackInfo?.title)
+          Spicetify.showNotification("Play a track before importing lyrics.");
+        else q(".lrc-file").click();
+      }
+      if (action === "remove-lrc" && currentTrackInfo) {
+        removeLocalLyrics(globalThis.localStorage, trackKeyFor(currentTrackInfo));
+        updateImportStatus();
+        key = null;
+        lastMetaKey = null;
+        await load(true);
       }
       if (action === "play") player().togglePlay();
       if (action === "previous") player().back();
@@ -1004,6 +1115,31 @@ import { createArtworkPalette } from "./theme/artwork.js";
       )
         render();
     });
+  q(".lrc-file").addEventListener("change", async (event) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file || !currentTrackInfo?.title) return;
+    try {
+      if (file.size > 512 * 1024)
+        throw Error("That .lrc file is larger than 512 KB.");
+      const text = await file.text();
+      if (!parse(text).length)
+        throw Error("No timed lyric lines were found in that file.");
+      saveLocalLyrics(globalThis.localStorage, trackKeyFor(currentTrackInfo), {
+        text,
+        title: currentTrackInfo.title,
+        artist: currentTrackInfo.artists?.[0] || "",
+      });
+      key = null;
+      lastMetaKey = null;
+      await load(true);
+      updateImportStatus();
+      Spicetify.showNotification?.("Lyrics imported.");
+    } catch (error) {
+      Spicetify.showNotification?.("Luma: " + error.message);
+    }
+  });
   const isEditable = (el) =>
     Boolean(el) &&
     (el.isContentEditable ||

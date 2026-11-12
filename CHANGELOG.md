@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.5.0
+
+- **Lyrics lookups survive a slow LRCLIB.** The exact `/api/get` lookup and a catalog `/api/search` fallback now run in parallel, and the first usable record wins, so tracks with mismatched album/duration tags still resolve. Each request has its own timeout (the track can still be cancelled independently), a timed-out round is retried once, and the status pill reports "Still searching" or "Retrying" while it works.
+- **Import local .lrc files** (Settings → Lyrics): load a timed LRC file for the current track. Imports stay on the device, take priority over LRCLIB, and can be removed from the same panel.
+- **Cheaper playback loop**: word elements are cached per line, and the clock, seek bar, volume, play icon, and per-word opacity only touch the DOM when their values change.
+- **Long track titles wrap to two lines** instead of being cut mid-word; the full title and artist are exposed as tooltips.
+- Companion API bumped to `window.LumaLyrics.version = 2.5.0` (hooks unchanged). The LRCLIB client identifier now reports 2.5.0.
+
 ## v2.4.0
 
 - Split development code into focused modules for settings, lyrics parsing, romanization, translation, artwork-derived Material 3 colors, and overlay styling while keeping the generated single-file Spicetify extension.
