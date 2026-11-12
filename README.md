@@ -9,7 +9,7 @@
 [![Tests](https://img.shields.io/github/actions/workflow/status/Altertone/Luma-Lyrics/test.yml?branch=main&style=flat-square&label=tests&color=386A20)](https://github.com/Altertone/Luma-Lyrics/actions/workflows/test.yml)
 [![Spicetify extension](https://img.shields.io/badge/Spicetify-extension-1DB954?style=flat-square&logo=spotify&logoColor=white)](https://spicetify.app)
 
-[Install](#install) · [Features](#features) · [Settings](#settings) · [Troubleshooting](#troubleshooting) · [Report an issue](https://github.com/Altertone/Luma-Lyrics/issues)
+[Install](#install) · [Settings](#settings) · [Report an issue](https://github.com/Altertone/Luma-Lyrics/issues)
 
 </div>
 
@@ -17,27 +17,11 @@
   <img src="preview.gif" alt="Luma Lyrics showing synced word-by-word lyrics in fullscreen Spotify" width="100%">
 </p>
 
-Luma Lyrics is a free, open-source [Spicetify](https://spicetify.app) extension that adds a fullscreen synced lyrics player to the Spotify desktop app. Lyrics come from [LRCLIB](https://lrclib.net), colors follow the album art, and you can pick how the lyrics move: word by word, line by line, gentle, or static.
+A free [Spicetify](https://spicetify.app) extension that adds a fullscreen synced lyrics player to Spotify. Lyrics come from [LRCLIB](https://lrclib.net), colors follow the album art, and you choose how the lyrics move. It can also romanize Korean, Japanese, and Cyrillic lyrics and show translations.
 
 ---
 
-## Features
-
-- **Synced lyrics** that follow playback, with verified word timing when LRCLIB has it.
-- **Four reading styles:** word by word, line by line, gentle, and static.
-- **Estimated word animation** for tracks that only have line timing.
-- **Album-art colors:** the player and Settings take their palette from the current cover.
-- **Fullscreen player** with now-playing card, seek bar, volume, and playback buttons.
-- **Romanization** for Korean, Japanese kana, and Cyrillic lyrics. Built in, works offline.
-- **Translation** under each line into 12 languages, using Google Translate (optional, needs internet).
-- **Sync offset** from -5 s to +5 s, in 0.05 s steps, for tracks that run early or late.
-- **Click any line to seek** to that moment in the song.
-- **Spinning vinyl artwork**, adjustable text size, background darkness, and scroll smoothness.
-- **Private by default:** preferences stay on your device. See [Privacy](#privacy).
-
 ## The way lyrics should feel
-
-Choose a reading style that fits the song. Switch between modes whenever you like.
 
 <table>
   <tr>
@@ -78,70 +62,42 @@ Choose a reading style that fits the song. Switch between modes whenever you lik
 
 ## Install
 
-You need Spotify desktop with [Spicetify](https://spicetify.app/docs/getting-started) already set up.
+Needs Spotify desktop with [Spicetify](https://spicetify.app/docs/getting-started) set up.
 
 1. Download **[luma-lyrics.js](https://github.com/Altertone/Luma-Lyrics/releases/latest)**.
-2. Put the file in your Spicetify Extensions folder.
-3. Enable it and apply the changes:
+2. Put it in your Spicetify Extensions folder.
+3. Enable it and apply:
 
 ```bash
 spicetify config extensions luma-lyrics.js
 spicetify apply
 ```
 
-Then start a song and click the **Luma Lyrics** button in the playbar, next to the queue button.
+Then click the **Luma Lyrics** button in the playbar. To update, replace the file and run `spicetify apply` again.
 
-**Update:** download the new `luma-lyrics.js`, replace the old file, and run `spicetify apply` again.
-**Remove:** run `spicetify config extensions luma-lyrics.js-` and then `spicetify apply`.
+<details>
+<summary>Something not working?</summary>
 
-### Compatibility
+- **Button missing:** wait a few seconds after Spotify starts, or open it from the developer console with `LumaLyrics.toggle()`.
+- **No lyrics found:** LRCLIB does not have the track yet.
+- **Lyrics early or late:** change **Lyrics sync** in Settings.
+- **Still stuck:** [open an issue](https://github.com/Altertone/Luma-Lyrics/issues) with your Spotify and Spicetify versions.
 
-The playbar button was last checked on Spotify client 1.3.8.620 with a current Spicetify. Spotify changes its page layout often, so if the button is missing on your version, please [open an issue](https://github.com/Altertone/Luma-Lyrics/issues) with your Spotify and Spicetify versions.
+</details>
 
 ---
 
 ## Settings
 
 <p align="center">
-  <img src="screenshots/setting.png" alt="Luma Lyrics settings panel with display style, sync offset, text size and translation options" width="88%">
+  <img src="screenshots/setting.png" alt="Luma Lyrics settings panel" width="88%">
 </p>
-
----
-
-## Troubleshooting
-
-**The playbar button is missing.** Wait a few seconds after Spotify starts, since the extension retries. You can also open it from the developer console with `LumaLyrics.toggle()`.
-
-**"No lyrics found for this recording."** LRCLIB does not have this track. Some tracks only have plain, unsynced lyrics, which Luma shows as text.
-
-**"Lyrics service is busy."** LRCLIB asked clients to slow down. Wait a minute and press **Try again**.
-
-**Lyrics are early or late.** Open Settings and move **Lyrics sync** until the words match the singing.
-
-**Translation does nothing.** It needs an internet connection and the Google Translate service to answer.
 
 ---
 
 ## Privacy
 
-- Lyric lookup sends the track title, artist, album, and duration to [LRCLIB](https://lrclib.net).
-- Translation, if you turn it on, sends the lyric text to Google Translate. It is off by default.
-- Romanization runs locally inside the extension.
-- Your settings are saved only in Spotify's local storage on your device.
-
----
-
-## Build from source
-
-Needs Node.js 18 or newer. `luma-lyrics.js` is generated from `src/`.
-
-```bash
-npm run build   # rebuild luma-lyrics.js from src/
-npm test        # run the tests
-npm run check   # build, test, and confirm the committed build is up to date
-```
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for how to send changes.
+Lyric lookup sends the track title, artist, album, and duration to LRCLIB. Translation is off by default and sends lyric text to Google Translate only when you turn it on. Everything else stays on your device.
 
 ---
 
@@ -155,6 +111,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for how to send changes.
 
 <div align="center">
 
-[MIT License](LICENSE) · [Changelog](CHANGELOG.md) · [Spicetify](https://spicetify.app)
+[MIT License](LICENSE) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
 
 </div>
