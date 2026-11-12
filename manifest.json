@@ -8,9 +8,13 @@
     "authors": [{ "name": "Sasha" }],
     "tags": [
       "lyrics",
+      "synced",
+      "word-by-word",
       "fullscreen",
-      "music",
-      "synced"
+      "lrclib",
+      "romanization",
+      "translation",
+      "music"
     ]
   }
 ]

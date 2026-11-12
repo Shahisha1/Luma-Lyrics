@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Lyrics missing or wrong for a track
+    url: https://lrclib.net
+    about: Lyrics come from LRCLIB. Missing or incorrect lyrics are fixed there, not in this extension.
