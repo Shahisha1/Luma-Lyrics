@@ -467,7 +467,6 @@ export function installStyles(document) {
       background:var(--md-surface-container);
     }
     #luma-root .settings-header h2{margin:0;font-size:20px;line-height:1.3;font-weight:650;letter-spacing:-.3px}
-    #luma-root .settings-description{margin:4px 0 0;color:var(--md-on-surface-variant);font-size:12px;line-height:1.45}
     #luma-root .settings .settings-close{flex:none;display:grid;place-items:center;width:36px;height:36px;margin:0;padding:0;border:1px solid transparent;border-radius:50%;background:transparent;color:var(--md-on-surface-variant)}
     #luma-root .settings .settings-close:hover{background:var(--md-surface-container-high);color:var(--md-on-surface)}
     #luma-root .settings-section{margin:0!important;padding:16px 20px 14px!important;border:0!important;border-bottom:1px solid rgba(var(--md-outline-variant-rgb),.42)!important;border-radius:0!important;background:transparent!important}
@@ -610,7 +609,6 @@ export function installStyles(document) {
       -webkit-backdrop-filter:blur(18px) saturate(1.12);
     }
     #luma-root .settings-header{background:rgba(var(--md-surface-container-rgb),.96)}
-    #luma-root .settings-eyebrow{display:none!important}
     #luma-root .settings button,#luma-root .settings select{
       transition:background-color .14s ease,border-color .14s ease,color .14s ease;
     }
