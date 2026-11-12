@@ -1,0 +1,50 @@
+name: Bug report
+description: Something is broken or looks wrong
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect, and what did you see instead?
+    validations:
+      required: true
+  - type: input
+    id: spotify-version
+    attributes:
+      label: Spotify version
+      placeholder: "1.3.8.620"
+    validations:
+      required: true
+  - type: input
+    id: spicetify-version
+    attributes:
+      label: Spicetify version
+      description: Run `spicetify -v`.
+    validations:
+      required: true
+  - type: input
+    id: luma-version
+    attributes:
+      label: Luma Lyrics version
+      placeholder: "2.3.1"
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Other
+  - type: input
+    id: track
+    attributes:
+      label: Track that fails (if lyrics are the problem)
+      placeholder: "Title - Artist"
+  - type: textarea
+    id: console
+    attributes:
+      label: Console messages
+      description: Open the developer console and paste anything that starts with `[Luma Lyrics]`.
+      render: text
