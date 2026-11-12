@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v2.4.0
 
 - Split development code into focused modules for settings, lyrics parsing, romanization, translation, artwork-derived Material 3 colors, and overlay styling while keeping the generated single-file Spicetify extension.
 - Add a dependency-free build command and CI check that verifies the committed distributable matches source.
@@ -8,6 +8,7 @@
 - Fix the styles test so it checks content across style layers instead of one layer index, which had left CI failing.
 - Start the extension when `Spicetify.Player` is ready even if `Spicetify.Playbar.Button` is missing, and retry mounting the fallback playbar toggle up to 20 times.
 - Rewrite the README with install, update, troubleshooting, and privacy sections; add contributing and security guides, issue templates, and a pull request template; add search tags to the manifest.
+- Companion API bumped to `window.LumaLyrics.version = 2.4.0` (hooks unchanged). The LRCLIB client identifier now reports the current version.
 
 
 ## v2.3.1

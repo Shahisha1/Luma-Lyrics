@@ -1,4 +1,4 @@
-// Luma Lyrics v2.3.1
+// Luma Lyrics v2.4.0
 
 (async () => {
 function parse(text) {
@@ -1612,7 +1612,7 @@ function setArtworkAccent(image) {
           signal: c.signal,
           headers: {
             "Lrclib-Client":
-              "LumaLyrics/2.0 (Spicetify independent extension)",
+              "LumaLyrics/2.4.0 (Spicetify independent extension)",
           },
         });
         if (response.status === 429 || response.status === 503) {
@@ -2009,7 +2009,7 @@ function setArtworkAccent(image) {
   createLauncher();
 
   window.LumaLyrics = {
-    version: "2.3.1",
+    version: "2.4.0",
     open,
     close: () => close(),
     toggle,
@@ -2031,7 +2031,7 @@ function setArtworkAccent(image) {
   window.addEventListener("luma:set-sync-offset", (e) => {
     if (typeof e?.detail?.ms === "number") setSyncOffset(e.detail.ms);
   });
-  emitLuma("luma:ready", { version: "2.3.1" });
+  emitLuma("luma:ready", { version: "2.4.0" });
   root.addEventListener("click", async (e) => {
     const action = e.target.closest("[data-action]")?.dataset.action;
     const syncAdjust = e.target.closest("[data-sync-adjust]");
