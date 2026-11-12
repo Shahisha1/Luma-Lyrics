@@ -1,4 +1,4 @@
-// Luma Lyrics v2.3.1
+// Luma Lyrics v2.4.0
 import { parse, parseYamlSubset, lyricsfileToLines, normalizeName, sameName, splitArtists, trackMatches, pickLyrics, escapeStep, endOfWord, wordFlowOpacity } from "./lyrics/parsing.js";
 import { romanizeText } from "./lyrics/romanization.js";
 import { createTranslationService } from "./services/translation.js";
@@ -481,7 +481,7 @@ import { createArtworkPalette } from "./theme/artwork.js";
           signal: c.signal,
           headers: {
             "Lrclib-Client":
-              "LumaLyrics/2.0 (Spicetify independent extension)",
+              "LumaLyrics/2.4.0 (Spicetify independent extension)",
           },
         });
         if (response.status === 429 || response.status === 503) {
@@ -878,7 +878,7 @@ import { createArtworkPalette } from "./theme/artwork.js";
   createLauncher();
 
   window.LumaLyrics = {
-    version: "2.3.1",
+    version: "2.4.0",
     open,
     close: () => close(),
     toggle,
@@ -900,7 +900,7 @@ import { createArtworkPalette } from "./theme/artwork.js";
   window.addEventListener("luma:set-sync-offset", (e) => {
     if (typeof e?.detail?.ms === "number") setSyncOffset(e.detail.ms);
   });
-  emitLuma("luma:ready", { version: "2.3.1" });
+  emitLuma("luma:ready", { version: "2.4.0" });
   root.addEventListener("click", async (e) => {
     const action = e.target.closest("[data-action]")?.dataset.action;
     const syncAdjust = e.target.closest("[data-sync-adjust]");

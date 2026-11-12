@@ -27,7 +27,7 @@ body:
     id: luma-version
     attributes:
       label: Luma Lyrics version
-      placeholder: "2.3.1"
+      placeholder: "2.4.0"
   - type: dropdown
     id: os
     attributes:
