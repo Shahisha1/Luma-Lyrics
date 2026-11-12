@@ -552,8 +552,8 @@ export function installStyles(document) {
       backdrop-filter:blur(18px) saturate(1.18);
       -webkit-backdrop-filter:blur(18px) saturate(1.18);
     }
-    #luma-root .player>.artwork-stage{margin-bottom:2px}
-    #luma-root .player .cover{border-radius:16px;box-shadow:0 10px 28px rgba(0,0,0,.2)}
+    #luma-root .player>.artwork-stage{margin-bottom:2px;overflow:hidden;border-radius:50%;isolation:isolate}
+    #luma-root .player .cover{width:100%;height:100%;border-radius:50%;object-fit:cover;box-shadow:0 10px 28px rgba(0,0,0,.2)}
     #luma-root .player .title{font-size:clamp(20px,2vw,25px);letter-spacing:-.55px}
     #luma-root .player .artist{font-size:14px}
     #luma-root .player .controls{gap:14px;margin:2px 0}
