@@ -89,25 +89,25 @@ import { createArtworkPalette } from "./theme/artwork.js";
   q(".settings").innerHTML =
     `<header class="settings-header"><div><h2>Settings</h2></div><button class="settings-close" data-action="settings-close" aria-label="Close settings and return to lyrics" title="Close settings (Esc)">${stroke("close")}</button></header>
     <section class="settings-section"><h3>Lyrics</h3>
-      <div class="setting-control mode-control"><span>Display style</span><button class="mode-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="lyric-mode-options"><span class="mode-label">Word by word</span>${stroke("down")}</button><div class="mode-options" id="lyric-mode-options" role="listbox" aria-label="Lyrics display style" hidden><button type="button" role="option" data-mode-value="word">Word by word</button><button type="button" role="option" data-mode-value="block">Line by line</button><button type="button" role="option" data-mode-value="gentle">Gentle</button><button type="button" role="option" data-mode-value="static">Static</button></div></div>
-      <label class="setting-toggle"><span><strong>Estimated word animation</strong></span><input type="checkbox" class="estimated"></label>
+      <div class="setting-control mode-control"><span>Lyrics style</span><button class="mode-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="lyric-mode-options"><span class="mode-label">Word by word</span>${stroke("down")}</button><div class="mode-options" id="lyric-mode-options" role="listbox" aria-label="Lyrics display style" hidden><button type="button" role="option" data-mode-value="word">Word by word</button><button type="button" role="option" data-mode-value="block">Line by line</button><button type="button" role="option" data-mode-value="gentle">Gentle</button><button type="button" role="option" data-mode-value="static">Static</button></div></div>
+      <label class="setting-toggle"><span><strong>Estimate word timing</strong></span><input type="checkbox" class="estimated"></label>
       <div class="setting-control"><span>Lyrics sync <output class="sync-offset-value">0.00 s</output></span><div class="sync-adjust"><button type="button" data-sync-adjust="-50" aria-label="Move lyrics 0.05 seconds earlier">−0.05s</button><input class="sync-offset" type="range" min="-5000" max="5000" step="50" aria-label="Lyrics sync offset"><button type="button" data-sync-adjust="50" aria-label="Move lyrics 0.05 seconds later">+0.05s</button><button type="button" data-sync-adjust="0" aria-label="Reset lyrics sync">Reset</button></div></div>
-      <label class="setting-control"><span>Scroll smoothness <output class="scroll-smoothness-value">65%</output></span><input class="scroll-smoothness" type="range" min="0" max="100" step="5"></label>
+      <label class="setting-control"><span>Scroll <output class="scroll-smoothness-value">65%</output></span><input class="scroll-smoothness" type="range" min="0" max="100" step="5"></label>
       
     </section>
     <section class="settings-section"><h3>Appearance</h3>
       <label class="setting-control"><span>Text size <output class="size-value"></output></span><input class="size" type="range" min="24" max="72" step="1"></label>
-      <label class="setting-control"><span>Background darkness <output class="darkness-value"></output></span><input class="darkness" type="range" min=".15" max=".8" step=".05"></label>
-      <label class="setting-toggle"><span><strong>Spinning vinyl artwork</strong></span><input type="checkbox" class="vinyl"></label>
+      <label class="setting-control"><span>Background dim <output class="darkness-value"></output></span><input class="darkness" type="range" min=".15" max=".8" step=".05"></label>
+      <label class="setting-toggle"><span><strong>Vinyl artwork</strong></span><input type="checkbox" class="vinyl"></label>
       <label class="setting-toggle"><span><strong>Desktop colors</strong></span><input type="checkbox" class="desktop"></label>
     </section>
     <section class="settings-section"><h3>Translation</h3>
       <label class="setting-toggle"><span><strong>Translate lyrics</strong></span><input type="checkbox" class="translate"></label>
-      <label class="setting-control"><span>Translate into</span><select class="translate-lang" aria-label="Translation language"><option value="en">English</option><option value="es">Spanish</option><option value="fr">French</option><option value="de">German</option><option value="pt">Portuguese</option><option value="it">Italian</option><option value="ru">Russian</option><option value="ja">Japanese</option><option value="ko">Korean</option><option value="zh-CN">Chinese</option><option value="hi">Hindi</option><option value="ar">Arabic</option></select></label>
-      <label class="setting-toggle"><span><strong>Romanize lyrics</strong><small>Romanizes Korean, Japanese, Cyrillic, and Hindi lyrics offline.</small></span><input type="checkbox" class="romanize"></label>
+      <label class="setting-control"><span>Language</span><select class="translate-lang" aria-label="Translation language"><option value="en">English</option><option value="es">Spanish</option><option value="fr">French</option><option value="de">German</option><option value="pt">Portuguese</option><option value="it">Italian</option><option value="ru">Russian</option><option value="ja">Japanese</option><option value="ko">Korean</option><option value="zh-CN">Chinese</option><option value="hi">Hindi</option><option value="ar">Arabic</option></select></label>
+      <label class="setting-toggle"><span><strong>Romanize lyrics</strong></span><input type="checkbox" class="romanize"></label>
       
     </section>
-    <footer class="settings-footer"><button data-action="reset-settings">${svg("M3 12a9 9 0 1 0 2.64-6.36L3 8m0-5v5h5")}<span>Reset to defaults</span></button><button data-action="settings-close">Done</button></footer>`;
+    <footer class="settings-footer"><button data-action="reset-settings">${svg("M3 12a9 9 0 1 0 2.64-6.36L3 8m0-5v5h5")}<span>Reset</span></button><button data-action="settings-close">Done</button></footer>`;
   let key = null,
     lines = [],
     active = -1,
